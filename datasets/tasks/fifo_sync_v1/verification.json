@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_fifo_sync.sv",
+    "top": "tb_fifo_sync",
+    "vcd": "fifo_sync.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/fifo_formal.sv",
+    "top": "fifo_formal",
+    "depth": 24,
+    "obligations": [
+      "O_RESET", "O_FLAGS", "O_WRITE_ACCEPT", "O_READ_ACCEPT",
+      "O_FULL_SIMULTANEOUS", "O_EMPTY_SIMULTANEOUS", "O_OCCUPANCY",
+      "O_ORDERING", "O_DOUT_HOLD"
+    ]
+  }
+}

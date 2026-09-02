@@ -1,0 +1,1226 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-debounce-001",
+  "task_id": "debounce_filter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/debounce-001",
+  "source_hashes": {
+    "process_sha256": "7b3bbf8ae14c2e9ed9f38ec92baa35a62fec605f5b745cf3746afd6b67332653",
+    "evidence_sha256": "e14da68b701ea938f01b1f5e2ac552d9874ff21a5e6bcf361b6af16e40367c47",
+    "report_sha256": "42e1b24c6e13b918c802766ed1ee3b18c9d84d8c692be11a1ac9c02e5e339c8f"
+  },
+  "candidate_process": {
+    "task_id": "debounce_filter_v1",
+    "architecture_summary": "Counter-based debounce: a consecutive-difference counter `cnt` with registered `debounced` and `changed` outputs, updated in a single synchronous always_ff block with highest-priority reset, equality cancel, and threshold update.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears debounced, changed, and pending sample count.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Output updates only after exactly STABLE_CYCLES consecutive samples differing from current debounced.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD",
+              "O_THRESHOLD_UPDATE"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "A sample equal to current debounced cancels pending consecutive count.",
+            "maps_to": [
+              "O_BOUNCE_CANCEL"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "changed is a one-cycle registered pulse on output transition, applicable to both directions.",
+            "maps_to": [
+              "O_CHANGED_PULSE",
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "debounced",
+              "noisy_in"
+            ],
+            "writes": [
+              "changed"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: single counter `cnt` plus registered `debounced` and `changed`, no separate FSM.",
+            "maps_to": [
+              "O_RESET",
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "arch_counter"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Counter width is $clog2(STABLE_CYCLES+1) to represent threshold.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "cnt_width"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "All transition logic evaluated in one sequential always_ff block using non-blocking assignments.",
+            "maps_to": [
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "debounced",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On rst, set debounced<=0, changed<=0, cnt<=0 with highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If noisy_in == debounced, clear cnt and deassert changed (bounce cancel).",
+            "maps_to": [
+              "O_BOUNCE_CANCEL",
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "cnt",
+              "changed"
+            ],
+            "rtl_blocks": [
+              "equal_branch"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If noisy_in != debounced and cnt == STABLE_CYCLES-1, update debounced<=noisy_in, assert changed<=1, reset cnt.",
+            "maps_to": [
+              "O_THRESHOLD_UPDATE",
+              "O_CHANGED_PULSE",
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "threshold_branch"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If noisy_in != debounced and cnt < STABLE_CYCLES-1, increment cnt and keep changed low.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "cnt",
+              "changed"
+            ],
+            "rtl_blocks": [
+              "count_branch"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: debounced toggles only when cnt reaches STABLE_CYCLES (threshold branch).",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD",
+              "O_THRESHOLD_UPDATE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "debounced",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_change_only_at_threshold"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: changed high for exactly one cycle after debounced transition.",
+            "maps_to": [
+              "O_CHANGED_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "changed",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_changed_pulse"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: equal sample drives cnt to zero.",
+            "maps_to": [
+              "O_BOUNCE_CANCEL"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_cancel"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: transition rule symmetric for low->high and high->low.",
+            "maps_to": [
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_bidirectional"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declared with parameter STABLE_CYCLES and required ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential always_ff implements reset, cancel, threshold, and count branches.",
+            "maps_to": [
+              "O_RESET",
+              "O_THRESHOLD_UPDATE",
+              "O_BOUNCE_CANCEL",
+              "O_CHANGED_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL satisfies frozen interface and behavioral obligations.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S4.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "sim_check"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "debounce_filter",
+      "code": "module debounce_filter #(\n    parameter int STABLE_CYCLES = 3\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic noisy_in,\n    output logic debounced,\n    output logic changed\n);\n\n    logic [$clog2(STABLE_CYCLES+1)-1:0] cnt;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            debounced <= 1'b0;\n            changed   <= 1'b0;\n            cnt       <= '0;\n        end else begin\n            if (noisy_in == debounced) begin\n                cnt     <= '0;\n                changed <= 1'b0;\n            end else if (cnt == STABLE_CYCLES - 1'b1) begin\n                debounced <= noisy_in;\n                changed   <= 1'b1;\n                cnt       <= '0;\n            end else begin\n                cnt     <= cnt + 1'b1;\n                changed <= 1'b0;\n            end\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Counter width uses $clog2(STABLE_CYCLES+1); changed is a single-cycle pulse; synchronous reset has highest priority."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "81f9a1ce-f53e-4aaf-b44f-d759fae8af5c",
+        "usage": {
+          "prompt_tokens": 1396,
+          "completion_tokens": 14843,
+          "total_tokens": 16239,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 12535
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:debounce_filter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BIDIRECTIONAL",
+        "O_BOUNCE_CANCEL",
+        "O_CHANGED_PULSE",
+        "O_HOLD_BEFORE_THRESHOLD",
+        "O_RESET",
+        "O_THRESHOLD_UPDATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:debounce_filter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BIDIRECTIONAL",
+        "O_BOUNCE_CANCEL",
+        "O_CHANGED_PULSE",
+        "O_HOLD_BEFORE_THRESHOLD",
+        "O_RESET",
+        "O_THRESHOLD_UPDATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.1"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.1",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.1",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "RTL threshold triggers when cnt==STABLE_CYCLES-1 (prior count), not when cnt reaches STABLE_CYCLES; cnt is reset to 0 and never holds STABLE_CYCLES. Property misstates counter value.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "3f1b5aec88a684eff1d6e215953652cfb97de4ee6b2c0eda66154bc719dd2006",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S1.1",
+          "target": "S1.2",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S1.3",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S1.4",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:cnt",
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:debounced",
+            "shared_obligation_context:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:debounced",
+            "shared_obligation_context:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:debounced"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:debounced",
+            "shared_obligation_context:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:debounced",
+            "shared_obligation_context:O_CHANGED_PULSE",
+            "shared_obligation_context:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:changed"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [
+            "S1.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [
+            "S1.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S1.4": {
+          "confirmed_claimed_edges": [
+            "S1.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.3"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S4.1"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD",
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL",
+            "shared_obligation:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BIDIRECTIONAL"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CHANGED_PULSE",
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_THRESHOLD_UPDATE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD_BEFORE_THRESHOLD"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CHANGED_PULSE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_BOUNCE_CANCEL"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 25,
+        "items_with_structural_traceability": 18,
+        "structural_traceability_coverage": 1.0,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "81f9a1ce-f53e-4aaf-b44f-d759fae8af5c",
+      "usage": {
+        "prompt_tokens": 1396,
+        "completion_tokens": 14843,
+        "total_tokens": 16239,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 12535
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "69732db1-b452-455c-b194-92ecc4191b8b",
+      "usage": {
+        "prompt_tokens": 3401,
+        "completion_tokens": 10165,
+        "total_tokens": 13566,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8642
+        }
+      },
+      "finish_reason": "stop",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

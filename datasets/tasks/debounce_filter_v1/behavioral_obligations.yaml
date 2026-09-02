@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: debounce_filter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears debounced, changed, and pending sample history.
+  - id: O_HOLD_BEFORE_THRESHOLD
+    category: timing
+    statement: Fewer than STABLE_CYCLES consecutive differing samples cannot change debounced.
+  - id: O_THRESHOLD_UPDATE
+    category: timing
+    statement: The STABLE_CYCLES-th consecutive differing sample changes debounced immediately after that edge.
+  - id: O_BOUNCE_CANCEL
+    category: transition
+    statement: A sample equal to current debounced cancels all accumulated differing samples.
+  - id: O_BIDIRECTIONAL
+    category: function
+    statement: The same consecutive-sample rule applies to both low-to-high and high-to-low transitions.
+  - id: O_CHANGED_PULSE
+    category: output
+    statement: changed is high for exactly one cycle when debounced changes and otherwise remains low.

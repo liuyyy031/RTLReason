@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "task_id": "debounce_filter_v1",
+  "module_name": "debounce_filter",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "debounced_after_reset": 0,
+    "changed_after_reset": 0,
+    "counter_after_reset": 0
+  },
+  "parameters": {
+    "STABLE_CYCLES": {"type": "integer_at_least_two", "default": 3}
+  },
+  "ports": {
+    "noisy_in": {"direction": "input", "width": 1, "clock_domain": "clk"},
+    "debounced": {"direction": "output", "width": 1},
+    "changed": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "sample": "every_non_reset_rising_edge",
+    "matching_sample": "clear_pending_consecutive_count",
+    "differing_sample": "increment_consecutive_count_toward_STABLE_CYCLES"
+  },
+  "filter_semantics": {
+    "threshold": "exactly_STABLE_CYCLES_consecutive_differing_samples",
+    "threshold_edge_counts": true,
+    "output_update": "immediately_after_threshold_edge",
+    "bounce_cancellation": "any_sample_equal_to_current_debounced_clears_count",
+    "changed": "registered_one_cycle_pulse_only_on_debounced_transition"
+  },
+  "scope": {
+    "cdc_synchronizer": "out_of_scope",
+    "metastability": "out_of_scope"
+  }
+}

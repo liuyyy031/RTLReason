@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/task_manifest.schema.json",
+  "title": "RTLReason Frozen Layered Task Manifest",
+  "type": "object",
+  "required": ["schema_version", "manifest_version", "layer_policy", "tasks"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "manifest_version": {"type": "string"},
+    "layer_policy": {
+      "type": "object",
+      "required": ["basic", "intermediate", "hard"]
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["task_id", "layer", "family", "focus"],
+        "properties": {
+          "task_id": {"type": "string", "minLength": 1},
+          "layer": {"enum": ["basic", "intermediate", "hard"]},
+          "family": {"type": "string", "minLength": 1},
+          "focus": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

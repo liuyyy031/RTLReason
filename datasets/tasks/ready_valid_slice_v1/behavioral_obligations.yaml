@@ -1,0 +1,30 @@
+schema_version: "1.0"
+task_id: ready_valid_slice_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears out_valid and sets out_data to zero.
+  - id: O_READY
+    category: status
+    statement: in_ready combinationally equals !out_valid || out_ready using current output state.
+  - id: O_INPUT_ACCEPT
+    category: acceptance
+    statement: An input word is accepted exactly when in_valid and in_ready are both high at the edge.
+  - id: O_OUTPUT_ACCEPT
+    category: acceptance
+    statement: The current output word is consumed exactly when out_valid and out_ready are both high at the edge.
+  - id: O_BACKPRESSURE
+    category: stability
+    statement: While out_valid is high and out_ready is low, out_valid and out_data hold and no input is accepted.
+  - id: O_REPLACE
+    category: boundary
+    statement: When full with out_ready and in_valid high, the old output is consumed and replaced by in_data with out_valid remaining high.
+  - id: O_DRAIN
+    category: transition
+    statement: When the current output is consumed without a simultaneous input acceptance, out_valid becomes low and out_data holds its previous value.
+  - id: O_NO_BYPASS
+    category: timing
+    statement: An input accepted while empty appears at the registered output only after the active edge, never combinationally before it.
+  - id: O_ORDERING
+    category: data
+    statement: Every output transfer returns accepted input words in order without duplication or loss.

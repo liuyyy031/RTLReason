@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["consecutive sample filter", "threshold off-by-one", "bounce cancellation", "registered change pulse"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_debounce_filter.sv",
+    "top": "tb_debounce_filter",
+    "vcd": "debounce_filter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/debounce_filter_formal.sv",
+    "top": "debounce_filter_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_HOLD_BEFORE_THRESHOLD", "O_THRESHOLD_UPDATE", "O_BOUNCE_CANCEL", "O_BIDIRECTIONAL", "O_CHANGED_PULSE"]
+  }
+}

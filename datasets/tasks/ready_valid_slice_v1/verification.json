@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_ready_valid_slice.sv",
+    "top": "tb_ready_valid_slice",
+    "vcd": "ready_valid_slice.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/ready_valid_formal.sv",
+    "top": "ready_valid_formal",
+    "depth": 24,
+    "obligations": ["O_RESET", "O_READY", "O_INPUT_ACCEPT", "O_OUTPUT_ACCEPT", "O_BACKPRESSURE", "O_REPLACE", "O_DRAIN", "O_NO_BYPASS", "O_ORDERING"]
+  }
+}

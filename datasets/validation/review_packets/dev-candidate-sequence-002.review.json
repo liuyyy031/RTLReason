@@ -1,0 +1,504 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-sequence-002",
+  "task_id": "sequence_detector_1011_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/sequence-002",
+  "source_hashes": {
+    "process_sha256": "06b8302c5c6250def150958b67c3b4ade54b1ba16d29c8504f56de7a8ba36063",
+    "evidence_sha256": "9134fe7b6d0b48264004e4de1d10fac0f7f2414a301971ca337e1293ec18a0f1",
+    "report_sha256": "219dab06b2ce0a97a761e13d786dbcf5cefe0acb38a1d3bc8272d2876ba6b847"
+  },
+  "candidate_process": {
+    "task_id": "sequence_detector_1011_v1",
+    "architecture_summary": "2-bit progress FSM (IDLE/PRE1/PRE10/PRE101) with separate registered match flag; combinatorial next-state and next-match; synchronous reset and valid gating.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Inputs sampled before posedge clk; synchronous high rst has highest priority and clears outputs/state after edge.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Only cycles with bit_valid=1 consume bit_in; invalid cycles hold partial state and clear match.",
+            "maps_to": [
+              "O_VALID_GATE",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Pattern 1011 must be detected with overlap; final 1 is retained as length-1 prefix for next match.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "match is a registered one-cycle pulse, asserted immediately after consuming final 1 and cleared next cycle.",
+            "maps_to": [
+              "O_NONMATCH",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Use 2-bit state register st (IDLE,PRE1,PRE10,PRE101) tracking longest prefix of 1011 seen.",
+            "maps_to": [
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "st"
+            ],
+            "rtl_blocks": [
+              "state_register"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Use registered match output with combinational next_match true only when st=PRE101 and bit_valid and bit_in=1.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.4"
+            ],
+            "reads": [
+              "st",
+              "bit_valid",
+              "bit_in"
+            ],
+            "writes": [
+              "match"
+            ],
+            "rtl_blocks": [
+              "match_register",
+              "next_match_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Invalid cycles hold st and force next_match=0, implementing clear-on-invalid while preserving partial state.",
+            "maps_to": [
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S2.1"
+            ],
+            "reads": [
+              "bit_valid"
+            ],
+            "writes": [
+              "st",
+              "match"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Synchronous reset forces st=IDLE and match=0 with highest priority, clearing all history.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "st",
+              "match"
+            ],
+            "rtl_blocks": [
+              "reset_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "From IDLE, valid 1 goes to PRE1, valid 0 stays IDLE, match=0.",
+            "maps_to": [
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "st",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "st"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "From PRE101, valid 1 asserts match and next st=PRE1 (overlap); valid 0 goes to PRE10 with match=0.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "st",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "st",
+              "match"
+            ],
+            "rtl_blocks": [
+              "next_state_logic",
+              "next_match_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "bit_valid=0 holds st and clears match; rst overrides and clears st and match synchronously.",
+            "maps_to": [
+              "O_VALID_GATE",
+              "O_RESET",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "rst",
+              "bit_valid"
+            ],
+            "writes": [
+              "st",
+              "match"
+            ],
+            "rtl_blocks": [
+              "reset_logic",
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "All register updates occur on posedge clk; outputs observable after edge, inputs sampled before.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "clk"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "clocking"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: match=1 only if previous st=PRE101 and bit_valid=1 and bit_in=1.",
+            "maps_to": [
+              "O_MATCH_1011"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "match",
+              "st",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: after rst, st=IDLE and match=0 for the cycle and until new valid bits.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "rst",
+              "st",
+              "match"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: input stream 1011011 produces exactly two match pulses separated by two cycles.",
+            "maps_to": [
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "match"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: if bit_valid=0, st retains its value across the clock edge.",
+            "maps_to": [
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "bit_valid",
+              "st"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module uses always_ff for synchronous reset and registered st/match, and always_comb for next values.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "bit_valid",
+              "bit_in"
+            ],
+            "writes": [
+              "st",
+              "match"
+            ],
+            "rtl_blocks": [
+              "rtl.code"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "State encodings and transition table assign next_st and next_match per 1011 overlap FSM.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_OVERLAP",
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "st",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "next_st",
+              "next_match"
+            ],
+            "rtl_blocks": [
+              "rtl.code"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Registered match is driven by match <= next_match inside clocked block, yielding one-cycle pulse.",
+            "maps_to": [
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.3"
+            ],
+            "reads": [
+              "next_match"
+            ],
+            "writes": [
+              "match"
+            ],
+            "rtl_blocks": [
+              "rtl.code"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "sequence_detector_1011",
+      "code": "module sequence_detector_1011 (\n  input  logic clk,\n  input  logic rst,\n  input  logic bit_valid,\n  input  logic bit_in,\n  output logic match\n);\n  localparam logic [1:0] IDLE = 2'd0, PRE1 = 2'd1, PRE10 = 2'd2, PRE101 = 2'd3;\n  logic [1:0] st, next_st;\n  logic next_match;\n\n  always_comb begin\n    next_st = st;\n    next_match = 1'b0;\n    if (bit_valid) begin\n      case (st)\n        IDLE:   if (bit_in) next_st = PRE1; else next_st = IDLE;\n        PRE1:   if (~bit_in) next_st = PRE10; else next_st = PRE1;\n        PRE10:  if (bit_in) next_st = PRE101; else next_st = IDLE;\n        PRE101: if (bit_in) begin next_match = 1'b1; next_st = PRE1; end\n                else next_st = PRE10;\n        default: next_st = IDLE;\n      endcase\n    end\n  end\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      st <= IDLE;\n      match <= 1'b0;\n    end else begin\n      st <= next_st;\n      match <= next_match;\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Overlap handled by transitioning to PRE1 on final 1; invalid cycles clear match but hold st."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "fa11adb8-ae8c-46d6-8277-5baec2887c1b",
+        "usage": {
+          "prompt_tokens": 1304,
+          "completion_tokens": 11936,
+          "total_tokens": 13240,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 9423
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:sequence_detector_1011_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_MATCH_1011",
+        "O_NONMATCH",
+        "O_OVERLAP",
+        "O_PULSE",
+        "O_RESET",
+        "O_VALID_GATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:sequence_detector_1011_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_MATCH_1011",
+        "O_NONMATCH",
+        "O_OVERLAP",
+        "O_PULSE",
+        "O_RESET",
+        "O_VALID_GATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_MATCH_1011",
+          "O_NONMATCH",
+          "O_OVERLAP",
+          "O_PULSE",
+          "O_RESET",
+          "O_VALID_GATE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

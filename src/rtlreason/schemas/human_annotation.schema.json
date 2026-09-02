@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/human_annotation.schema.json",
+  "title": "RTLReason Independent Human Annotation",
+  "type": "object",
+  "required": [
+    "annotator_id", "guideline_version", "independent_of_tested_model",
+    "status", "gold_rtl_correct", "gold_process_correct"
+  ],
+  "properties": {
+    "annotator_id": {"type": "string", "minLength": 1},
+    "annotator_role": {"type": ["string", "null"]},
+    "guideline_version": {"type": "string", "minLength": 1},
+    "independent_of_tested_model": {"const": true},
+    "status": {"enum": ["single_annotated", "adjudicated"]},
+    "gold_rtl_correct": {"type": "boolean"},
+    "gold_process_correct": {"type": "boolean"},
+    "gold_first_error_stage": {"type": ["string", "null"]},
+    "gold_root_error": {"type": ["string", "null"]},
+    "gold_error_type_l1": {"type": ["string", "null"]},
+    "gold_error_type_l2": {"type": ["string", "null"]},
+    "gold_parent_dependency": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "gold_affected_obligation": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "notes": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"gold_process_correct": {"const": false}},
+        "required": ["gold_process_correct"]
+      },
+      "then": {
+        "required": ["gold_first_error_stage", "gold_root_error"],
+        "properties": {
+          "gold_first_error_stage": {"type": "string", "minLength": 1},
+          "gold_root_error": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

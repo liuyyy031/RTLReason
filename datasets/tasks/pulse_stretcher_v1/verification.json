@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_pulse_stretcher.sv",
+    "top": "tb_pulse_stretcher",
+    "vcd": "pulse_stretcher.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/pulse_stretcher_formal.sv",
+    "top": "pulse_stretcher_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_TRIGGER", "O_DURATION", "O_RETRIGGER", "O_EXPIRY_PRIORITY", "O_IDLE"]
+  }
+}

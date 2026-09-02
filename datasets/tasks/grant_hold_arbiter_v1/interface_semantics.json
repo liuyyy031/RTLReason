@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "task_id": "grant_hold_arbiter_v1",
+  "module_name": "grant_hold_arbiter",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "grant_after_reset": "4'b0000"
+  },
+  "ports": {
+    "req": {"direction": "input", "width": 4},
+    "accept": {"direction": "input", "width": 1},
+    "grant": {"direction": "output", "width": 4}
+  },
+  "acceptance": {
+    "grant_completion": "accept && current_grant_is_nonzero",
+    "accept_while_idle": "ignored_for_completion_and_does_not_block_selection",
+    "request_withdrawal_after_grant": "does_not_cancel_or_change_grant",
+    "completion_with_requests_present": "clear_only; no_same_edge_replacement"
+  },
+  "arbitration": {
+    "selection_time": "only_on_an_edge_whose_current_grant_is_zero",
+    "priority": "lowest_asserted_request_index_wins",
+    "grant_encoding": "registered_one_hot_or_zero",
+    "busy_hold": "grant_is_stable_until_accept"
+  },
+  "property_boundary": {
+    "class": "safety",
+    "liveness": "no_unconditional_eventual_grant_claim_without_request_persistence_assumptions"
+  }
+}

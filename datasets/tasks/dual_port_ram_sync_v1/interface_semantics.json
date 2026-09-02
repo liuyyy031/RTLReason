@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "task_id": "dual_port_ram_sync_v1",
+  "module_name": "dual_port_ram_sync",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "rd_data_after_reset": 0,
+    "memory_after_reset": "all_words_zero",
+    "operations_accepted_while_reset": false
+  },
+  "parameters": {
+    "DATA_WIDTH": {"type": "integer_at_least_one", "default": 8},
+    "ADDR_WIDTH": {"type": "integer_at_least_one", "default": 2},
+    "DEPTH": "2**ADDR_WIDTH"
+  },
+  "ports": {
+    "wr_en": {"direction": "input", "width": 1},
+    "wr_addr": {"direction": "input", "width": "ADDR_WIDTH"},
+    "wr_data": {"direction": "input", "width": "DATA_WIDTH"},
+    "rd_en": {"direction": "input", "width": 1},
+    "rd_addr": {"direction": "input", "width": "ADDR_WIDTH"},
+    "rd_data": {"direction": "output", "width": "DATA_WIDTH"}
+  },
+  "acceptance": {
+    "write": "wr_en AND NOT rst",
+    "read": "rd_en AND NOT rst",
+    "independent_ports": "read_and_write_can_both_be_accepted"
+  },
+  "read_semantics": {
+    "latency": 1,
+    "request_edge": "rd_addr_sampled_when_rd_en_at_posedge",
+    "result": "registered_pre_edge_memory_value_visible_immediately_after_edge",
+    "disabled": "rd_data_holds"
+  },
+  "collision_semantics": {
+    "same_address_read_write": "read_first_old_value",
+    "write_visibility": "new_value_visible_to_later_reads"
+  }
+}

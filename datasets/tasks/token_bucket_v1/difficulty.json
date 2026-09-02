@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["current-state acceptance", "simultaneous add and consume", "saturating parameterized counter", "registered grant pulse"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

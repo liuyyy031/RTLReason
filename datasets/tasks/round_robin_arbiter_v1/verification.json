@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_round_robin_arbiter.sv",
+    "top": "tb_round_robin_arbiter",
+    "vcd": "round_robin_arbiter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/arbiter_formal.sv",
+    "top": "arbiter_formal",
+    "depth": 24,
+    "obligations": ["O_RESET", "O_ONEHOT", "O_REQUESTED", "O_PRIORITY", "O_ROTATE", "O_IDLE"]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["registered arbitration", "grant stability", "handshake completion", "no same-edge replacement"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

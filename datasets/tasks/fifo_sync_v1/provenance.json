@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "task_id": "fifo_sync_v1",
+  "source": "RTLReason self-constructed benchmark",
+  "created_by": "human-designed trusted asset",
+  "license": "MIT",
+  "trusted_asset_policy": "No tested-model output was used to define the specification, interface semantics, obligations, or gold behavior.",
+  "version": 1
+}

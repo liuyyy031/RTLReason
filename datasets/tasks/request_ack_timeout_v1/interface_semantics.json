@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "task_id": "request_ack_timeout_v1",
+  "module_name": "request_ack_timeout",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "busy_after_reset": 0,
+    "done_after_reset": 0,
+    "timeout_after_reset": 0
+  },
+  "parameters": {
+    "TIMEOUT_CYCLES": {"type": "integer_at_least_two", "default": 4}
+  },
+  "ports": {
+    "req": {"direction": "input", "width": 1},
+    "ack": {"direction": "input", "width": 1},
+    "busy": {"direction": "output", "width": 1},
+    "done": {"direction": "output", "width": 1},
+    "timeout": {"direction": "output", "width": 1}
+  },
+  "flag_semantics": {
+    "busy": "one_outstanding_transaction_exists",
+    "done": "registered_one_cycle_success_pulse",
+    "timeout": "registered_one_cycle_timeout_pulse",
+    "mutual_exclusion": "done_and_timeout_are_never_both_high"
+  },
+  "acceptance": {
+    "request": "req && !busy",
+    "acknowledgement": "ack && busy",
+    "ack_on_request_acceptance_edge": "ignored_because_no_transaction_was_outstanding_before_the_edge",
+    "request_while_busy": "ignored_without_restart",
+    "request_on_completion_edge": "ignored; a new request can be accepted only on a later idle edge"
+  },
+  "timeout_timing": {
+    "request_edge": "If req is accepted at edge N, busy becomes high after edge N.",
+    "service_edges": "Edges N+1 through N+TIMEOUT_CYCLES are the allowed acknowledgement edges.",
+    "timeout_edge": "If ack is low on every allowed service edge, timeout becomes high and busy low after edge N+TIMEOUT_CYCLES.",
+    "final_edge_priority": "ack high at edge N+TIMEOUT_CYCLES produces done, never timeout."
+  }
+}

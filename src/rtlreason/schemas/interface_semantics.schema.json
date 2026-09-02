@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/interface_semantics.schema.json",
+  "title": "RTLReason Interface Semantics",
+  "type": "object",
+  "required": ["schema_version", "task_id", "clock", "reset", "ports", "flag_semantics", "acceptance"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "task_id": {"type": "string", "minLength": 1},
+    "clock": {
+      "type": "object",
+      "required": ["port", "active_edge", "input_sampling", "registered_output_observation"]
+    },
+    "reset": {
+      "type": "object",
+      "required": ["port", "type", "active_level", "priority"]
+    },
+    "ports": {"type": "object", "minProperties": 1},
+    "flag_semantics": {"type": "object"},
+    "acceptance": {"type": "object"},
+    "read_data": {"type": "object"}
+  },
+  "additionalProperties": true
+}

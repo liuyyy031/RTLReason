@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: pulse_stretcher_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears active and timer state, even when trigger is high.
+  - id: O_TRIGGER
+    category: acceptance
+    statement: A trigger sampled without reset makes active high immediately after that edge.
+  - id: O_DURATION
+    category: timing
+    statement: With no retrigger, active is high for exactly PULSE_CYCLES cycles including the accepting trigger edge.
+  - id: O_RETRIGGER
+    category: boundary
+    statement: A trigger while active restarts a complete PULSE_CYCLES interval without a low gap.
+  - id: O_EXPIRY_PRIORITY
+    category: boundary
+    statement: Trigger on an otherwise expiring edge wins and restarts the interval.
+  - id: O_IDLE
+    category: output
+    statement: In the absence of a live interval and trigger, active remains low.

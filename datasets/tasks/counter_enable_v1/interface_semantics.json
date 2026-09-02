@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "task_id": "counter_enable_v1",
+  "module_name": "counter_enable",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "count_after_reset": 0,
+    "overflow_after_reset": 0
+  },
+  "parameters": {
+    "WIDTH": {"type": "positive_integer", "default": 8}
+  },
+  "ports": {
+    "en": {"direction": "input", "width": 1},
+    "load": {"direction": "input", "width": 1},
+    "load_value": {"direction": "input", "width": "WIDTH"},
+    "count": {"direction": "output", "width": "WIDTH"},
+    "overflow": {"direction": "output", "width": 1}
+  },
+  "flag_semantics": {
+    "overflow": "registered_one_cycle_pulse_on_enabled_wrap_only"
+  },
+  "acceptance": {
+    "priority": ["reset", "load", "enable", "hold"],
+    "load": "load",
+    "increment": "en && !load"
+  },
+  "transition": {
+    "reset": "count=0 and overflow=0",
+    "load": "count=load_value and overflow=0",
+    "enable": "count=(count+1) modulo 2**WIDTH; overflow=1 iff previous count was maximum",
+    "idle": "count holds and overflow=0"
+  }
+}

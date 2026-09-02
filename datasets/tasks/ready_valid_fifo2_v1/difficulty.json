@@ -1,0 +1,6 @@
+{
+  "level": "hard",
+  "concepts": ["two-entry queue", "ready-valid backpressure", "full simultaneous replacement", "FIFO ordering", "no-bypass timing"],
+  "formal_core": true,
+  "expected_process_items": "20-30"
+}

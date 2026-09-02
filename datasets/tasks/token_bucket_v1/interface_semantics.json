@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "task_id": "token_bucket_v1",
+  "module_name": "token_bucket",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "tokens_after_reset": 0,
+    "grant_after_reset": 0
+  },
+  "parameters": {
+    "CAPACITY": {"type": "integer_at_least_two", "default": 3},
+    "TOKEN_WIDTH": "$clog2(CAPACITY+1)"
+  },
+  "ports": {
+    "req": {"direction": "input", "width": 1},
+    "grant": {"direction": "output", "width": 1},
+    "tokens": {"direction": "output", "width": "$clog2(CAPACITY+1)"}
+  },
+  "acceptance": {
+    "consume": "req && current_tokens_greater_than_zero",
+    "replenish": "current_tokens_less_than_CAPACITY",
+    "empty_request": "request_rejected_while_replenishment_still_adds_one",
+    "middle_request": "consume_and_replenish_both_accepted_so_count_holds",
+    "full_request": "consume_accepted_replenish_rejected_so_count_decrements"
+  },
+  "output_semantics": {
+    "tokens": "registered_current_count_after_the_edge",
+    "grant": "registered_one_cycle_pulse_for_consumption_accepted_from_pre_edge_state",
+    "range": "zero_through_CAPACITY_inclusive"
+  }
+}

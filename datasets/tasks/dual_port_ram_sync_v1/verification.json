@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_dual_port_ram_sync.sv",
+    "top": "tb_dual_port_ram_sync",
+    "vcd": "dual_port_ram_sync.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/dual_port_ram_sync_formal.sv",
+    "top": "dual_port_ram_sync_formal",
+    "depth": 18,
+    "obligations": [
+      "O_RESET",
+      "O_WRITE",
+      "O_READ",
+      "O_READ_LATENCY",
+      "O_HOLD",
+      "O_READ_FIRST",
+      "O_INDEPENDENT_PORTS"
+    ]
+  }
+}

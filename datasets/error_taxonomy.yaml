@@ -1,0 +1,33 @@
+schema_version: "1.0"
+levels:
+  Specification:
+    - Requirement Omission
+    - Interface Semantics Misread
+    - Boundary Case Misread
+  State Modeling:
+    - Missing State
+    - Invalid State Invariant
+    - Capacity Representation Error
+  Transition Logic:
+    - Guard Condition Omission
+    - Incorrect State Update
+    - Simultaneous Operation Error
+    - Pointer Wrap Error
+  Temporal Semantics:
+    - Read Latency Error
+    - Current-vs-Next State Error
+    - Reset Timing Error
+  Property:
+    - Incorrect Antecedent
+    - Incorrect Consequent
+    - Vacuous Property
+    - Unjustified Liveness
+  Implementation:
+    - RTL Syntax or Elaboration
+    - Width or Signedness
+    - Blocking-vs-Nonblocking
+    - Incomplete Assignment
+  Format/Traceability:
+    - Missing Stage or Item
+    - Unknown Obligation Mapping
+    - Unsupported Dependency Claim

@@ -1,0 +1,1962 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-sequence-001",
+  "task_id": "sequence_detector_1011_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/sequence-001",
+  "source_hashes": {
+    "process_sha256": "d014d7d79d7124cd5b64d6248b7e2402b997043c228ef996372bd539e9e34984",
+    "evidence_sha256": "7f86dd754827122d0703b0e74d3ae32fb865eaa68d4964ffdd69a57496ae1b29",
+    "report_sha256": "4033cb91adedee2c5c5f94b73c3e0b0e885148981ec3884a7f82521eb45f1261"
+  },
+  "candidate_process": {
+    "task_id": "sequence_detector_1011_v1",
+    "architecture_summary": "Registered 4-state prefix-length FSM (0,1,2,3) with combinatorial next-state and match-next, synchronous high reset, valid-gated update.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module samples bit_valid and bit_in before posedge clk and updates registered match after edge per frozen interface.",
+            "maps_to": [
+              "O_VALID_GATE",
+              "O_MATCH_1011"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears match and all partial-match history with highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Pattern 1011 with overlap means final 1 becomes prefix 1 for next match; stream 1011011 yields two pulses.",
+            "maps_to": [
+              "O_OVERLAP",
+              "O_MATCH_1011"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "On invalid cycle match clears but partial state holds; match is one-cycle pulse otherwise.",
+            "maps_to": [
+              "O_VALID_GATE",
+              "O_PULSE",
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Use 2-bit registered state state_q encoding prefix length 0..3 of pattern 1011; reset sets state_q=2'b00.",
+            "maps_to": [
+              "O_RESET",
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "state_q"
+            ],
+            "rtl_blocks": [
+              "state_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Use combinatorial state_next from state_q, bit_in, bit_valid implementing overlapping prefix transitions.",
+            "maps_to": [
+              "O_OVERLAP",
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "state_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Use registered match_q driven by match_next = bit_valid ? (state_q==2'b11 && bit_in) : 1'b0, giving one-cycle pulse and clearing on invalid/reset.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_NONMATCH",
+              "O_PULSE",
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.4"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "match_q",
+              "match_next"
+            ],
+            "rtl_blocks": [
+              "match_logic",
+              "match_reg"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Single synchronous reset always_ff updates state_q and match_q with rst highest priority; else if bit_valid update both, else hold state_q and force match_q=0.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_GATE",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "state_next",
+              "match_next",
+              "rst",
+              "bit_valid"
+            ],
+            "writes": [
+              "state_q",
+              "match_q"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "In state 0, input 1 -> state1; input 0 -> state0.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in"
+            ],
+            "writes": [
+              "state_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "In state1, input 0 -> state2; input 1 -> state1.",
+            "maps_to": [
+              "O_NONMATCH",
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in"
+            ],
+            "writes": [
+              "state_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "In state2, input 1 -> state3; input 0 -> state0.",
+            "maps_to": [
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in"
+            ],
+            "writes": [
+              "state_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "In state3, input 1 -> match_next=1 and next state1 (overlap); input 0 -> match_next=0 and next state2.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_OVERLAP",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S2.3"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in"
+            ],
+            "writes": [
+              "state_next",
+              "match_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic",
+              "match_logic"
+            ]
+          },
+          {
+            "id": "S3.5",
+            "stage": "S3",
+            "claim": "Temporal: match_q updates only on posedge clk; after reset or invalid cycle it is 0; after consuming final 1 it is 1 for exactly one clock period.",
+            "maps_to": [
+              "O_PULSE",
+              "O_RESET",
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "match_next",
+              "rst",
+              "bit_valid"
+            ],
+            "writes": [
+              "match_q"
+            ],
+            "rtl_blocks": [
+              "match_reg",
+              "seq_update"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: rst leads to match_q==0 && state_q==0 one cycle later.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.5"
+            ],
+            "reads": [
+              "rst",
+              "match_q",
+              "state_q"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: bit_valid && state_q==3 && bit_in implies match_q high next cycle.",
+            "maps_to": [
+              "O_MATCH_1011"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "bit_valid",
+              "state_q",
+              "bit_in",
+              "match_q"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: stream 1011011 produces two match pulses separated by two cycles.",
+            "maps_to": [
+              "O_OVERLAP"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "bit_valid",
+              "bit_in",
+              "match_q"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: !bit_valid implies match_q==0 next cycle while state_q unchanged.",
+            "maps_to": [
+              "O_VALID_GATE",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.5"
+            ],
+            "reads": [
+              "bit_valid",
+              "match_q",
+              "state_q"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Declare module sequence_detector_1011 with ports clk, rst, bit_valid, bit_in, match.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_GATE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement state register and match register with synchronous reset and valid gate as described.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_GATE",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S3.5"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "bit_valid",
+              "state_next",
+              "match_next"
+            ],
+            "writes": [
+              "state_q",
+              "match_q"
+            ],
+            "rtl_blocks": [
+              "state_reg",
+              "match_reg",
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement combinatorial next-state and match-next logic for overlapping 1011 FSM.",
+            "maps_to": [
+              "O_MATCH_1011",
+              "O_OVERLAP",
+              "O_NONMATCH"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "state_q",
+              "bit_in",
+              "bit_valid"
+            ],
+            "writes": [
+              "state_next",
+              "match_next"
+            ],
+            "rtl_blocks": [
+              "next_state_logic",
+              "match_logic"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Complete RTL placed in rtl.code satisfies all obligations.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_GATE",
+              "O_MATCH_1011",
+              "O_NONMATCH",
+              "O_OVERLAP",
+              "O_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2",
+              "S5.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "sequence_detector_1011",
+      "code": "module sequence_detector_1011 (\n  input  logic clk,\n  input  logic rst,\n  input  logic bit_valid,\n  input  logic bit_in,\n  output logic match\n);\n\n  // module_decl\n  // state encoding: 0=none,1='1',2='10',3='101'\n  logic [1:0] state_q;\n  logic [1:0] state_next;\n  logic       match_q;\n  logic       match_next;\n\n  // next_state_logic\n  always_comb begin : next_state_logic\n    state_next = state_q;\n    if (bit_valid) begin\n      case (state_q)\n        2'b00: state_next = bit_in ? 2'b01 : 2'b00;\n        2'b01: state_next = bit_in ? 2'b01 : 2'b10;\n        2'b10: state_next = bit_in ? 2'b11 : 2'b00;\n        2'b11: state_next = bit_in ? 2'b01 : 2'b10;\n        default: state_next = 2'b00;\n      endcase\n    end else begin\n      state_next = state_q;\n    end\n  end\n\n  // match_logic\n  always_comb begin : match_logic\n    if (bit_valid && state_q == 2'b11 && bit_in)\n      match_next = 1'b1;\n    else\n      match_next = 1'b0;\n  end\n\n  // seq_update (state_reg, match_reg)\n  always_ff @(posedge clk) begin : seq_update\n    if (rst) begin\n      state_q <= 2'b00;\n      match_q <= 1'b0;\n    end else begin\n      state_q <= state_next;\n      match_q <= match_next;\n    end\n  end\n\n  assign match = match_q;\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Overlap handled by transitioning to state 1 after full match."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "834bef63-eff6-4526-ba8c-48515dc00a36",
+        "usage": {
+          "prompt_tokens": 1304,
+          "completion_tokens": 14665,
+          "total_tokens": 15969,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 11767
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:sequence_detector_1011_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_MATCH_1011",
+        "O_NONMATCH",
+        "O_OVERLAP",
+        "O_PULSE",
+        "O_RESET",
+        "O_VALID_GATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:sequence_detector_1011_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_MATCH_1011",
+        "O_NONMATCH",
+        "O_OVERLAP",
+        "O_PULSE",
+        "O_RESET",
+        "O_VALID_GATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "148527d452df4bc655815c27ee3f3faae5c0ba09dbabde93571c99953e3ab615",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S3.5",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:state_q",
+            "shared_obligation_context:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:state_reg",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:state_next",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:next_state_logic"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:match_next",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:match_logic",
+            "shared_obligation_context:O_MATCH_1011",
+            "shared_obligation_context:O_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.5",
+          "reasons": [
+            "rtl_traceability:match_reg",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:state_q",
+            "shared_obligation_context:O_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.5",
+          "reasons": [
+            "rtl_traceability:seq_update",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_RESET",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:state_q",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:state_q",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:next_state_logic",
+            "shared_obligation_context:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:next_state_logic",
+            "shared_obligation_context:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:next_state_logic"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S3.5",
+          "reasons": [
+            "def_use:match_next",
+            "shared_obligation_context:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:match_next",
+            "def_use:state_next",
+            "shared_obligation_context:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:match_logic",
+            "rtl_traceability:next_state_logic",
+            "shared_obligation_context:O_MATCH_1011",
+            "shared_obligation_context:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:match_q",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:match_q"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:match_q"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:match_q",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:match_reg",
+            "rtl_traceability:seq_update",
+            "shared_obligation_context:O_PULSE",
+            "shared_obligation_context:O_RESET",
+            "shared_obligation_context:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:state_q"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.3",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.5": {
+          "confirmed_claimed_edges": [
+            "S2.3",
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.5"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.4",
+            "S3.5"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.5"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.5"
+          ],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.5"
+          ],
+          "missing_claimed_edges": [
+            "S2.1",
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S5.1",
+            "S5.2",
+            "S5.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S1.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S1.4",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_NONMATCH"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_OVERLAP",
+            "shared_obligation:O_PULSE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_OVERLAP"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PULSE",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_VALID_GATE"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MATCH_1011",
+            "shared_obligation:O_NONMATCH",
+            "shared_obligation:O_OVERLAP"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 21,
+        "claimed_dependency_count": 30,
+        "items_with_structural_traceability": 16,
+        "structural_traceability_coverage": 0.7619047619047619,
+        "gaps": {
+          "S5.4": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "834bef63-eff6-4526-ba8c-48515dc00a36",
+      "usage": {
+        "prompt_tokens": 1304,
+        "completion_tokens": 14665,
+        "total_tokens": 15969,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11767
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "d4f11031-25ba-487c-b68a-3b1b673bf9b9",
+      "usage": {
+        "prompt_tokens": 3918,
+        "completion_tokens": 6847,
+        "total_tokens": 10765,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5062
+        }
+      },
+      "finish_reason": "stop",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

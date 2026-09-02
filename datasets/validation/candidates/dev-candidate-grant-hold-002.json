@@ -1,0 +1,1155 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-grant-hold-002",
+  "task_id": "grant_hold_arbiter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/grant-hold-002",
+  "source_hashes": {
+    "process_sha256": "4dd9a203d77b8483497acec75c6101536ac5b9148acc684e94f115ee875c20e9",
+    "evidence_sha256": "1d67e2df3c70370d816efc79a78f5b8b8c4324a0980bae07a590936b8a7357ee",
+    "report_sha256": "4ca892e27ef868f4f56792c9ece29a765521ad710d0986b422ded9192da0034b"
+  },
+  "candidate_process": {
+    "task_id": "grant_hold_arbiter_v1",
+    "architecture_summary": "Single 4-bit registered grant vector with combinational next-state logic implementing synchronous reset in flop, priority encoder for idle selection, and hold/clear on accept.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high reset clears grant to zero irrespective of other inputs.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "On idle (grant zero) non-reset edge, sample req and register lowest-index asserted requester; no req yields zero.",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Nonzero grant stays stable until accept, ignoring req changes, and remains one-hot-or-zero.",
+            "maps_to": [
+              "O_HOLD",
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Sampled accept with nonzero grant clears it with no same-edge replacement; accept while idle does not block selection.",
+            "maps_to": [
+              "O_ACCEPT_CLEAR",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a single 4-bit register grant_reg as only state; nonzero encodes busy.",
+            "maps_to": [
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "grant_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational next_grant computed from grant_reg, req, accept drives the register.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "grant_reg",
+              "req",
+              "accept"
+            ],
+            "writes": [
+              "next_grant"
+            ],
+            "rtl_blocks": [
+              "next_grant_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Priority encoder sub-logic produces one-hot lowest-index grant when idle.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_IDLE_SELECT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "req"
+            ],
+            "writes": [
+              "next_grant"
+            ],
+            "rtl_blocks": [
+              "priority_encoder"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Hold/clear sub-logic keeps grant_reg when busy and accept low, else clears on accept.",
+            "maps_to": [
+              "O_HOLD",
+              "O_ACCEPT_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "grant_reg",
+              "accept"
+            ],
+            "writes": [
+              "next_grant"
+            ],
+            "rtl_blocks": [
+              "hold_clear_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk if rst high, grant_reg loads zero (synchronous reset highest priority).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "sync_reset"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If grant_reg zero and rst low, grant_reg loads priority encoder output next_grant.",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "grant_reg",
+              "req"
+            ],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "idle_select"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If grant_reg nonzero and accept low, grant_reg retains its value.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "grant_reg",
+              "accept"
+            ],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "busy_hold"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If grant_reg nonzero and accept high, grant_reg loads zero with no req replacement.",
+            "maps_to": [
+              "O_ACCEPT_CLEAR",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "grant_reg",
+              "accept"
+            ],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "accept_clear"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: rst high implies post-edge grant == 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "grant_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: grant is always one-hot-or-zero invariant.",
+            "maps_to": [
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.3"
+            ],
+            "reads": [
+              "grant_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: grant nonzero and accept => next grant zero.",
+            "maps_to": [
+              "O_ACCEPT_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "grant_reg",
+              "accept"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: idle edge with req selects lowest index.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_IDLE_SELECT"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "req",
+              "grant_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module ports and signal declarations per frozen interface.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_ports"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential always_ff updates grant_reg with next_grant at posedge clk and synchronous reset.",
+            "maps_to": [
+              "O_RESET",
+              "O_HOLD",
+              "O_ACCEPT_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "next_grant"
+            ],
+            "writes": [
+              "grant_reg"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Combinational block computes sel_grant priority encoder and next_grant mux including hold/clear.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_IDLE_SELECT",
+              "O_ONEHOT",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "grant_reg",
+              "req",
+              "accept"
+            ],
+            "writes": [
+              "next_grant"
+            ],
+            "rtl_blocks": [
+              "comb_next"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Assign registered grant_reg to output port grant.",
+            "maps_to": [
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "grant_reg"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "grant_hold_arbiter",
+      "code": "module grant_hold_arbiter (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic [3:0]  req,\n  input  logic        accept,\n  output logic [3:0]  grant\n);\n  logic [3:0] grant_reg;\n  logic [3:0] next_grant;\n  logic [3:0] sel_grant;\n\n  always_comb begin\n    sel_grant = 4'b0000;\n    if (req[0])      sel_grant = 4'b0001;\n    else if (req[1]) sel_grant = 4'b0010;\n    else if (req[2]) sel_grant = 4'b0100;\n    else if (req[3]) sel_grant = 4'b1000;\n  end\n\n  always_comb begin\n    if (grant_reg != 4'b0000)\n      next_grant = accept ? 4'b0000 : grant_reg;\n    else\n      next_grant = sel_grant;\n  end\n\n  always_ff @(posedge clk) begin\n    if (rst)\n      grant_reg <= 4'b0000;\n    else\n      grant_reg <= next_grant;\n  end\n\n  assign grant = grant_reg;\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Synchronous reset implemented inside always_ff; next_grant handles idle select and busy hold/clear."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "f59ff748-3837-46f2-a436-e9c32f6b6e5c",
+        "usage": {
+          "prompt_tokens": 1397,
+          "completion_tokens": 13881,
+          "total_tokens": 15278,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 11499
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:grant_hold_arbiter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT_CLEAR",
+        "O_HOLD",
+        "O_IDLE_ACCEPT",
+        "O_IDLE_SELECT",
+        "O_NO_REPLACE",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:grant_hold_arbiter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT_CLEAR",
+        "O_HOLD",
+        "O_IDLE_ACCEPT",
+        "O_IDLE_SELECT",
+        "O_NO_REPLACE",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_ACCEPT_CLEAR",
+          "O_HOLD",
+          "O_IDLE_ACCEPT",
+          "O_IDLE_SELECT",
+          "O_NO_REPLACE",
+          "O_ONEHOT",
+          "O_PRIORITY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.4"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.4",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.4",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Claim 'idle edge with req selects lowest index' omits rst==0 guard. On a reset edge where grant_reg==0 and req!=0, post-edge grant is zero, not selected, violating O_IDLE_SELECT which requires non-reset edge. As a universal property it is false.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "fdcd228b4404a8e59260500dd5ca0685c9a414b5cfa41bf5af526281417e7dfe",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:next_grant",
+            "shared_obligation_context:O_ACCEPT_CLEAR",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:grant_reg",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:grant_reg",
+            "shared_obligation_context:O_IDLE_SELECT",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:grant_reg",
+            "shared_obligation_context:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:grant_reg"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.3",
+            "S2.4"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR",
+            "shared_obligation:O_IDLE_ACCEPT",
+            "shared_obligation:O_NO_REPLACE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_ACCEPT",
+            "shared_obligation:O_NO_REPLACE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR",
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_ACCEPT",
+            "shared_obligation:O_NO_REPLACE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCEPT_CLEAR"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE_SELECT",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 20,
+        "claimed_dependency_count": 24,
+        "items_with_structural_traceability": 16,
+        "structural_traceability_coverage": 0.8,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "f59ff748-3837-46f2-a436-e9c32f6b6e5c",
+      "usage": {
+        "prompt_tokens": 1397,
+        "completion_tokens": 13881,
+        "total_tokens": 15278,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11499
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "494dacbb-1478-47a4-81d2-1223d707f262",
+      "usage": {
+        "prompt_tokens": 3624,
+        "completion_tokens": 7944,
+        "total_tokens": 11568,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6660
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

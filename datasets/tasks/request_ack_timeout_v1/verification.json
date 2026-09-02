@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_request_ack_timeout.sv",
+    "top": "tb_request_ack_timeout",
+    "vcd": "request_ack_timeout.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/request_ack_timeout_formal.sv",
+    "top": "request_ack_timeout_formal",
+    "depth": 24,
+    "obligations": ["O_RESET", "O_REQUEST_ACCEPT", "O_INITIAL_ACK_IGNORED", "O_ACK_COMPLETE", "O_ACK_PRIORITY", "O_TIMEOUT_EXACT", "O_BUSY_REQUEST_IGNORED", "O_PULSES"]
+  }
+}

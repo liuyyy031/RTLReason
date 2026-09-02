@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: rising_edge_detector_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears pulse and the remembered input sample, regardless of signal_in.
+  - id: O_RISE
+    category: transition
+    statement: A non-reset sample of 1 following a remembered sample of 0 asserts registered pulse immediately after that edge.
+  - id: O_NO_REPEAT
+    category: output
+    statement: Consecutive sampled high input cycles produce a pulse only on the first high sample.
+  - id: O_FALL
+    category: transition
+    statement: A sampled transition from 1 to 0 does not assert pulse.
+  - id: O_HISTORY
+    category: state
+    statement: Every non-reset edge replaces the remembered sample with the current signal_in value.
+  - id: O_FIRST_AFTER_RESET
+    category: boundary
+    statement: Because reset history is 0 and reset does not sample signal_in, a high input on the first non-reset edge produces a pulse.

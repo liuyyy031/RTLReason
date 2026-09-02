@@ -1,0 +1,476 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-rising-edge-001",
+  "task_id": "rising_edge_detector_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/rising-edge-001",
+  "source_hashes": {
+    "process_sha256": "2c908cb3f2ca5052d8c09ec4e297e9bfb9ca489ce8942fa47c0d1184d6c86517",
+    "evidence_sha256": "27a58799526c24564d5d67fd7d0dd92a2f97d59acc265f6313f4faea95207764",
+    "report_sha256": "99b72b3449aeb140db54478089bd86754e3143d441cc1f30b0187cf1a286be8e"
+  },
+  "candidate_process": {
+    "task_id": "rising_edge_detector_v1",
+    "architecture_summary": "Two registers (prev_sample and pulse) with synchronous high reset and combinational pulse-next logic signal_in & ~prev_sample.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst has highest priority and clears pulse and previous sample to 0 without sampling signal_in.",
+            "maps_to": [
+              "O_RESET",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "On non-reset posedge, new sample is compared to remembered sample; pulse equals (sample=1 and prev=0).",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Remembered sample is replaced by current sample on every non-reset edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a 1-bit register prev_sample to store the accepted sample from the previous non-reset edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "prev_sample_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Architecture uses a 1-bit output register pulse driven by next expression signal_in & ~prev_sample.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S2.1"
+            ],
+            "reads": [
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "pulse_reg",
+              "pulse_next_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Both registers share synchronous high reset to 0; reset does not update prev_sample from signal_in.",
+            "maps_to": [
+              "O_RESET",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "reset_sync"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk, if rst is high, prev_sample and pulse are set to 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_reset"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "At posedge clk when rst is low, prev_sample takes the value of signal_in sampled before the edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in"
+            ],
+            "writes": [
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "always_ff_sample"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "At same edge, pulse becomes signal_in & ~prev_sample using values before the edge.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.2"
+            ],
+            "reads": [
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_pulse"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Because prev_sample is 0 after reset, first non-reset high signal_in yields pulse=1 and updates prev_sample to 1, preventing repeat while held high.",
+            "maps_to": [
+              "O_FIRST_AFTER_RESET",
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in"
+            ],
+            "writes": [
+              "pulse",
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "first_edge_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Reset property: rst high at posedge implies next pulse==0 and prev_sample==0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "pulse",
+              "prev_sample"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Rise property: if prev_sample==0 and signal_in==1 at edge, then pulse==1 after edge.",
+            "maps_to": [
+              "O_RISE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "No-repeat property: if prev_sample==1 and signal_in==1, then pulse==0.",
+            "maps_to": [
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Fall property: if prev_sample==1 and signal_in==0, then pulse==0.",
+            "maps_to": [
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module rising_edge_detector with declared ports clk, rst, signal_in, pulse.",
+            "maps_to": [
+              "O_HISTORY",
+              "O_RISE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "module_ports"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement sequential block: always_ff @(posedge clk) with synchronous reset assigning pulse<=0, prev_sample<=0 when rst, else prev_sample<=signal_in, pulse<=signal_in & ~prev_sample.",
+            "maps_to": [
+              "O_RESET",
+              "O_HISTORY",
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Declare pulse as output reg/logic and prev_sample as internal reg, making pulse registered and stable between edges.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "pulse",
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "declarations"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "rising_edge_detector",
+      "code": "module rising_edge_detector (\n    input  logic clk,\n    input  logic rst,\n    input  logic signal_in,\n    output logic pulse\n);\n\n    logic prev_sample;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            pulse       <= 1'b0;\n            prev_sample <= 1'b0;\n        end else begin\n            prev_sample <= signal_in;\n            pulse       <= signal_in & ~prev_sample;\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Reset does not sample signal_in, so first high after reset pulses."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "526fd07a-710f-4736-8212-b65f3c700716",
+        "usage": {
+          "prompt_tokens": 1260,
+          "completion_tokens": 9051,
+          "total_tokens": 10311,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 6921
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:rising_edge_detector_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_FALL",
+        "O_FIRST_AFTER_RESET",
+        "O_HISTORY",
+        "O_NO_REPEAT",
+        "O_RESET",
+        "O_RISE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:rising_edge_detector_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_FALL",
+        "O_FIRST_AFTER_RESET",
+        "O_HISTORY",
+        "O_NO_REPEAT",
+        "O_RESET",
+        "O_RISE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 16).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 16,
+        "configured_obligations": [
+          "O_FALL",
+          "O_FIRST_AFTER_RESET",
+          "O_HISTORY",
+          "O_NO_REPEAT",
+          "O_RESET",
+          "O_RISE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

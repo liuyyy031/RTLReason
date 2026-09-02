@@ -1,0 +1,476 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-shift-002",
+  "task_id": "shift_register_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/shift-002",
+  "source_hashes": {
+    "process_sha256": "097b0a8db88c3f91d165724ab977c0c08d0a13c870f48e80332a649d9bdf54ee",
+    "evidence_sha256": "49b2a5452c5ae0c33483a237d69d430306786b73031190f1fc64e9ca06d7d92b",
+    "report_sha256": "19a39b2814767ccc64a6e83c72ac56da6b8bc4e142f58dd6fb9def3532d51208"
+  },
+  "candidate_process": {
+    "task_id": "shift_register_v1",
+    "architecture_summary": "Single registered shift vector q_reg with synchronous reset priority and combinational assignments for q and serial_out.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears all bits of q per O_RESET.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "When en=1 and rst=0, q shifts toward MSB with serial_in at LSB per O_SHIFT and O_DIRECTION.",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "When en=0 and rst=0, q holds per O_HOLD and serial_out equals q[WIDTH-1] per O_SERIAL_OUT.",
+            "maps_to": [
+              "O_HOLD",
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Reset overrides enable and serial input per O_PRIORITY.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a single registered vector q_reg[WIDTH-1:0] as the only state element.",
+            "maps_to": [
+              "O_RESET",
+              "O_SHIFT"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "q_reg"
+            ],
+            "rtl_blocks": [
+              "q_reg_decl"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "serial_out is a continuous combinational assign from q_reg[WIDTH-1] with no extra state.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "q_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "serial_out_assign"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Synchronous reset and enable evaluated in one always_ff @(posedge clk) block with rst priority.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.4"
+            ],
+            "reads": [
+              "rst",
+              "en",
+              "serial_in",
+              "q_reg"
+            ],
+            "writes": [
+              "q_reg"
+            ],
+            "rtl_blocks": [
+              "shift_always"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Parameter WIDTH is configurable with default 8 and sizes q_reg and serial_out select.",
+            "maps_to": [
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "param_width"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk, if rst==1 then q_reg <= 0 (synchronous reset).",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "q_reg"
+            ],
+            "rtl_blocks": [
+              "shift_always"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Else if en==1 then q_reg <= {q_reg[WIDTH-2:0], serial_in} (shift toward MSB, insert at bit0).",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "en",
+              "q_reg",
+              "serial_in"
+            ],
+            "writes": [
+              "q_reg"
+            ],
+            "rtl_blocks": [
+              "shift_always"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Else q_reg <= q_reg (hold) when en==0 and rst==0.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "en",
+              "rst",
+              "q_reg"
+            ],
+            "writes": [
+              "q_reg"
+            ],
+            "rtl_blocks": [
+              "shift_always"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "serial_out tracks q_reg[WIDTH-1] combinationally every cycle.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "q_reg"
+            ],
+            "writes": [
+              "serial_out"
+            ],
+            "rtl_blocks": [
+              "serial_out_assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: after reset edge q==0 and serial_out==0.",
+            "maps_to": [
+              "O_RESET",
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.4"
+            ],
+            "reads": [
+              "q_reg",
+              "serial_out"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: with en=1, serial_out equals serial_in delayed by WIDTH-1 clocks.",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION",
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.4"
+            ],
+            "reads": [
+              "q_reg",
+              "serial_in",
+              "serial_out"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: with en=0, q and serial_out remain unchanged across edges.",
+            "maps_to": [
+              "O_HOLD",
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "q_reg",
+              "serial_out",
+              "en"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module shift_register parameterized with WIDTH declares clk, rst, en, serial_in, q, serial_out per interface.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Registered shift logic implements reset priority, shift, and hold in always_ff.",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY",
+              "O_SHIFT",
+              "O_DIRECTION",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "serial_in",
+              "q_reg"
+            ],
+            "writes": [
+              "q_reg",
+              "q"
+            ],
+            "rtl_blocks": [
+              "shift_always"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Continuous assign drives q and serial_out from q_reg.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "q_reg"
+            ],
+            "writes": [
+              "q",
+              "serial_out"
+            ],
+            "rtl_blocks": [
+              "serial_out_assign",
+              "q_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "shift_register",
+      "code": "module shift_register #(parameter int WIDTH = 8) (\n  input  logic clk,\n  input  logic rst,\n  input  logic en,\n  input  logic serial_in,\n  output logic [WIDTH-1:0] q,\n  output logic serial_out\n);\n  logic [WIDTH-1:0] q_reg;\n  always_ff @(posedge clk) begin\n    if (rst)\n      q_reg <= '0;\n    else if (en)\n      q_reg <= {q_reg[WIDTH-2:0], serial_in};\n    else\n      q_reg <= q_reg;\n  end\n  assign q = q_reg;\n  assign serial_out = q_reg[WIDTH-1];\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Reset priority handled by if-else ordering in always_ff; q and serial_out are combinational views of q_reg."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "430df48a-9347-42f8-91a8-3624527b7e19",
+        "usage": {
+          "prompt_tokens": 1207,
+          "completion_tokens": 8412,
+          "total_tokens": 9619,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 6222
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:shift_register_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DIRECTION",
+        "O_HOLD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SERIAL_OUT",
+        "O_SHIFT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:shift_register_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DIRECTION",
+        "O_HOLD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SERIAL_OUT",
+        "O_SHIFT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_DIRECTION",
+          "O_HOLD",
+          "O_PRIORITY",
+          "O_RESET",
+          "O_SERIAL_OUT",
+          "O_SHIFT"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

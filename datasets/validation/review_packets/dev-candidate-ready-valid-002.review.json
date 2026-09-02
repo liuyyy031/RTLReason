@@ -1,0 +1,470 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-ready-valid-002",
+  "task_id": "ready_valid_slice_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/ready-valid-002",
+  "source_hashes": {
+    "process_sha256": "78292d96b0f4285dfda154f0e5977d9c8f5923d342ba59543d6601670ef5c7e1",
+    "evidence_sha256": "633cfcbbc0ceab9df9316b5465f3a47d7e69b4bb842f7347c61d8383827ebfa4",
+    "report_sha256": "7d2bf42b38c2574f5733a4ce1209c031f13299fdcc4beb35e100400354799629"
+  },
+  "candidate_process": {
+    "task_id": "ready_valid_slice_v1",
+    "architecture_summary": "Single-entry register slice using one valid flag register and one data register, combinational in_ready, synchronous active-high reset, and a unified always_ff next-state block implementing accept/replace/drain/hold with no combinational bypass.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module holds one storage entry; synchronous high rst clears out_valid and zeroizes out_data.",
+            "maps_to": [
+              "O_RESET",
+              "interface_semantics.reset"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "in_ready is combinatorial and equals !out_valid || out_ready using current output state.",
+            "maps_to": [
+              "O_READY",
+              "interface_semantics.flag_semantics.in_ready"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "No combinational data bypass exists; accepted input appears at out_data only after the clock edge, preserving order.",
+            "maps_to": [
+              "O_NO_BYPASS",
+              "O_ORDERING",
+              "interface_semantics.read_data.no_bypass"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a 1-bit valid register entry_valid driving out_valid and a DATA_WIDTH register entry_data driving out_data.",
+            "maps_to": [
+              "O_RESET",
+              "interface_semantics.ports.out_valid",
+              "interface_semantics.ports.out_data"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [
+              "entry_valid",
+              "entry_data"
+            ],
+            "rtl_blocks": [
+              "entry_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational assign in_ready = !entry_valid || out_ready; no FIFO or bypass logic is present.",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "entry_valid",
+              "out_ready"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": [
+              "in_ready_comb"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Next-state updates occur in a single always_ff block triggered on posedge clk with synchronous reset priority.",
+            "maps_to": [
+              "interface_semantics.clock.active_edge",
+              "interface_semantics.reset.type"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk if rst is high, entry_valid is cleared and entry_data becomes zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "rst",
+              "clk"
+            ],
+            "writes": [
+              "entry_valid",
+              "entry_data"
+            ],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "When entry is empty and in_valid is high, input is accepted: entry_data loads in_data and entry_valid goes high.",
+            "maps_to": [
+              "O_INPUT_ACCEPT",
+              "O_NO_BYPASS"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "entry_valid",
+              "in_valid",
+              "in_data"
+            ],
+            "writes": [
+              "entry_data",
+              "entry_valid"
+            ],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "When entry is full and out_ready high, output transfers; if in_valid high the entry is replaced by in_data with entry_valid remaining high, else it drains to empty while out_data holds.",
+            "maps_to": [
+              "O_OUTPUT_ACCEPT",
+              "O_REPLACE",
+              "O_DRAIN"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "entry_valid",
+              "out_ready",
+              "in_valid",
+              "in_data"
+            ],
+            "writes": [
+              "entry_data",
+              "entry_valid"
+            ],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "When entry is full and out_ready low, entry_valid and entry_data hold; input is rejected because in_ready is low.",
+            "maps_to": [
+              "O_BACKPRESSURE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.3"
+            ],
+            "reads": [
+              "entry_valid",
+              "out_ready",
+              "in_valid"
+            ],
+            "writes": [
+              "entry_valid",
+              "entry_data"
+            ],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: in_ready == (!out_valid || out_ready) holds combinationally at all times.",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "in_ready",
+              "out_valid",
+              "out_ready"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "in_ready_comb"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: if out_valid && !out_ready then next out_valid and out_data are unchanged (stability).",
+            "maps_to": [
+              "O_BACKPRESSURE"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "out_valid",
+              "out_ready",
+              "out_data"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: an input is accepted only when in_valid && in_ready, updating the entry.",
+            "maps_to": [
+              "O_INPUT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "entry_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: words are emitted in accepted order without duplication or loss (depth-1 FIFO).",
+            "maps_to": [
+              "O_ORDERING"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "in_data",
+              "out_data"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "main_ff"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Complete synthesizable SystemVerilog module ready_valid_slice implements the above state, combinational ready, and transition rules with the frozen interface.",
+            "maps_to": [
+              "interface_semantics.module_name"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "in_valid",
+              "in_data",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid",
+              "out_data",
+              "in_ready",
+              "entry_valid",
+              "entry_data"
+            ],
+            "rtl_blocks": [
+              "ready_valid_slice"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL code in rtl.code has no combinational path from in_data to out_data, satisfying no-bypass timing.",
+            "maps_to": [
+              "O_NO_BYPASS"
+            ],
+            "claimed_dependencies": [
+              "S5.1"
+            ],
+            "reads": [
+              "in_data",
+              "out_data"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "ready_valid_slice"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "ready_valid_slice",
+      "code": "module ready_valid_slice #(\n    parameter int DATA_WIDTH = 8\n) (\n    input  logic                   clk,\n    input  logic                   rst,\n    input  logic                   in_valid,\n    output logic                   in_ready,\n    input  logic [DATA_WIDTH-1:0] in_data,\n    output logic                   out_valid,\n    input  logic                   out_ready,\n    output logic [DATA_WIDTH-1:0] out_data\n);\n\n    logic                   entry_valid;\n    logic [DATA_WIDTH-1:0] entry_data;\n\n    assign in_ready = !entry_valid || out_ready;\n    assign out_valid = entry_valid;\n    assign out_data  = entry_data;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            entry_valid <= 1'b0;\n            entry_data  <= '0;\n        end else begin\n            if (entry_valid) begin\n                if (out_ready) begin\n                    if (in_valid) begin\n                        entry_data  <= in_data;\n                        entry_valid <= 1'b1;\n                    end else begin\n                        entry_valid <= 1'b0;\n                    end\n                end else begin\n                    entry_valid <= 1'b1;\n                end\n            end else begin\n                if (in_valid) begin\n                    entry_data  <= in_data;\n                    entry_valid <= 1'b1;\n                end else begin\n                    entry_valid <= 1'b0;\n                end\n            end\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Single entry slice, no bypass, synchronous reset, combinational in_ready."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "4b5c03b1-3d3f-4657-835f-f7b3c7f452c6",
+        "usage": {
+          "prompt_tokens": 1513,
+          "completion_tokens": 7046,
+          "total_tokens": 8559,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 4704
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:ready_valid_slice_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_DRAIN",
+        "O_INPUT_ACCEPT",
+        "O_NO_BYPASS",
+        "O_ORDERING",
+        "O_OUTPUT_ACCEPT",
+        "O_READY",
+        "O_REPLACE",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:ready_valid_slice_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_DRAIN",
+        "O_INPUT_ACCEPT",
+        "O_NO_BYPASS",
+        "O_ORDERING",
+        "O_OUTPUT_ACCEPT",
+        "O_READY",
+        "O_REPLACE",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_BACKPRESSURE",
+          "O_DRAIN",
+          "O_INPUT_ACCEPT",
+          "O_NO_BYPASS",
+          "O_ORDERING",
+          "O_OUTPUT_ACCEPT",
+          "O_READY",
+          "O_REPLACE",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

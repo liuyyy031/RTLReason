@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_token_bucket.sv",
+    "top": "tb_token_bucket",
+    "vcd": "token_bucket.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/token_bucket_formal.sv",
+    "top": "token_bucket_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_REPLENISH", "O_CURRENT_ACCEPT", "O_EMPTY_NO_LOOKAHEAD", "O_MIDDLE_SIMULTANEOUS", "O_FULL_CONSUME", "O_GRANT_PULSE", "O_RANGE"]
+  }
+}

@@ -1,0 +1,534 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-request-ack-001",
+  "task_id": "request_ack_timeout_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/request-ack-001",
+  "source_hashes": {
+    "process_sha256": "058ff0b78b522df3922133b1048460b334ce2a9cafa1c89512206cba3f29114f",
+    "evidence_sha256": "0264e117f191ccfc3d1216738733d7758279fdd37af67d0c6d36c4bd7f68ecf6",
+    "report_sha256": "63be1878684ee544ef320fc1536dada45f03c2c4087e0768170126f3ddc930e7"
+  },
+  "candidate_process": {
+    "task_id": "request_ack_timeout_v1",
+    "architecture_summary": "Counter-based busy flag with countdown register and synchronous reset; no explicit FSM enum.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst clears busy, done, and timeout registers.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Request accepted only when busy is low; accepted req makes busy high next edge, and ack on same edge is ignored.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_INITIAL_ACK_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "req",
+              "busy",
+              "ack"
+            ],
+            "writes": [
+              "busy"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "While busy, ack on any of TIMEOUT_CYCLES service edges yields done; if absent until final edge, timeout; final edge ack has priority.",
+            "maps_to": [
+              "O_ACK_COMPLETE",
+              "O_ACK_PRIORITY",
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "busy",
+              "ack",
+              "cnt"
+            ],
+            "writes": [
+              "done",
+              "timeout",
+              "busy"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Requests while busy or on completion edge are ignored; done and timeout are mutually exclusive one-cycle pulses.",
+            "maps_to": [
+              "O_BUSY_REQUEST_IGNORED",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "req",
+              "busy"
+            ],
+            "writes": [
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: busy_reg flag plus cnt_reg countdown (width $clog2(TIMEOUT_CYCLES+1)); no explicit FSM enum.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "busy_reg",
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "regs"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "On acceptance (!busy_reg && req) set busy_reg=1 and load cnt_reg=TIMEOUT_CYCLES.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "req",
+              "busy_reg"
+            ],
+            "writes": [
+              "busy_reg",
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "accept_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Busy logic: if ack then next busy_reg=0,done_reg=1; else if cnt_reg==1 then busy_reg=0,timeout_reg=1; else cnt_reg decrements.",
+            "maps_to": [
+              "O_ACK_COMPLETE",
+              "O_TIMEOUT_EXACT",
+              "O_ACK_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "busy_reg",
+              "ack",
+              "cnt_reg"
+            ],
+            "writes": [
+              "busy_reg",
+              "done_reg",
+              "timeout_reg",
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "busy_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Synchronous reset clears busy_reg, done_reg, timeout_reg, cnt_reg.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy_reg",
+              "done_reg",
+              "timeout_reg",
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "reset_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Countdown timing: after acceptance cnt_reg=TIMEOUT_CYCLES and decrements each busy cycle without ack, giving exactly TIMEOUT_CYCLES service edges.",
+            "maps_to": [
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "cnt_reg",
+              "busy_reg"
+            ],
+            "writes": [
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "counter"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Final edge priority: when cnt_reg==1, ack high forces done_reg and suppresses timeout_reg.",
+            "maps_to": [
+              "O_ACK_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "cnt_reg",
+              "ack"
+            ],
+            "writes": [
+              "done_reg",
+              "timeout_reg"
+            ],
+            "rtl_blocks": [
+              "final_edge"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Busy-state request ignore: acceptance condition requires busy_reg==0, so req while busy or on completion edge has no effect.",
+            "maps_to": [
+              "O_BUSY_REQUEST_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "req",
+              "busy_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "accept_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Pulse rule: done_reg/timeout_reg default low each cycle, set only on completion, ensuring one-cycle mutual-exclusion pulses.",
+            "maps_to": [
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "busy_reg",
+              "ack",
+              "cnt_reg"
+            ],
+            "writes": [
+              "done_reg",
+              "timeout_reg"
+            ],
+            "rtl_blocks": [
+              "pulse_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: busy_reg implies cnt_reg > 0.",
+            "maps_to": [
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "busy_reg",
+              "cnt_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: done_reg and timeout_reg are never simultaneously high.",
+            "maps_to": [
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "done_reg",
+              "timeout_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: after reset busy_reg=0, done_reg=0, timeout_reg=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "busy_reg",
+              "done_reg",
+              "timeout_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: ack && busy_reg leads to busy_reg=0 and done_reg=1 next edge.",
+            "maps_to": [
+              "O_ACK_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "ack",
+              "busy_reg"
+            ],
+            "writes": [
+              "done_reg"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declaration with parameter TIMEOUT_CYCLES and exact port list.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential always_ff implements reset, idle accept, countdown, ack-done, and timeout per architecture.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_ACK_COMPLETE",
+              "O_TIMEOUT_EXACT",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4",
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "req",
+              "ack",
+              "busy_reg",
+              "cnt_reg"
+            ],
+            "writes": [
+              "busy_reg",
+              "done_reg",
+              "timeout_reg",
+              "cnt_reg"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Continuous assigns connect busy_reg, done_reg, timeout_reg to output ports.",
+            "maps_to": [
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S5.2"
+            ],
+            "reads": [
+              "busy_reg",
+              "done_reg",
+              "timeout_reg"
+            ],
+            "writes": [
+              "busy",
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": [
+              "out_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "request_ack_timeout",
+      "code": "module request_ack_timeout #(\n    parameter int TIMEOUT_CYCLES = 4\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic req,\n    input  logic ack,\n    output logic busy,\n    output logic done,\n    output logic timeout\n);\n\n    localparam int CW = (TIMEOUT_CYCLES >= 2) ? $clog2(TIMEOUT_CYCLES+1) : 1;\n    logic [CW-1:0] cnt_reg;\n    logic          busy_reg;\n    logic          done_reg;\n    logic          timeout_reg;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            busy_reg    <= 1'b0;\n            done_reg    <= 1'b0;\n            timeout_reg <= 1'b0;\n            cnt_reg     <= '0;\n        end else begin\n            done_reg    <= 1'b0;\n            timeout_reg <= 1'b0;\n            if (!busy_reg) begin\n                if (req) begin\n                    busy_reg <= 1'b1;\n                    cnt_reg  <= TIMEOUT_CYCLES;\n                end else begin\n                    busy_reg <= 1'b0;\n                end\n            end else begin\n                if (ack) begin\n                    busy_reg <= 1'b0;\n                    done_reg <= 1'b1;\n                end else if (cnt_reg == 1) begin\n                    busy_reg    <= 1'b0;\n                    timeout_reg <= 1'b1;\n                end else begin\n                    cnt_reg <= cnt_reg - 1'b1;\n                    busy_reg <= 1'b1;\n                end\n            end\n        end\n    end\n\n    assign busy    = busy_reg;\n    assign done    = done_reg;\n    assign timeout = timeout_reg;\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Counter width derived from TIMEOUT_CYCLES; ack priority encoded by branch order."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "b5e78b93-66ab-4546-a88d-1429acdcfab5",
+        "usage": {
+          "prompt_tokens": 1603,
+          "completion_tokens": 13330,
+          "total_tokens": 14933,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 10682
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:request_ack_timeout_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_COMPLETE",
+        "O_ACK_PRIORITY",
+        "O_BUSY_REQUEST_IGNORED",
+        "O_INITIAL_ACK_IGNORED",
+        "O_PULSES",
+        "O_REQUEST_ACCEPT",
+        "O_RESET",
+        "O_TIMEOUT_EXACT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:request_ack_timeout_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_COMPLETE",
+        "O_ACK_PRIORITY",
+        "O_BUSY_REQUEST_IGNORED",
+        "O_INITIAL_ACK_IGNORED",
+        "O_PULSES",
+        "O_REQUEST_ACCEPT",
+        "O_RESET",
+        "O_TIMEOUT_EXACT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

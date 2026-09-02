@@ -1,0 +1,6 @@
+{
+  "level": "basic",
+  "concepts": ["shift direction", "enable hold", "synchronous reset", "combinational observation"],
+  "formal_core": true,
+  "expected_process_items": "10-18"
+}

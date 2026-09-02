@@ -1,0 +1,6 @@
+{
+  "level": "intermediate-hard",
+  "concepts": ["finite-state control", "exact cycle counting", "off-by-one boundary", "simultaneous-event priority", "one-cycle pulses"],
+  "formal_core": true,
+  "expected_process_items": "18-28"
+}

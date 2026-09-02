@@ -1,0 +1,27 @@
+schema_version: "1.0"
+task_id: token_bucket_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears tokens and grant.
+  - id: O_REPLENISH
+    category: transition
+    statement: Each eligible non-reset edge adds one token, never exceeding CAPACITY.
+  - id: O_CURRENT_ACCEPT
+    category: acceptance
+    statement: grant is asserted exactly when req is high and the pre-edge current token count is nonzero.
+  - id: O_EMPTY_NO_LOOKAHEAD
+    category: boundary
+    statement: A request at zero tokens is rejected even though the same edge replenishes the bucket to one.
+  - id: O_MIDDLE_SIMULTANEOUS
+    category: boundary
+    statement: At a nonempty nonfull count, req accepts both consumption and replenishment, so tokens holds and grant pulses.
+  - id: O_FULL_CONSUME
+    category: boundary
+    statement: At CAPACITY with req high, replenishment is blocked and consumption reduces tokens by one while grant pulses.
+  - id: O_GRANT_PULSE
+    category: output
+    statement: grant is a registered per-edge acceptance pulse and is low on edges without accepted requests.
+  - id: O_RANGE
+    category: safety
+    statement: tokens always remains between zero and CAPACITY inclusive.

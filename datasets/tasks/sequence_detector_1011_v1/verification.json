@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_sequence_detector_1011.sv",
+    "top": "tb_sequence_detector_1011",
+    "vcd": "sequence_detector_1011.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/sequence_detector_1011_formal.sv",
+    "top": "sequence_detector_1011_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_VALID_GATE", "O_MATCH_1011", "O_NONMATCH", "O_OVERLAP", "O_PULSE"]
+  }
+}

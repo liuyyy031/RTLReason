@@ -1,0 +1,11 @@
+{
+  "level": "basic",
+  "concepts": [
+    "registered edge detection",
+    "one-cycle pulse",
+    "sample history",
+    "synchronous reset boundary"
+  ],
+  "formal_core": true,
+  "expected_process_items": "12-20"
+}

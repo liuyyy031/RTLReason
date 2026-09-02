@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "task_id": "sequence_detector_1011_v1",
+  "module_name": "sequence_detector_1011",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "match_after_reset": 0,
+    "partial_match_after_reset": "none"
+  },
+  "ports": {
+    "bit_valid": {"direction": "input", "width": 1},
+    "bit_in": {"direction": "input", "width": 1},
+    "match": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "input_bit": "bit_valid",
+    "invalid_cycle": "bit_in_is_ignored_and_partial_match_state_holds",
+    "reset_cycle": "no_input_bit_is_consumed"
+  },
+  "match_semantics": {
+    "pattern": "1011",
+    "latency": "registered_pulse_visible_immediately_after_the_edge_consuming_the_final_1",
+    "pulse_width": "one_cycle",
+    "overlap": "enabled; final_1_is_retained_as_length_1_prefix",
+    "invalid_after_match": "match_clears_even_though_partial_state_holds"
+  }
+}

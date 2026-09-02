@@ -1,0 +1,297 @@
+F:.
+│  error_taxonomy.yaml
+│  task_manifest.json
+│  tree.txt
+│
+├─controlled
+│  └─processes
+│          fifo2-full-block-001.json
+│          request-ack-timeout-early-001.json
+│          shift-wrong-direction-process-only-001.json
+│
+├─mutations
+│      ready_valid_fifo2_full_block.json
+│      request_ack_timeout_early.json
+│      shift_register_wrong_direction_process_only.json
+│
+├─tasks
+│  ├─counter_enable_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      counter_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      counter_enable.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_counter_enable.sv
+│  │
+│  ├─debounce_filter_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      debounce_filter_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      debounce_filter.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_debounce_filter.sv
+│  │
+│  ├─fifo_sync_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      fifo_formal.sv
+│  │  │      task.sby
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      count_fifo.sv
+│  │  │      wrapbit_fifo.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_fifo_sync.sv
+│  │
+│  ├─grant_hold_arbiter_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      grant_hold_arbiter_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      grant_hold_arbiter.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_grant_hold_arbiter.sv
+│  │
+│  ├─pulse_stretcher_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      pulse_stretcher_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      pulse_stretcher.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_pulse_stretcher.sv
+│  │
+│  ├─ready_valid_fifo2_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      ready_valid_fifo2_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      ready_valid_fifo2.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_ready_valid_fifo2.sv
+│  │
+│  ├─ready_valid_slice_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      ready_valid_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      ready_valid_slice.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_ready_valid_slice.sv
+│  │
+│  ├─request_ack_timeout_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      request_ack_timeout_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      request_ack_timeout.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_request_ack_timeout.sv
+│  │
+│  ├─rising_edge_detector_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      rising_edge_detector_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      rising_edge_detector.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_rising_edge_detector.sv
+│  │
+│  ├─round_robin_arbiter_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      arbiter_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      round_robin_arbiter.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_round_robin_arbiter.sv
+│  │
+│  ├─sequence_detector_1011_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      sequence_detector_1011_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      sequence_detector_1011.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_sequence_detector_1011.sv
+│  │
+│  ├─shift_register_v1
+│  │  │  behavioral_obligations.yaml
+│  │  │  difficulty.json
+│  │  │  interface_semantics.json
+│  │  │  problem.md
+│  │  │  provenance.json
+│  │  │  verification.json
+│  │  │
+│  │  ├─formal
+│  │  │      shift_formal.sv
+│  │  │
+│  │  ├─reference_rtl
+│  │  │      shift_register.sv
+│  │  │
+│  │  └─testbench
+│  │          tb_shift_register.sv
+│  │
+│  └─token_bucket_v1
+│      │  behavioral_obligations.yaml
+│      │  difficulty.json
+│      │  interface_semantics.json
+│      │  problem.md
+│      │  provenance.json
+│      │  verification.json
+│      │
+│      ├─formal
+│      │      token_bucket_formal.sv
+│      │
+│      ├─reference_rtl
+│      │      token_bucket.sv
+│      │
+│      └─testbench
+│              tb_token_bucket.sv
+│
+└─validation
+    │  ANNOTATION_GUIDE_CN.md
+    │  EXPERIMENT_PROTOCOL_CN.md
+    │  README.md
+    │
+    ├─annotations
+    │      dev-candidate-rising-edge-001.human.json
+    │
+    ├─candidates
+    │      dev-candidate-arbiter-001.json
+    │      dev-candidate-counter-001.json
+    │      dev-candidate-debounce-001.json
+    │      dev-candidate-fifo-001.json
+    │      dev-candidate-fifo-002.json
+    │      dev-candidate-fifo-003.json
+    │      dev-candidate-fifo2-001.json
+    │      dev-candidate-grant-hold-001.json
+    │      dev-candidate-pulse-001.json
+    │      dev-candidate-ready-valid-001.json
+    │      dev-candidate-request-ack-001.json
+    │      dev-candidate-rising-edge-001.json
+    │      dev-candidate-sequence-001.json
+    │      dev-candidate-shift-001.json
+    │      dev-candidate-token-bucket-001.json
+    │      dev-controlled-fifo2-full-block-001.json
+    │      dev-controlled-request-ack-timeout-early-001.json
+    │      dev-controlled-shift-wrong-direction-process-only-001.json
+    │
+    ├─development
+    │      README.md
+    │      rising-edge-001.json
+    │
+    ├─held_out
+    │      README.md
+    │
+    ├─review_packets
+    │      dev-candidate-arbiter-001.review.json
+    │      dev-candidate-counter-001.review.json
+    │      dev-candidate-debounce-001.review.json
+    │      dev-candidate-fifo-001.review.json
+    │      dev-candidate-fifo-002.review.json
+    │      dev-candidate-fifo-003.review.json
+    │      dev-candidate-fifo2-001.review.json
+    │      dev-candidate-grant-hold-001.review.json
+    │      dev-candidate-pulse-001.review.json
+    │      dev-candidate-ready-valid-001.review.json
+    │      dev-candidate-request-ack-001.review.json
+    │      dev-candidate-rising-edge-001.review.json
+    │      dev-candidate-sequence-001.review.json
+    │      dev-candidate-shift-001.review.json
+    │      dev-candidate-token-bucket-001.review.json
+    │      dev-controlled-fifo2-full-block-001.review.json
+    │      dev-controlled-request-ack-timeout-early-001.review.json
+    │      dev-controlled-shift-wrong-direction-process-only-001.review.json
+    │
+    └─templates
+            human_annotation.template.json

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/report.schema.json",
+  "title": "RTLReason Evaluation Report",
+  "type": "object",
+  "required": ["task_id", "schema_issues", "dependency_graph", "assessments", "evidence", "attribution"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "schema_issues": {"type": "array"},
+    "dependency_graph": {
+      "type": "object",
+      "required": [
+        "digest",
+        "nodes",
+        "edges",
+        "claimed_dependency_comparison",
+        "obligation_associations",
+        "evidence_summary"
+      ]
+    },
+    "assessments": {"type": "array"},
+    "evidence": {"type": "array"},
+    "candidate_generation": {
+      "type": "object",
+      "required": ["provider", "model", "request_id", "usage", "finish_reason"]
+    },
+    "semantic_evaluator": {
+      "type": "object",
+      "required": ["provider", "model", "request_id", "usage", "finish_reason"]
+    },
+    "attribution": {
+      "type": "object",
+      "required": ["root_errors", "violated_obligations", "graph_digest"]
+    }
+  }
+}

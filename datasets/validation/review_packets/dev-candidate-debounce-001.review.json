@@ -1,0 +1,497 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-debounce-001",
+  "task_id": "debounce_filter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/debounce-001",
+  "source_hashes": {
+    "process_sha256": "7b3bbf8ae14c2e9ed9f38ec92baa35a62fec605f5b745cf3746afd6b67332653",
+    "evidence_sha256": "e14da68b701ea938f01b1f5e2ac552d9874ff21a5e6bcf361b6af16e40367c47",
+    "report_sha256": "42e1b24c6e13b918c802766ed1ee3b18c9d84d8c692be11a1ac9c02e5e339c8f"
+  },
+  "candidate_process": {
+    "task_id": "debounce_filter_v1",
+    "architecture_summary": "Counter-based debounce: a consecutive-difference counter `cnt` with registered `debounced` and `changed` outputs, updated in a single synchronous always_ff block with highest-priority reset, equality cancel, and threshold update.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears debounced, changed, and pending sample count.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Output updates only after exactly STABLE_CYCLES consecutive samples differing from current debounced.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD",
+              "O_THRESHOLD_UPDATE"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "A sample equal to current debounced cancels pending consecutive count.",
+            "maps_to": [
+              "O_BOUNCE_CANCEL"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "changed is a one-cycle registered pulse on output transition, applicable to both directions.",
+            "maps_to": [
+              "O_CHANGED_PULSE",
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "debounced",
+              "noisy_in"
+            ],
+            "writes": [
+              "changed"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: single counter `cnt` plus registered `debounced` and `changed`, no separate FSM.",
+            "maps_to": [
+              "O_RESET",
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "arch_counter"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Counter width is $clog2(STABLE_CYCLES+1) to represent threshold.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "cnt_width"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "All transition logic evaluated in one sequential always_ff block using non-blocking assignments.",
+            "maps_to": [
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "debounced",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On rst, set debounced<=0, changed<=0, cnt<=0 with highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If noisy_in == debounced, clear cnt and deassert changed (bounce cancel).",
+            "maps_to": [
+              "O_BOUNCE_CANCEL",
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [
+              "cnt",
+              "changed"
+            ],
+            "rtl_blocks": [
+              "equal_branch"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If noisy_in != debounced and cnt == STABLE_CYCLES-1, update debounced<=noisy_in, assert changed<=1, reset cnt.",
+            "maps_to": [
+              "O_THRESHOLD_UPDATE",
+              "O_CHANGED_PULSE",
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "threshold_branch"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If noisy_in != debounced and cnt < STABLE_CYCLES-1, increment cnt and keep changed low.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "cnt",
+              "changed"
+            ],
+            "rtl_blocks": [
+              "count_branch"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: debounced toggles only when cnt reaches STABLE_CYCLES (threshold branch).",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD",
+              "O_THRESHOLD_UPDATE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "debounced",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_change_only_at_threshold"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: changed high for exactly one cycle after debounced transition.",
+            "maps_to": [
+              "O_CHANGED_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "changed",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_changed_pulse"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: equal sample drives cnt to zero.",
+            "maps_to": [
+              "O_BOUNCE_CANCEL"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_cancel"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: transition rule symmetric for low->high and high->low.",
+            "maps_to": [
+              "O_BIDIRECTIONAL"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "noisy_in",
+              "debounced"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_bidirectional"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declared with parameter STABLE_CYCLES and required ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential always_ff implements reset, cancel, threshold, and count branches.",
+            "maps_to": [
+              "O_RESET",
+              "O_THRESHOLD_UPDATE",
+              "O_BOUNCE_CANCEL",
+              "O_CHANGED_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "noisy_in",
+              "debounced",
+              "cnt"
+            ],
+            "writes": [
+              "debounced",
+              "changed",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL satisfies frozen interface and behavioral obligations.",
+            "maps_to": [
+              "O_HOLD_BEFORE_THRESHOLD"
+            ],
+            "claimed_dependencies": [
+              "S4.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "sim_check"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "debounce_filter",
+      "code": "module debounce_filter #(\n    parameter int STABLE_CYCLES = 3\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic noisy_in,\n    output logic debounced,\n    output logic changed\n);\n\n    logic [$clog2(STABLE_CYCLES+1)-1:0] cnt;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            debounced <= 1'b0;\n            changed   <= 1'b0;\n            cnt       <= '0;\n        end else begin\n            if (noisy_in == debounced) begin\n                cnt     <= '0;\n                changed <= 1'b0;\n            end else if (cnt == STABLE_CYCLES - 1'b1) begin\n                debounced <= noisy_in;\n                changed   <= 1'b1;\n                cnt       <= '0;\n            end else begin\n                cnt     <= cnt + 1'b1;\n                changed <= 1'b0;\n            end\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Counter width uses $clog2(STABLE_CYCLES+1); changed is a single-cycle pulse; synchronous reset has highest priority."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "81f9a1ce-f53e-4aaf-b44f-d759fae8af5c",
+        "usage": {
+          "prompt_tokens": 1396,
+          "completion_tokens": 14843,
+          "total_tokens": 16239,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 12535
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:debounce_filter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BIDIRECTIONAL",
+        "O_BOUNCE_CANCEL",
+        "O_CHANGED_PULSE",
+        "O_HOLD_BEFORE_THRESHOLD",
+        "O_RESET",
+        "O_THRESHOLD_UPDATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:debounce_filter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BIDIRECTIONAL",
+        "O_BOUNCE_CANCEL",
+        "O_CHANGED_PULSE",
+        "O_HOLD_BEFORE_THRESHOLD",
+        "O_RESET",
+        "O_THRESHOLD_UPDATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "task_id": "fifo_sync_v1",
+  "module_name": "fifo_sync",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "dout_after_reset": 0
+  },
+  "parameters": {
+    "DATA_WIDTH": {"type": "positive_integer", "default": 8},
+    "DEPTH": {"type": "integer_at_least_two", "default": 4}
+  },
+  "ports": {
+    "wr_en": {"direction": "input", "width": 1},
+    "rd_en": {"direction": "input", "width": 1},
+    "din": {"direction": "input", "width": "DATA_WIDTH"},
+    "dout": {"direction": "output", "width": "DATA_WIDTH"},
+    "full": {"direction": "output", "width": 1},
+    "empty": {"direction": "output", "width": 1}
+  },
+  "flag_semantics": {
+    "phase": "current_state",
+    "full": "occupancy_equals_DEPTH",
+    "empty": "occupancy_equals_zero"
+  },
+  "acceptance": {
+    "read": "rd_en && !empty",
+    "write": "wr_en && (!full || (rd_en && !empty))",
+    "simultaneous_when_full": "accept_read_and_write",
+    "simultaneous_when_empty": "accept_write_only_no_bypass",
+    "simultaneous_when_partial": "accept_read_and_write"
+  },
+  "read_data": {
+    "latency_cycles": 1,
+    "definition": "A read accepted at posedge N updates dout to the oldest queued word immediately after posedge N, the start of cycle N+1.",
+    "when_no_read_is_accepted": "hold_previous_value"
+  },
+  "ordering": "first_in_first_out"
+}

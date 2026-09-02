@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/gold_validation.schema.json",
+  "title": "RTLReason Independent Gold Validation Record",
+  "type": "object",
+  "required": [
+    "case_id", "split", "task_id", "candidate_process",
+    "gold_rtl_correct", "gold_process_correct", "annotation"
+  ],
+  "properties": {
+    "case_id": {"type": "string"},
+    "split": {"enum": ["development", "held_out"]},
+    "task_id": {"type": "string"},
+    "candidate_origin": {"enum": ["real_hy3", "human_authored", "controlled_mutation"]},
+    "candidate_process": {"type": "object"},
+    "gold_rtl_correct": {"type": "boolean"},
+    "gold_process_correct": {"type": "boolean"},
+    "gold_first_error_stage": {"type": ["string", "null"]},
+    "gold_root_error": {"type": ["string", "null"]},
+    "gold_error_type_l1": {"type": ["string", "null"]},
+    "gold_error_type_l2": {"type": ["string", "null"]},
+    "gold_parent_dependency": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": {"type": "string"},
+          "target": {"type": "string"}
+        }
+      }
+    },
+    "gold_affected_obligation": {"type": "array", "items": {"type": "string"}},
+    "predicted_parent_dependency": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": {"type": "string"},
+          "target": {"type": "string"}
+        }
+      }
+    },
+    "evaluation_snapshot": {
+      "type": "object",
+      "required": [
+        "source_gold", "source_gold_sha256", "source_report",
+        "source_report_sha256", "gold_labels_modified"
+      ],
+      "properties": {
+        "source_gold": {"type": "string"},
+        "source_gold_sha256": {"type": "string"},
+        "source_report": {"type": "string"},
+        "source_report_sha256": {"type": "string"},
+        "semantic_prompt_version": {"type": ["string", "null"]},
+        "dependency_graph_digest": {"type": ["string", "null"]},
+        "gold_labels_modified": {"const": false}
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "required": [
+        "independent_of_tested_model", "status", "annotator_id",
+        "guideline_version"
+      ],
+      "properties": {
+        "independent_of_tested_model": {"const": true},
+        "status": {"enum": ["single_annotated", "adjudicated"]},
+        "annotator_id": {"type": "string", "minLength": 1},
+        "annotator_role": {"type": ["string", "null"]},
+        "guideline_version": {"type": "string"}
+      }
+    }
+  }
+}

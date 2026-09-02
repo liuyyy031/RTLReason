@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_ready_valid_fifo2.sv",
+    "top": "tb_ready_valid_fifo2",
+    "vcd": "ready_valid_fifo2.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/ready_valid_fifo2_formal.sv",
+    "top": "ready_valid_fifo2_formal",
+    "depth": 28,
+    "obligations": ["O_RESET", "O_READY_VALID", "O_INPUT_ACCEPT", "O_OUTPUT_ACCEPT", "O_EMPTY_NO_BYPASS", "O_FULL_REPLACE", "O_BACKPRESSURE", "O_OCCUPANCY", "O_ORDERING", "O_EMPTY_DATA"]
+  }
+}

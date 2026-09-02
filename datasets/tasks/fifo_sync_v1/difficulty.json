@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "tier": "core",
+  "estimated_complexity": "medium",
+  "features": [
+    "parameterized_state",
+    "boundary_concurrency",
+    "registered_read_data",
+    "current_state_flags"
+  ],
+  "formal_core": true
+}

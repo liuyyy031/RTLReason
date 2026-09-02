@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: sequence_detector_1011_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears match and all partial-match history.
+  - id: O_VALID_GATE
+    category: acceptance
+    statement: Only cycles with bit_valid high consume bit_in; invalid cycles preserve partial-match history.
+  - id: O_MATCH_1011
+    category: function
+    statement: Consuming the final bit of valid sequence 1011 asserts registered match immediately after that edge.
+  - id: O_NONMATCH
+    category: function
+    statement: A consumed bit that does not complete 1011 leaves match low.
+  - id: O_OVERLAP
+    category: state
+    statement: The final 1 of a detected 1011 is retained as the first-prefix 1, so valid stream 1011011 matches twice.
+  - id: O_PULSE
+    category: output
+    statement: match is a one-cycle pulse and clears on the next nonmatching, invalid, or reset edge.

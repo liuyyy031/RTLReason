@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: counter_enable_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously sets count and overflow to zero.
+  - id: O_PRIORITY
+    category: control
+    statement: Reset has priority over load, and load has priority over enable.
+  - id: O_LOAD
+    category: transition
+    statement: With rst low and load high, count becomes load_value and overflow is zero after the edge.
+  - id: O_INCREMENT
+    category: transition
+    statement: With rst and load low and en high, count increments modulo 2**WIDTH.
+  - id: O_HOLD
+    category: transition
+    statement: With rst, load, and en low, count holds its previous value and overflow is zero.
+  - id: O_OVERFLOW
+    category: status
+    statement: overflow is one for exactly the cycle following an enabled wrap from maximum to zero and is zero otherwise.

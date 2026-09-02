@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["overlapping sequence detector", "valid-gated FSM", "registered pulse timing", "prefix fallback"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

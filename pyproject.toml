@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rtlreason"
+version = "0.1.0"
+description = "Evidence-backed process evaluation and error localization for Hy3-generated RTL designs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "RTLReason contributors"}]
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+rtlreason = "rtlreason.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+rtlreason = ["schemas/*.json"]
+

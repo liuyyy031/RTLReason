@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["round-robin state", "registered arbitration", "wraparound priority", "safety versus liveness"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

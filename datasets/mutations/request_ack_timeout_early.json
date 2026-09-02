@@ -1,0 +1,13 @@
+{
+  "mutation_id": "request-ack-timeout-early-001",
+  "task_id": "request_ack_timeout_v1",
+  "mutation_scope": "process_and_rtl",
+  "target_item_id": "S3.1",
+  "replacement_claim": "Countdown timing: on request acceptance load cnt_reg=TIMEOUT_CYCLES-1, then decrement on each busy cycle without ack and assert timeout when cnt_reg==1. This makes the acceptance edge count as the first timeout cycle.",
+  "rationale": "Inject an off-by-one interpretation that incorrectly counts the idle request-acceptance edge as one of the allowed busy service edges, and pair it with RTL that implements the same timing rule.",
+  "expected_violations": [
+    "O_TIMEOUT_EXACT",
+    "O_ACK_PRIORITY",
+    "O_BUSY_REQUEST_IGNORED"
+  ]
+}

@@ -1,0 +1,21 @@
+schema_version: "1.0"
+task_id: shift_register_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears every bit of q.
+  - id: O_PRIORITY
+    category: control
+    statement: Reset has priority over enable and serial input.
+  - id: O_SHIFT
+    category: transition
+    statement: On an enabled non-reset edge q becomes {previous q[WIDTH-2:0], serial_in}.
+  - id: O_DIRECTION
+    category: data
+    statement: Existing bits move toward larger bit indices and serial_in enters q[0].
+  - id: O_HOLD
+    category: transition
+    statement: On a non-reset edge with en low, q holds its previous value.
+  - id: O_SERIAL_OUT
+    category: output
+    statement: serial_out continuously equals current q[WIDTH-1].

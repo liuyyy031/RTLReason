@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_counter_enable.sv",
+    "top": "tb_counter_enable",
+    "vcd": "counter_enable.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/counter_formal.sv",
+    "top": "counter_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_PRIORITY", "O_LOAD", "O_INCREMENT", "O_HOLD", "O_OVERFLOW"]
+  }
+}

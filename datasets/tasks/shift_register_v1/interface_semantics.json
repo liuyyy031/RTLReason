@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "task_id": "shift_register_v1",
+  "module_name": "shift_register",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "q_after_reset": 0
+  },
+  "parameters": {
+    "WIDTH": {"type": "integer_at_least_two", "default": 8}
+  },
+  "ports": {
+    "en": {"direction": "input", "width": 1},
+    "serial_in": {"direction": "input", "width": 1},
+    "q": {"direction": "output", "width": "WIDTH"},
+    "serial_out": {"direction": "output", "width": 1}
+  },
+  "flag_semantics": {
+    "serial_out": "combinational_view_of_q_bit_WIDTH_minus_1"
+  },
+  "acceptance": {
+    "shift": "en",
+    "reset_priority": "reset_over_enable"
+  },
+  "transition": {
+    "enabled": "q_next={q[WIDTH-2:0], serial_in}",
+    "disabled": "q holds",
+    "direction": "toward_more_significant_indices"
+  }
+}

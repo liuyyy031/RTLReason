@@ -1,0 +1,12 @@
+{
+  "level": "hard",
+  "concepts": [
+    "synchronous dual-port memory",
+    "registered read latency",
+    "read-first same-address collision",
+    "independent simultaneous ports",
+    "resettable array state"
+  ],
+  "formal_core": true,
+  "expected_process_items": "15-25"
+}

@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: round_robin_arbiter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears grant and sets the next scan index to requester zero.
+  - id: O_ONEHOT
+    category: safety
+    statement: grant is always zero or one-hot.
+  - id: O_REQUESTED
+    category: safety
+    statement: Every registered nonzero grant corresponds to a request sampled on the preceding active edge.
+  - id: O_PRIORITY
+    category: arbitration
+    statement: The granted requester is the first asserted request found by scanning from the current pointer with wraparound.
+  - id: O_ROTATE
+    category: state
+    statement: After a grant, the next scan starts at the requester immediately following the winner modulo four.
+  - id: O_IDLE
+    category: state
+    statement: If no request is sampled, the next grant is zero and the round-robin pointer holds.
+  - id: O_LIVENESS_BOUNDARY
+    category: methodology
+    statement: Eventual grant is not required unless the environment assumes a request remains asserted.

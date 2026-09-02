@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/blinded_review_packet.schema.json",
+  "title": "RTLReason Blinded Human Review Packet",
+  "type": "object",
+  "required": [
+    "schema_version", "case_id", "task_id", "candidate_process",
+    "trusted_evidence", "review_protocol"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "case_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "candidate_origin": {"type": "string"},
+    "source_run": {"type": ["string", "null"]},
+    "source_hashes": {"type": "object"},
+    "candidate_process": {"type": "object"},
+    "trusted_evidence": {"type": "array"},
+    "review_protocol": {
+      "type": "object",
+      "required": [
+        "blinded_to_evaluator_prediction", "use_trusted_task_assets",
+        "annotation_schema", "guideline_version"
+      ],
+      "properties": {
+        "blinded_to_evaluator_prediction": {"const": true},
+        "use_trusted_task_assets": {"const": true},
+        "annotation_schema": {"const": "human_annotation.schema.json"},
+        "guideline_version": {"type": "string"}
+      }
+    }
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["evaluator_prediction"]},
+      {"required": ["gold_process_correct"]},
+      {"required": ["gold_root_error"]}
+    ]
+  }
+}

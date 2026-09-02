@@ -1,0 +1,33 @@
+schema_version: "1.0"
+task_id: ready_valid_fifo2_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously empties the queue, clears out_valid, and makes out_data zero.
+  - id: O_READY_VALID
+    category: status
+    statement: out_valid iff occupancy is nonzero and in_ready iff occupancy is below two or a current output transfer will occur.
+  - id: O_INPUT_ACCEPT
+    category: acceptance
+    statement: An input word is accepted exactly when in_valid and in_ready are high at the edge.
+  - id: O_OUTPUT_ACCEPT
+    category: acceptance
+    statement: The oldest word is consumed exactly when out_valid and out_ready are high at the edge.
+  - id: O_EMPTY_NO_BYPASS
+    category: boundary
+    statement: When empty, simultaneous in_valid and out_ready accepts only the input; out_valid is not asserted before the edge.
+  - id: O_FULL_REPLACE
+    category: boundary
+    statement: When full with in_valid and out_ready high, both transfers occur, occupancy remains two, and the previous second word becomes the new head.
+  - id: O_BACKPRESSURE
+    category: stability
+    statement: While out_valid is high and out_ready is low, the current head and out_valid remain stable.
+  - id: O_OCCUPANCY
+    category: state
+    statement: Occupancy equals accepted inputs minus accepted outputs, remains between zero and two, and changes by at most one per edge.
+  - id: O_ORDERING
+    category: data
+    statement: Output transfers return accepted input words in FIFO order without loss, duplication, or read-through.
+  - id: O_EMPTY_DATA
+    category: output
+    statement: out_data is zero whenever out_valid is low.

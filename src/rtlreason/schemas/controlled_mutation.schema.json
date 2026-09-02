@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/controlled_mutation.schema.json",
+  "title": "RTLReason Controlled Process and RTL Mutation",
+  "type": "object",
+  "required": [
+    "mutation_id", "task_id", "target_item_id", "replacement_claim",
+    "rationale", "expected_violations"
+  ],
+  "properties": {
+    "mutation_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "mutation_scope": {
+      "type": "string",
+      "enum": ["process_only", "process_and_rtl"],
+      "default": "process_and_rtl"
+    },
+    "target_item_id": {"type": "string", "minLength": 1},
+    "replacement_claim": {"type": "string", "minLength": 1},
+    "rationale": {"type": "string", "minLength": 1},
+    "expected_violations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "additionalProperties": false
+}

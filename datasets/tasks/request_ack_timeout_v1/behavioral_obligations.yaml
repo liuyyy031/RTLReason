@@ -1,0 +1,27 @@
+schema_version: "1.0"
+task_id: request_ack_timeout_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears busy, done, and timeout.
+  - id: O_REQUEST_ACCEPT
+    category: acceptance
+    statement: A request is accepted only on an idle edge and makes busy high after that edge.
+  - id: O_INITIAL_ACK_IGNORED
+    category: boundary
+    statement: ack sampled on the same idle edge that accepts req does not immediately complete the new transaction.
+  - id: O_ACK_COMPLETE
+    category: transition
+    statement: An ack sampled while busy returns idle and asserts done for one cycle without asserting timeout.
+  - id: O_ACK_PRIORITY
+    category: boundary
+    statement: Ack on the final allowed service edge wins over timeout and produces done only.
+  - id: O_TIMEOUT_EXACT
+    category: timing
+    statement: For a request accepted at edge N with no ack, timeout occurs after edge N+TIMEOUT_CYCLES, not earlier or later.
+  - id: O_BUSY_REQUEST_IGNORED
+    category: boundary
+    statement: req while busy, including the completion edge, does not restart, replace, or queue another transaction.
+  - id: O_PULSES
+    category: output
+    statement: done and timeout are mutually exclusive one-cycle pulses and are zero during ordinary waiting and idle cycles.

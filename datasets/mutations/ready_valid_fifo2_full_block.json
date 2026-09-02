@@ -1,0 +1,9 @@
+{
+  "mutation_id": "fifo2-full-block-001",
+  "task_id": "ready_valid_fifo2_v1",
+  "mutation_scope": "process_and_rtl",
+  "target_item_id": "S3.2",
+  "replacement_claim": "Acceptance uses only the pre-edge occupancy: in_ready is high exactly when occ is below 2. Therefore a full queue cannot accept input even when out_ready simultaneously removes the oldest element; that edge performs pop only and a replacement push must wait for a later cycle.",
+  "rationale": "Inject a current-state-only full guard that omits the required full pop+push replacement case, and pair it with a calibrated RTL fault implementing the same decision.",
+  "expected_violations": ["O_READY_VALID", "O_FULL_REPLACE", "O_ORDERING"]
+}

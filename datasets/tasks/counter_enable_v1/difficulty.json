@@ -1,0 +1,6 @@
+{
+  "level": "basic",
+  "concepts": ["synchronous reset", "control priority", "modular arithmetic", "pulse semantics"],
+  "formal_core": true,
+  "expected_process_items": "12-20"
+}

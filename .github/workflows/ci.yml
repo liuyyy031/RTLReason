@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -e .
+      - run: python -m compileall -q src tests
+      - run: python -m unittest discover -s tests -v
+
+  reference-simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y iverilog
+      - run: python -m pip install -e .
+      - name: Counter reference architecture
+        run: rtlreason --project-root . verify-sim fifo_sync_v1 --rtl datasets/tasks/fifo_sync_v1/reference_rtl/count_fifo.sv
+      - name: Wrap-bit reference architecture
+        run: rtlreason --project-root . verify-sim fifo_sync_v1 --rtl datasets/tasks/fifo_sync_v1/reference_rtl/wrapbit_fifo.sv
+      - name: Counter reference
+        run: rtlreason --project-root . verify-sim counter_enable_v1 --rtl datasets/tasks/counter_enable_v1/reference_rtl/counter_enable.sv
+      - name: Shift-register reference
+        run: rtlreason --project-root . verify-sim shift_register_v1 --rtl datasets/tasks/shift_register_v1/reference_rtl/shift_register.sv
+      - name: Round-robin arbiter reference
+        run: rtlreason --project-root . verify-sim round_robin_arbiter_v1 --rtl datasets/tasks/round_robin_arbiter_v1/reference_rtl/round_robin_arbiter.sv
+      - name: Ready-valid slice reference
+        run: rtlreason --project-root . verify-sim ready_valid_slice_v1 --rtl datasets/tasks/ready_valid_slice_v1/reference_rtl/ready_valid_slice.sv
+      - name: Request-ack timeout reference
+        run: rtlreason --project-root . verify-sim request_ack_timeout_v1 --rtl datasets/tasks/request_ack_timeout_v1/reference_rtl/request_ack_timeout.sv
+      - name: Two-entry ready-valid FIFO reference
+        run: rtlreason --project-root . verify-sim ready_valid_fifo2_v1 --rtl datasets/tasks/ready_valid_fifo2_v1/reference_rtl/ready_valid_fifo2.sv

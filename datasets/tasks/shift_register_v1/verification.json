@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_shift_register.sv",
+    "top": "tb_shift_register",
+    "vcd": "shift_register.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/shift_formal.sv",
+    "top": "shift_formal",
+    "depth": 18,
+    "obligations": ["O_RESET", "O_PRIORITY", "O_SHIFT", "O_DIRECTION", "O_HOLD", "O_SERIAL_OUT"]
+  }
+}

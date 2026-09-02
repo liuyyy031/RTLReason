@@ -26,9 +26,9 @@ RTLReason 的目标是建立一条可审计的评价链，把规格理解、状�
 - 使用独立 Gold Validation Set 评价整个评测器；
 - 形成可用于论文、项目答辩和后续工程扩展的实验数据与案例报告。
 
-### 2.2 后续计划
+### 2.2 非目标与方法边界
 
-可继续追求：
+本项目当前不采用以下做法：
 
 - 用 Hy3 自动生成 Gold 任务或 Gold Label；
 - 覆盖所有 SystemVerilog 语法和工业级完整 SoC；
@@ -93,7 +93,7 @@ Evaluator-Inferred Dependency 不因名称中包含 inferred/verified 就自动�
 
 ### 3.6 Safety-first Formal
 
-MVP 只证明可在有限反例中清楚解释的 Safety 性质。FIFO ordering 表述为：
+MVP 对可在有限反例中清楚解释的 Safety 性质执行深度 24 的有界模型检查（BMC），不将它表述为无界归纳证明。FIFO ordering 表述为：
 
 > 当一次合法读取发生时，返回值必须等于此前尚未读取的最早合法写入值。
 
@@ -144,12 +144,30 @@ interface_semantics.json
 behavioral_obligations.yaml
 difficulty.json
 provenance.json
+verification.json
 reference_rtl/
 testbench/
 formal/
 ```
 
-`provenance.json` 记录任务来源、许可证、版本和可信资产生成政策。任何被测 Hy3 输出都不得反向修改这些资产。
+`provenance.json` 记录任务来源、许可证、版本和可信资产生成政策；`verification.json` 冻结每题的 testbench、simulation top、VCD 文件、Formal harness/top、BMC 深度和覆盖的 obligations。任何被测 Hy3 输出都不得反向修改这些资产。
+
+当前已闭环的可信任务有 14 道：
+
+- `fifo_sync_v1`：满/空并发读写、一周期读延迟与 FIFO ordering；
+- `counter_enable_v1`：reset/load/enable 优先级与 overflow 脉冲；
+- `shift_register_v1`：移位方向、enable hold 和 serial output；
+- `rising_edge_detector_v1`：采样历史、单周期上升沿脉冲和复位释放边界；
+- `round_robin_arbiter_v1`：注册 grant、环绕优先级及 safety/liveness 边界；
+- `ready_valid_slice_v1`：背压稳定、同周期替换和无组合 bypass。
+- `request_ack_timeout_v1`：请求/应答 FSM、精确 timeout 边界、最终周期 ack 优先级和单周期脉冲。
+- `ready_valid_fifo2_v1`：两项弹性队列、FIFO ordering、背压稳定、满时 pop+push 替换和空时无 bypass。
+- `sequence_detector_1011_v1`：valid-gated 重叠序列检测、注册 match 脉冲和前缀回退。
+- `pulse_stretcher_v1`：参数化精确脉冲长度、活动期重触发和到期边沿优先级。
+- `grant_hold_arbiter_v1`：固定优先级、grant 稳定保持、接受后清空和禁止同边沿替换。
+- `debounce_filter_v1`：连续稳定采样阈值、抖动清零、双向转换和 changed 脉冲。
+- `token_bucket_v1`：当前状态消费判定、自动补充、饱和计数和空/满并发边界。
+- `dual_port_ram_sync_v1`：注册读延迟、输出保持、独立双端口和同地址 read-first 冲突语义。
 
 ### 5.2 S1–S5 Process Artifact
 
@@ -199,7 +217,7 @@ Semantic Evaluator 根据可信规格、Interface Semantics、Behavioral Obligat
 
 ### 5.5 Dependency Builder
 
-目标图必须是 DAG。拟采用的 v1.1 规则如下：
+目标图必须是 DAG。Dependency Semantics v1.1 已实现以下规则：
 
 1. 允许 earlier stage → later stage；
 2. 允许同阶段 earlier item → later item；
@@ -210,7 +228,11 @@ Semantic Evaluator 根据可信规格、Interface Semantics、Behavioral Obligat
 7. Hy3 claimed edge 仅用于比较，不直接复制为 inferred edge；
 8. evidence 不充分时返回 unknown/low confidence，而不是强行连边。
 
+Dependency Semantics v1.2 进一步将 def-use 定义为“最近可达定义”：对每个 reader 和信号，只连接流程顺序中最近的前驱 writer，更早定义通过中间节点间接到达，避免同一状态名在 S2/S3/S5 重复出现时形成近似完全图。`rtl_blocks` 采用同样的最近前驱规则。
+
 图结构生成后计算 digest 并冻结。后续 EDA evidence 不得改变 digest。
+
+2026-08-27 使用真实 Hy3 FIFO 样本回归后，合法的 `S3.2 → S3.4` 同阶段依赖已不再触发 schema error。由于该历史样本的 18 个条目均未填写 `reads/writes/rtl_blocks`，其 25 条 claimed dependency 被保守标记为 unverified；15 条 shared-obligation 关系仅记录在 association 列表中，最终 causal graph 不据此建边。
 
 ### 5.6 Verification Layer
 
@@ -225,9 +247,13 @@ Simulation Core：
 Formal Core：
 
 - 只覆盖核心子集；
-- MVP 以 Safety 为主；
+- MVP 以 Safety 为主，每题在 `verification.json` 中配置 BMC 深度（当前为 18–24）；
 - 失败时保留 counterexample；
-- Formal unavailable 时输出 unknown，而不是 pass。
+- 工具错误、无法归纳或 Formal unavailable 时输出 error/unknown，而不是 fail/pass。
+
+Formal pass 可覆盖 manifest 中配置的全部 Safety obligations；但在尚未建立逐 assertion 映射时，Formal counterexample 只证明存在 Safety 失败，不把全部配置项都标成 violated。具体 obligation 优先由定向 simulation 映射，无法映射时保持 unresolved，避免过度归因。
+
+Windows 上若项目路径包含中文，运行器会自动把临时 SBY workspace 放到纯 ASCII 的系统临时目录，规避 SBY 自带 Python 的路径编码限制；也可通过 `RTLREASON_FORMAL_WORKDIR` 显式指定工作目录。最终 evidence 仍写入实验目录。
 
 ### 5.7 Evidence Attribution
 
@@ -267,6 +293,14 @@ Gold Validation Set 可以包含：
 - 标注者、guideline version 和 adjudication status。
 
 开发集和 held-out test 必须分开。Prompt、阈值和规则不得根据 held-out test 调整。
+
+实验分层由 `datasets/task_manifest.json` 独立冻结，避免各题工程描述中的 `level`、`tier` 等字段漂移。M5 至少报告 `basic`、`intermediate`、`hard` 三层结果，并比较：
+
+- EDA-only：以最终 RTL 正确性代替过程正确性；
+- Semantic-only：使用逐项语义 Judge，但不使用依赖图和 Evidence Attribution；
+- Full RTLReason：Semantic、Dependency 与 Attribution 完整链路。
+
+截至 2026-09-02，盲审池包含 29 个真实 Hy3 输出和 3 个受控样本，Development Set 已有 1 条独立人工 Gold。14 道可信题目均已有至少 2 个真实回答，FIFO 有 3 个。首条 Gold 暴露了 S4 性质遗漏 reset 前提的 Semantic false negative；Judge Prompt v1.1 和经结构证据支持的 S4 property-derivation 规则已在版本化快照中修正。Gold 样本量仍不足以宣称评测器总体可靠性。
 
 ## 6. 第一题 FIFO 的重点技术
 
@@ -347,14 +381,14 @@ L2 示例包括 Guard Condition Omission、Simultaneous Operation Error、Read L
 |:--|---|---|---|
 | 8.23 | 冻结方法边界；修订同阶段依赖、DAG 与 association/causality 规则 | Dependency Semantics v1.1、回归测试 | 真实 Hy3 FIFO 样本不再因合法同阶段依赖误报 |
 | 8.24-8.26 | 闭环 FIFO 仿真与 Formal；完善 obligation failure 映射 | Icarus/SBY 运行记录、反例样本 | 两种参考 RTL 均通过；已知错误 RTL 能被捕获 |
-| 8.27 | 扩充基础任务：counter、shift register、arbiter、handshake | 约 10 道可信任务 | 每题都有 interface、obligations、reference model 和 simulation |
+| 8.27-8.29 | 扩充基础任务：counter、shift register、arbiter、handshake、timeout FSM、弹性队列 | 首批 7 道可信任务 | 每题都有 interface、obligations、reference model、simulation 和 BMC |
 | 8.28-8.30 | 扩充状态机、参数化模块和时序边界任务 | 累计约 20–30 道任务 | 难度与错误类型覆盖达到预设矩阵 |
 | 8.31 | 采集真实 Hy3 输出并建设 Gold Development Set | 10–20 个 adjudicated cases | 包含真实 failure、正确 RTL/错误过程等关键组合 |
 | 9.1-9.2 | 校准 Semantic Evaluator、Dependency Builder 和 Attribution | 指标报告、错误案例分析 | 分模块报告误差，不使用 held-out 调参 |
 | 9.3-9.4 | 建设 held-out test；扩展至目标题量 | 30–60 道题、held-out labels | 任务资产版本冻结，测试集不再参与规则修改 |
 | 9.5-9.10 | 完成消融实验、文档、演示和项目交付 | 最终报告、CLI demo、案例可视化 | 从任务到报告可一键复现，关键结论有证据链 |
 
-## 17. 验收标准
+## 11. 验收标准
 
 MVP 验收：
 

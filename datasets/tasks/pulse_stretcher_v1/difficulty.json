@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["parameterized timer", "exact cycle counting", "retrigger priority", "off-by-one boundary"],
+  "formal_core": true,
+  "expected_process_items": "14-24"
+}

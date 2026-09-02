@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "task_id": "pulse_stretcher_v1",
+  "module_name": "pulse_stretcher",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "active_after_reset": 0,
+    "remaining_after_reset": 0
+  },
+  "parameters": {
+    "PULSE_CYCLES": {"type": "integer_at_least_two", "default": 4}
+  },
+  "ports": {
+    "trigger": {"direction": "input", "width": 1},
+    "active": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "trigger": "every_sampled_high_trigger_is_accepted_unless_rst_is_high",
+    "trigger_while_active": "restart_full_interval_without_low_gap",
+    "trigger_on_expiration_edge": "restart_wins_over_expiration"
+  },
+  "timing": {
+    "trigger_edge_counts": true,
+    "unretriggered_duration": "exactly_PULSE_CYCLES_post_edge_observation_cycles",
+    "expiration": "active_clears_immediately_after_the_edge_following_the_last_active_cycle",
+    "continuous_trigger": "active_can_remain_high_indefinitely_without_implying_a_liveness_failure"
+  }
+}

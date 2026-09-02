@@ -1,0 +1,9 @@
+{
+  "mutation_id": "shift-wrong-direction-process-only-001",
+  "task_id": "shift_register_v1",
+  "mutation_scope": "process_only",
+  "target_item_id": "S3.2",
+  "replacement_claim": "If rst is low and en is high, q_reg transitions to {serial_in, q_reg[WIDTH-1:1]}, so existing bits move toward smaller bit indices and serial_in enters the MSB.",
+  "rationale": "Inject a process-only shift-direction error while preserving the original correct RTL, creating a controlled correct-RTL/wrong-process case for evaluating EDA-only false negatives.",
+  "expected_violations": []
+}

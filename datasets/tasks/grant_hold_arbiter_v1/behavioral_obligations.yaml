@@ -1,0 +1,27 @@
+schema_version: "1.0"
+task_id: grant_hold_arbiter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears grant regardless of req and accept.
+  - id: O_IDLE_SELECT
+    category: arbitration
+    statement: On an idle non-reset edge, asserted requests produce a registered grant and no requests produce zero.
+  - id: O_PRIORITY
+    category: arbitration
+    statement: When selecting, the lowest-index asserted requester wins.
+  - id: O_ONEHOT
+    category: output
+    statement: grant is always one-hot-or-zero.
+  - id: O_HOLD
+    category: stability
+    statement: A nonzero grant remains unchanged while accept is low, independent of subsequent req changes.
+  - id: O_ACCEPT_CLEAR
+    category: transition
+    statement: A sampled accept with a current nonzero grant clears grant immediately after that edge.
+  - id: O_NO_REPLACE
+    category: boundary
+    statement: Requests sampled on a completion edge cannot replace the accepted grant until a later idle edge.
+  - id: O_IDLE_ACCEPT
+    category: boundary
+    statement: accept sampled while idle does not prevent normal fixed-priority selection from req.

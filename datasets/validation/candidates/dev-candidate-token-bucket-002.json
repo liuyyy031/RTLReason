@@ -1,0 +1,1397 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-token-bucket-002",
+  "task_id": "token_bucket_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/token-bucket-002",
+  "source_hashes": {
+    "process_sha256": "e19d456a6f8e11e6780cd3e688cc021a64667a611b04db007418fc9c288d0a4c",
+    "evidence_sha256": "cd75df94983d905f832ab6ec11f811de5d3165152309c8e0a12dd84ef9e5c41c",
+    "report_sha256": "369134aec0156764bd51ffc46e3ddfc661ac0dbf77f6180750ece33eaeece9fa"
+  },
+  "candidate_process": {
+    "task_id": "token_bucket_v1",
+    "architecture_summary": "Single registered saturating up/down counter with combinational pre-edge acceptance logic and synchronous reset.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high reset clears tokens and grant to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Token count is registered with width $clog2(CAPACITY+1) and stays in 0..CAPACITY.",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Grant is a registered one-cycle pulse indicating accepted consumption based on pre-edge nonzero count and req.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Edge update adds at most one token if not full, consumes one if req and count>0; empty rejects despite replenish, middle holds, full decrements.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: one saturating counter register cnt and one grant register, both synchronous.",
+            "maps_to": [
+              "O_RESET",
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "register_declaration"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational next-state: replenish = cnt<CAPACITY, consume = req && cnt>0, next_cnt = cnt + replenish - consume.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S1.4",
+              "S2.1"
+            ],
+            "reads": [
+              "cnt",
+              "req"
+            ],
+            "writes": [
+              "replenish",
+              "consume",
+              "next_cnt"
+            ],
+            "rtl_blocks": [
+              "next_state_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Grant register captures consume signal (pre-edge acceptance) on each edge.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.1"
+            ],
+            "reads": [
+              "consume"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "grant_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Output port tokens driven from registered cnt; grant is the registered output.",
+            "maps_to": [
+              "O_RANGE",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [
+              "tokens"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Highest priority: on posedge clk if rst high, cnt<=0 and grant<=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Non-reset edge: cnt<=next_cnt, grant<=consume, sampling req before edge.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "next_cnt",
+              "consume"
+            ],
+            "writes": [
+              "cnt",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "non_reset_branch"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "No lookahead: consume uses pre-edge cnt, so empty request rejected even when replenish adds.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.4"
+            ],
+            "reads": [
+              "cnt",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "no_lookahead_rule"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Saturation and floor guards keep cnt in 0..CAPACITY.",
+            "maps_to": [
+              "O_RANGE",
+              "O_FULL_CONSUME",
+              "O_MIDDLE_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.2"
+            ],
+            "reads": [
+              "cnt",
+              "next_cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "saturation_guard"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: rst high implies next cnt==0 and next grant==0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "cnt",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: grant==1 iff previous req==1 and previous cnt>0.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.3"
+            ],
+            "reads": [
+              "grant",
+              "req",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: cnt==0 && req implies next cnt==1 && next grant==0.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "cnt",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: cnt==CAPACITY && req implies next cnt==CAPACITY-1 && next grant==1.",
+            "maps_to": [
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "cnt",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Candidate: invariant cnt between 0 and CAPACITY.",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module header with CAPACITY param and TOKEN_WIDTH localparam and ports.",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "CAPACITY",
+              "TOKEN_WIDTH"
+            ],
+            "rtl_blocks": [
+              "module_interface"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement always_ff with sync reset and non-reset update of cnt and grant.",
+            "maps_to": [
+              "O_RESET",
+              "O_REPLENISH",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "rst",
+              "clk",
+              "next_cnt",
+              "consume"
+            ],
+            "writes": [
+              "cnt",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "always_ff_update"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement always_comb for replenish/consume/next_cnt and assign output tokens.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_CONSUME",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.4"
+            ],
+            "reads": [
+              "cnt",
+              "req",
+              "CAPACITY"
+            ],
+            "writes": [
+              "replenish",
+              "consume",
+              "next_cnt",
+              "tokens"
+            ],
+            "rtl_blocks": [
+              "comb_logic",
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "token_bucket",
+      "code": "module token_bucket #(\n    parameter int CAPACITY = 3\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic req,\n    output logic grant,\n    output logic [$clog2(CAPACITY+1)-1:0] tokens\n);\n    localparam int TOKEN_WIDTH = $clog2(CAPACITY+1);\n    logic [TOKEN_WIDTH-1:0] cnt;\n    logic [TOKEN_WIDTH-1:0] next_cnt;\n    logic consume;\n\n    always_comb begin\n        logic replenish;\n        replenish = (cnt < CAPACITY) ? 1'b1 : 1'b0;\n        consume = req && (cnt > '0);\n        next_cnt = cnt + TOKEN_WIDTH'(replenish) - TOKEN_WIDTH'(consume);\n    end\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            cnt <= '0;\n            grant <= 1'b0;\n        end else begin\n            cnt <= next_cnt;\n            grant <= consume;\n        end\n    end\n\n    assign tokens = cnt;\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Single counter architecture; no lookahead via pre-edge count."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "6e074450-3519-4092-8435-d496f865f69e",
+        "usage": {
+          "prompt_tokens": 1487,
+          "completion_tokens": 12952,
+          "total_tokens": 14439,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 10407
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:token_bucket_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:token_bucket_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_CURRENT_ACCEPT",
+          "O_EMPTY_NO_LOOKAHEAD",
+          "O_FULL_CONSUME",
+          "O_GRANT_PULSE",
+          "O_MIDDLE_SIMULTANEOUS",
+          "O_RANGE",
+          "O_REPLENISH",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.2",
+      "S4.3",
+      "S4.4"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.2",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.2",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Biconditional omits reset exclusion; on a reset edge with previous req=1 and cnt>0, grant becomes 0, violating iff. Must qualify with !rst.",
+        "confidence": 0.9
+      },
+      {
+        "item_id": "S4.3",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Implication cnt==0&&req -> next cnt==1 ignores reset branch; if rst high, next cnt==0, counterexample to claimed consequent.",
+        "confidence": 0.9
+      },
+      {
+        "item_id": "S4.4",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Implication cnt==CAPACITY&&req -> next cnt==CAPACITY-1 misses reset guard; reset forces cnt=0, breaking property.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "11a5fdeae4c03a2cbf33f8235c542b81efe4705136dd6a8450d754fc043e8650",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:consume"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:consume",
+            "def_use:next_cnt",
+            "shared_obligation_context:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:next_cnt",
+            "shared_obligation_context:O_FULL_CONSUME",
+            "shared_obligation_context:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:consume",
+            "def_use:next_cnt",
+            "shared_obligation_context:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:grant",
+            "shared_obligation_context:O_CURRENT_ACCEPT",
+            "shared_obligation_context:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:output_assign",
+            "shared_obligation_context:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:cnt",
+            "property_derivation:def_use:grant",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:cnt",
+            "property_derivation:def_use:grant",
+            "shared_obligation_context:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.5",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:CAPACITY"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_REPLENISH"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4",
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.3",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.1",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS",
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS",
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS",
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 20,
+        "claimed_dependency_count": 26,
+        "items_with_structural_traceability": 16,
+        "structural_traceability_coverage": 0.8,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "6e074450-3519-4092-8435-d496f865f69e",
+      "usage": {
+        "prompt_tokens": 1487,
+        "completion_tokens": 12952,
+        "total_tokens": 14439,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 10407
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "abfc52da-5c9a-4f2d-8b54-9238f7a64987",
+      "usage": {
+        "prompt_tokens": 3836,
+        "completion_tokens": 9129,
+        "total_tokens": 12965,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7848
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

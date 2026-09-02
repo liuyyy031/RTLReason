@@ -1,0 +1,30 @@
+schema_version: "1.0"
+task_id: fifo_sync_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously empties the FIFO, clears full, asserts empty, and sets dout to zero.
+  - id: O_FLAGS
+    category: status
+    statement: full and empty describe current occupancy; full iff occupancy equals DEPTH and empty iff occupancy is zero.
+  - id: O_WRITE_ACCEPT
+    category: acceptance
+    statement: A write is accepted when wr_en is high and either the FIFO is not full or a simultaneous legal read is accepted.
+  - id: O_READ_ACCEPT
+    category: acceptance
+    statement: A read is accepted exactly when rd_en is high and the FIFO is not empty.
+  - id: O_FULL_SIMULTANEOUS
+    category: boundary
+    statement: When currently full with wr_en and rd_en high, both operations are accepted and occupancy remains full.
+  - id: O_EMPTY_SIMULTANEOUS
+    category: boundary
+    statement: When currently empty with wr_en and rd_en high, only the write is accepted and no read-through occurs.
+  - id: O_OCCUPANCY
+    category: state
+    statement: Occupancy changes by accepted writes minus accepted reads and always remains between zero and DEPTH inclusive.
+  - id: O_ORDERING
+    category: data
+    statement: On every accepted read, dout becomes the oldest previously accepted but unread word after that active edge.
+  - id: O_DOUT_HOLD
+    category: output
+    statement: When reset is low and no read is accepted, dout retains its previous value.

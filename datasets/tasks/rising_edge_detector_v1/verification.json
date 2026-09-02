@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_rising_edge_detector.sv",
+    "top": "tb_rising_edge_detector",
+    "vcd": "rising_edge_detector.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/rising_edge_detector_formal.sv",
+    "top": "rising_edge_detector_formal",
+    "depth": 16,
+    "obligations": [
+      "O_RESET",
+      "O_RISE",
+      "O_NO_REPEAT",
+      "O_FALL",
+      "O_HISTORY",
+      "O_FIRST_AFTER_RESET"
+    ]
+  }
+}

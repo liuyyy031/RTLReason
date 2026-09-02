@@ -1,0 +1,6 @@
+{
+  "level": "intermediate",
+  "concepts": ["ready-valid handshake", "backpressure", "simultaneous replace", "registered no-bypass timing"],
+  "formal_core": true,
+  "expected_process_items": "16-26"
+}

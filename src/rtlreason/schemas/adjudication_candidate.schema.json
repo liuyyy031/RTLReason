@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rtlreason.local/schemas/adjudication_candidate.schema.json",
+  "title": "RTLReason Pending Human Adjudication Candidate",
+  "type": "object",
+  "required": [
+    "schema_version", "case_id", "task_id", "candidate_origin",
+    "source_hashes", "candidate_process", "trusted_evidence",
+    "evaluator_prediction", "adjudication"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "case_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "candidate_origin": {"enum": ["real_hy3", "controlled_mutation"]},
+    "source_run": {"type": "string"},
+    "source_hashes": {
+      "type": "object",
+      "required": ["process_sha256", "evidence_sha256", "report_sha256"]
+    },
+    "candidate_process": {"type": "object"},
+    "trusted_evidence": {"type": "array"},
+    "evaluator_prediction": {"type": "object"},
+    "api_provenance": {"type": "object"},
+    "adjudication": {
+      "type": "object",
+      "required": [
+        "status", "independent_gold_required", "gold_fields_present",
+        "guideline_version"
+      ],
+      "properties": {
+        "status": {"const": "pending_human"},
+        "independent_gold_required": {"const": true},
+        "gold_fields_present": {"const": false},
+        "guideline_version": {"type": "string"}
+      }
+    }
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["gold_rtl_correct"]},
+      {"required": ["gold_process_correct"]},
+      {"required": ["gold_root_error"]}
+    ]
+  }
+}

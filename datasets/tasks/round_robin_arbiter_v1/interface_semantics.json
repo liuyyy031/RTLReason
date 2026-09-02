@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "task_id": "round_robin_arbiter_v1",
+  "module_name": "round_robin_arbiter",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "grant_after_reset": 0,
+    "first_scan_index_after_reset": 0
+  },
+  "parameters": {
+    "REQUESTERS": {"type": "fixed_for_task", "value": 4}
+  },
+  "ports": {
+    "req": {"direction": "input", "width": 4},
+    "grant": {"direction": "output", "width": 4}
+  },
+  "flag_semantics": {
+    "grant": "registered_one_hot_or_zero"
+  },
+  "acceptance": {
+    "request_sample": "req_at_active_edge",
+    "winner": "first_asserted_request_scanning_from_current_pointer_with_wrap"
+  },
+  "grant_data": {
+    "latency_cycles": 1,
+    "no_request": "grant_zero_and_pointer_hold",
+    "after_grant": "pointer_becomes_granted_index_plus_one_modulo_4"
+  },
+  "liveness_boundary": "No unconditional eventual-grant property is asserted without a persistent-request assumption."
+}

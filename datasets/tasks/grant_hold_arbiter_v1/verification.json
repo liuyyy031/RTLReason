@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_grant_hold_arbiter.sv",
+    "top": "tb_grant_hold_arbiter",
+    "vcd": "grant_hold_arbiter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/grant_hold_arbiter_formal.sv",
+    "top": "grant_hold_arbiter_formal",
+    "depth": 18,
+    "obligations": ["O_RESET", "O_IDLE_SELECT", "O_PRIORITY", "O_ONEHOT", "O_HOLD", "O_ACCEPT_CLEAR", "O_NO_REPLACE", "O_IDLE_ACCEPT"]
+  }
+}

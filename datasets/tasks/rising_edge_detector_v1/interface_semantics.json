@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "task_id": "rising_edge_detector_v1",
+  "module_name": "rising_edge_detector",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "pulse_after_reset": 0,
+    "previous_sample_after_reset": 0,
+    "input_sampled_while_reset": false
+  },
+  "ports": {
+    "signal_in": {"direction": "input", "width": 1},
+    "pulse": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "sample": "every_non_reset_posedge",
+    "reset_priority": "reset_discards_signal_in_sample"
+  },
+  "transition": {
+    "pulse_next": "signal_in AND NOT previous_sample",
+    "previous_sample_next": "signal_in",
+    "held_high": "only_the_first_high_sample_pulses",
+    "falling_edge": "no_pulse",
+    "first_non_reset_high_after_reset": "pulse"
+  },
+  "output_timing": {
+    "pulse": "registered_one_cycle_result_of_samples_at_current_edge"
+  }
+}

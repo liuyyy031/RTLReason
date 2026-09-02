@@ -1,0 +1,15 @@
+[options]
+mode bmc
+depth 24
+multiclock on
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal ../reference_rtl/count_fifo.sv fifo_formal.sv
+prep -top fifo_formal
+
+[files]
+../reference_rtl/count_fifo.sv
+fifo_formal.sv

@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: dual_port_ram_sync_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst clears rd_data and every memory word to zero and accepts neither read nor write.
+  - id: O_WRITE
+    category: state
+    statement: An accepted write replaces exactly the addressed word with wr_data and leaves all other words unchanged.
+  - id: O_READ
+    category: output
+    statement: An accepted read updates rd_data after the edge with the pre-edge value of the addressed word.
+  - id: O_READ_LATENCY
+    category: timing
+    statement: rd_data is registered; it changes only after an accepted read or reset edge and has no combinational dependence on rd_addr.
+  - id: O_HOLD
+    category: output
+    statement: On a non-reset edge with rd_en low, rd_data retains its previous value.
+  - id: O_READ_FIRST
+    category: boundary
+    statement: If read and write are both accepted for the same address, rd_data receives the old word while the memory stores the new word for later reads.
+  - id: O_INDEPENDENT_PORTS
+    category: concurrency
+    statement: A simultaneous read and write to different addresses both complete without interfering with one another.
