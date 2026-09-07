@@ -1,0 +1,520 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-saturating-002",
+  "task_id": "saturating_counter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/saturating-002",
+  "source_hashes": {
+    "process_sha256": "b6c6fe9584aaaae9ee24247f9f4e80dc556c6f58b1b6c5e1d7e06c284d316bca",
+    "evidence_sha256": "d90304470dea793b4aba8a0a23de7eeb5cbf1a16ec39e9b2c93d4a170c880049",
+    "report_sha256": "8c531f416cb6a7db526ae6c1a297f62f91c2eebacd3f25dce699172ee4316710"
+  },
+  "candidate_process": {
+    "task_id": "saturating_counter_v1",
+    "architecture_summary": "Synchronous registered counter with combinational next-state mux and combinational boundary flags.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst forces count to zero on clock edge.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "When en high, up=1 increments below max, up=0 decrements above zero; otherwise holds; no wrap.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "at_min and at_max are combinational flags reflecting current count boundaries.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a single synchronous always_ff block to register count with synchronous reset.",
+            "maps_to": [
+              "O_RESET",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Boundary flags are computed combinationally from registered count, not stored.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "count"
+            ],
+            "writes": [
+              "at_min",
+              "at_max"
+            ],
+            "rtl_blocks": [
+              "comb_flags"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Next count is computed by combinational logic: increment if en&up&!at_max, decrement if en&!up&!at_min, else hold.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "count",
+              "en",
+              "up",
+              "at_max",
+              "at_min"
+            ],
+            "writes": [
+              "next_count"
+            ],
+            "rtl_blocks": [
+              "comb_next"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Temporal rule: on posedge clk if rst high, count is set to zero (highest priority).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Temporal rule: with rst low, en high, up high, and not at_max, count increments on clock.",
+            "maps_to": [
+              "O_INCREMENT"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "en",
+              "up",
+              "at_max",
+              "count",
+              "next_count"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update",
+              "comb_next"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Temporal rule: with rst low, en high, up low, and not at_min, count decrements on clock.",
+            "maps_to": [
+              "O_DECREMENT"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "en",
+              "up",
+              "at_min",
+              "count",
+              "next_count"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update",
+              "comb_next"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Temporal rule: with rst low and (en low or at bound), count holds (saturates).",
+            "maps_to": [
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "en",
+              "up",
+              "at_max",
+              "at_min",
+              "count",
+              "next_count"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update",
+              "comb_next"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: rst high implies count==0 after one clock edge.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "count"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: if at_max and en and up, next count remains max (no wrap).",
+            "maps_to": [
+              "O_SATURATE_MAX"
+            ],
+            "claimed_dependencies": [
+              "S3.4",
+              "S2.2"
+            ],
+            "reads": [
+              "at_max",
+              "en",
+              "up",
+              "count"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: if at_min and en and !up, next count remains zero (no wrap).",
+            "maps_to": [
+              "O_SATURATE_MIN"
+            ],
+            "claimed_dependencies": [
+              "S3.4",
+              "S2.2"
+            ],
+            "reads": [
+              "at_min",
+              "en",
+              "up",
+              "count"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: at_min == (count==0) and at_max == (count==max) always.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "count",
+              "at_min",
+              "at_max"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL module declares parameter WIDTH and all ports exactly per frozen interface.",
+            "maps_to": [
+              "O_RESET",
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "up"
+            ],
+            "writes": [
+              "count",
+              "at_min",
+              "at_max"
+            ],
+            "rtl_blocks": [
+              "module"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL sequential block implements reset and saturating next_count assignment.",
+            "maps_to": [
+              "O_RESET",
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "next_count"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL combinational blocks compute next_count and boundary flags.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD",
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S4.4"
+            ],
+            "reads": [
+              "count",
+              "en",
+              "up",
+              "at_max",
+              "at_min"
+            ],
+            "writes": [
+              "next_count",
+              "at_min",
+              "at_max"
+            ],
+            "rtl_blocks": [
+              "comb_next",
+              "comb_flags"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "saturating_counter",
+      "code": "module saturating_counter #(parameter WIDTH = 8) (\n  input  logic         clk,\n  input  logic         rst,\n  input  logic         en,\n  input  logic         up,\n  output logic [WIDTH-1:0] count,\n  output logic         at_min,\n  output logic         at_max\n);\n\n  logic [WIDTH-1:0] next_count;\n\n  always_comb begin\n    next_count = count;\n    if (en) begin\n      if (up) begin\n        if (count != {WIDTH{1'b1}})\n          next_count = count + 1'b1;\n      end else begin\n        if (count != {WIDTH{1'b0}})\n          next_count = count - 1'b1;\n      end\n    end\n  end\n\n  always_ff @(posedge clk) begin\n    if (rst)\n      count <= {WIDTH{1'b0}};\n    else\n      count <= next_count;\n  end\n\n  assign at_min = (count == {WIDTH{1'b0}});\n  assign at_max = (count == {WIDTH{1'b1}});\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "1a41ef0c-1ccf-46a5-befa-5a22366eb67a",
+        "usage": {
+          "prompt_tokens": 1306,
+          "completion_tokens": 12887,
+          "total_tokens": 14193,
+          "prompt_tokens_details": {
+            "cached_tokens": 1216
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 10596
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:saturating_counter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DECREMENT",
+        "O_FLAGS",
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_RESET",
+        "O_SATURATE_MAX",
+        "O_SATURATE_MIN"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:saturating_counter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DECREMENT",
+        "O_FLAGS",
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_RESET",
+        "O_SATURATE_MAX",
+        "O_SATURATE_MIN"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_DECREMENT",
+          "O_FLAGS",
+          "O_HOLD",
+          "O_INCREMENT",
+          "O_RESET",
+          "O_SATURATE_MAX",
+          "O_SATURATE_MIN"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

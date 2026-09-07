@@ -259,6 +259,77 @@ class DependencyAndAttributionTests(unittest.TestCase):
         self.assertEqual(result.earliest_error_stage, "S1")
         self.assertEqual(result.graph_digest, graph.digest)
 
+    def test_eda_failure_makes_process_incorrect_without_semantic_root(self) -> None:
+        process = process_fixture()
+        graph = build_inferred_dependency_graph(process)
+        assessments = [
+            ItemAssessment(item.id, "correct") for item in process.items
+        ]
+        evidence = [
+            VerificationEvidence(
+                "sim:compile",
+                "iverilog",
+                "fail",
+                ("O_FLAGS",),
+                "candidate failed trusted compilation",
+            )
+        ]
+
+        result = attribute_errors(process, graph, assessments, evidence)
+
+        self.assertFalse(result.process_correct)
+        self.assertEqual(result.root_errors, ())
+        self.assertEqual(result.violated_obligations, ("O_FLAGS",))
+
+    def test_compile_failure_maps_malformed_label_to_specific_s5_item(self) -> None:
+        base = process_fixture()
+        process = ProcessArtifact(
+            task_id=base.task_id,
+            architecture_summary=base.architecture_summary,
+            stages=(
+                *base.stages[:4],
+                ProcessStage(
+                    "S5",
+                    "RTL Implementation",
+                    (
+                        ProcessItem(
+                            "S5.1", "S5", "Implement module and ports", rtl_blocks=("seq_block",)
+                        ),
+                        ProcessItem(
+                            "S5.2", "S5", "Implement seq_block priority logic", rtl_blocks=("seq_block",)
+                        ),
+                    ),
+                ),
+            ),
+            rtl=RTLArtifact(
+                "systemverilog",
+                "fifo_sync",
+                "module fifo_sync(input logic clk);\n"
+                "  seq_block: always_ff @(posedge clk) begin end\n"
+                "endmodule",
+            ),
+        )
+        graph = build_inferred_dependency_graph(process)
+        assessments = [
+            ItemAssessment(item.id, "correct") for item in process.items
+        ]
+        evidence = [
+            VerificationEvidence(
+                "sim:compile",
+                "iverilog",
+                "fail",
+                ("O_FLAGS",),
+                "candidate failed trusted compilation",
+                details={"compile_returncode": 25},
+            )
+        ]
+
+        result = attribute_errors(process, graph, assessments, evidence)
+
+        self.assertEqual(result.root_errors, ("S5.2",))
+        self.assertEqual(result.primary_error_item, "S5.2")
+        self.assertEqual(result.earliest_error_stage, "S5")
+
 
 if __name__ == "__main__":
     unittest.main()

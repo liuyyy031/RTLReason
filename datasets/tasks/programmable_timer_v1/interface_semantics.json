@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "task_id": "programmable_timer_v1",
+  "module_name": "programmable_timer",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "remaining_after_reset": 1,
+    "stored_period_after_reset": 1,
+    "tick_after_reset": 0
+  },
+  "parameters": {
+    "WIDTH": {"type": "positive_integer", "default": 8}
+  },
+  "ports": {
+    "load": {"direction": "input", "width": 1},
+    "period": {"direction": "input", "width": "WIDTH"},
+    "enable": {"direction": "input", "width": 1},
+    "remaining": {"direction": "output", "width": "WIDTH"},
+    "tick": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "priority": ["reset", "load", "enable", "hold"],
+    "effective_period": "period==0 ? 1 : period"
+  },
+  "transition": {
+    "load": "store effective_period in the private period register and remaining; tick=0",
+    "countdown": "when enabled and remaining>1, decrement remaining; tick=0",
+    "expiry": "when enabled and remaining==1, tick=1 and remaining reloads stored period",
+    "disabled": "remaining holds and tick=0"
+  },
+  "flag_semantics": {
+    "tick": "registered one-cycle pulse on the enabled 1-to-reload transition"
+  }
+}

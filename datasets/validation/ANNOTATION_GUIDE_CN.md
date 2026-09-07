@@ -1,4 +1,4 @@
-# RTLReason 人工 Gold 标注指南 v1.0
+# RTLReason 人工 Gold 标注指南 v1.1
 
 ## 1. 独立性与盲审
 
@@ -26,6 +26,19 @@
 - `gold_parent_dependency`：人工确认的关键直接因果边。普通样本中的 Evaluator-Inferred Graph 仍然只是预测。
 - `gold_affected_obligation`：由错误实际破坏的可信行为义务；不要仅凭文本共同提及而添加。
 
+### 3.1 S4 Candidate Property 的 reset 作用域
+
+为避免把正确的自然语言性质因接口作用域约定不同而误判，v1.1 冻结以下规则：
+
+1. 描述普通运行行为的 S4 property 默认只在相关采样沿 `rst` 未断言时评价，等价于形式验证中的 `disable iff (rst)`。不能仅因条目没有重复写出 `!rst` 就判为错误。
+2. 明确描述 reset、reset release、包括 reset 在内的所有周期，或声称某条件是全局唯一原因的性质，按其字面作用域评价，不适用上述默认豁免。
+3. 默认 reset 作用域只排除当前 reset 采样沿，不自动补全历史有效性。涉及 previous、past、delay、首次 reset 后样本或跨周期因果的性质，必须确认所引用历史属于当前 reset epoch；必要时要求 past-valid 或无中间 reset 条件。
+4. 默认 reset 作用域不会自动补充 `enable`、`load`、`valid/ready`、优先级、地址有效性或 simultaneous-operation 条件。这些条件缺失并存在非 reset 反例时，仍是实质性过程错误。
+5. S1～S3 的局部 transition 描述可以结合同阶段已经明确给出的优先级上下文理解；但任何条目若与该上下文直接矛盾，仍应判错。
+6. 当旧 Root Error 仅由缺少显式 reset guard 得出时，应撤销该 Root 并继续检查后续条目，不能直接假定整个过程正确。
+
+这一定义只改变性质的默认作用域，不改变 frozen interface semantics、behavioral obligations 或 trusted EDA evidence。
+
 ## 4. 正确 RTL / 错误过程
 
 这是合法且重要的一类样本。例如某个 S3 claim 漏掉满/空或同时握手分支，但 S5 RTL 另外实现了正确分支。此时应标注：
@@ -40,4 +53,4 @@
 - `single_annotated`：一名独立标注者完成，可进入 development set。
 - `adjudicated`：至少两份独立标注发生分歧后完成裁决，或按项目约定完成双人复核；只有此状态可进入 held-out set。
 
-标注者必须填写稳定的 `annotator_id` 和 `guideline_version`。模板中的 `null` 布尔值必须替换为明确的 `true` 或 `false`。
+标注者必须填写稳定的 `annotator_id` 和 `guideline_version`。自 v1.1 起，列入 `readjudication/v1.1-s4-scope.json` 的旧 S4 标注只有在 `guideline_version = "1.1"` 下重新裁决后才能晋升。模板中的 `null` 布尔值必须替换为明确的 `true` 或 `false`。

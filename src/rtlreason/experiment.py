@@ -49,6 +49,10 @@ def _write_json(path: Path, value: Any) -> None:
     )
 
 
+def _real_output_origin(model: str) -> str:
+    return "real_hy3" if model.strip().lower() == "hy3" else "real_model_output"
+
+
 def _rtl_verdict(
     evidence: list[VerificationEvidence], *, formal_required: bool
 ) -> bool | None:
@@ -73,6 +77,7 @@ def _evaluate_process(
     api: Hy3Client,
     formal_required: bool,
     candidate_generation: dict[str, Any],
+    semantic_evaluation: bool = True,
 ) -> ExperimentResult:
     """Run the one shared static-graph, EDA, Judge, and attribution pipeline."""
     process_path = destination / "process.json"
@@ -124,24 +129,67 @@ def _evaluate_process(
     evidence_path = destination / "evidence.json"
     _write_json(evidence_path, [asdict(item) for item in evidence])
 
-    judged = api.chat(build_judge_messages(task, process), thinking=True)
-    (destination / "judge.response.txt").write_text(
-        judged.content, encoding="utf-8"
-    )
-    if judged.finish_reason == "length":
-        raise ValueError("Hy3 judge reached max_tokens; see judge.response.txt")
-    raw_assessments = parse_assessments(
-        extract_json_object(judged.content, required_keys={"assessments"})
-    )
-    semantic_assessments, assessment_issues = normalize_assessments(
-        process, raw_assessments
-    )
-    assessments, deterministic_overrides, global_schema_error = (
-        apply_deterministic_schema_issues(semantic_assessments, schema_issues)
-    )
-    attribution = attribute_errors(process, graph, assessments, evidence)
-    if global_schema_error:
-        attribution = replace(attribution, process_correct=False)
+    if semantic_evaluation:
+        judged = api.chat(build_judge_messages(task, process), thinking=True)
+        (destination / "judge.response.txt").write_text(
+            judged.content, encoding="utf-8"
+        )
+        if judged.finish_reason == "length":
+            raise ValueError("Hy3 judge reached max_tokens; see judge.response.txt")
+        raw_assessments = parse_assessments(
+            extract_json_object(judged.content, required_keys={"assessments"})
+        )
+        semantic_assessments, assessment_issues = normalize_assessments(
+            process, raw_assessments
+        )
+        assessments, deterministic_overrides, global_schema_error = (
+            apply_deterministic_schema_issues(semantic_assessments, schema_issues)
+        )
+        attribution = attribute_errors(process, graph, assessments, evidence)
+        if global_schema_error:
+            attribution = replace(attribution, process_correct=False)
+        attribution_payload = asdict(attribution)
+        semantic_evaluator = {
+            "provider": "Tencent Cloud TokenHub",
+            "model": judged.model,
+            "request_id": judged.request_id,
+            "usage": judged.usage,
+            "finish_reason": judged.finish_reason,
+            "prompt_version": JUDGE_PROMPT_VERSION,
+            "same_model_family_as_candidate": (
+                judged.model == candidate_generation.get("model")
+                if candidate_generation.get("model")
+                else None
+            ),
+            "gold_labels_required_for_validation": True,
+        }
+    else:
+        semantic_assessments = []
+        assessments = []
+        assessment_issues = []
+        deterministic_overrides = []
+        violated_obligations = sorted(
+            {
+                obligation
+                for item in evidence
+                if item.is_failure
+                for obligation in item.obligations
+            }
+        )
+        attribution_payload = {
+            "process_correct": None,
+            "root_errors": [],
+            "earliest_error_stage": None,
+            "primary_error_item": None,
+            "violated_obligations": violated_obligations,
+            "graph_digest": graph.digest,
+            "status": "not_run",
+        }
+        semantic_evaluator = {
+            "status": "not_run",
+            "reason": "independent_collection_verify_only",
+            "gold_labels_required_for_validation": True,
+        }
     final_rtl_correct = _rtl_verdict(
         evidence, formal_required=effective_formal_required
     )
@@ -172,25 +220,12 @@ def _evaluate_process(
         "candidate_generation": {
             **candidate_generation,
         },
-        "semantic_evaluator": {
-            "provider": "Tencent Cloud TokenHub",
-            "model": judged.model,
-            "request_id": judged.request_id,
-            "usage": judged.usage,
-            "finish_reason": judged.finish_reason,
-            "prompt_version": JUDGE_PROMPT_VERSION,
-            "same_model_family_as_candidate": (
-                judged.model == candidate_generation.get("model")
-                if candidate_generation.get("model")
-                else None
-            ),
-            "gold_labels_required_for_validation": True,
-        },
+        "semantic_evaluator": semantic_evaluator,
         "semantic_assessments": [asdict(item) for item in semantic_assessments],
         "assessments": [asdict(item) for item in assessments],
         "assessment_issues": assessment_issues,
         "deterministic_overrides": deterministic_overrides,
-        "attribution": asdict(attribution),
+        "attribution": attribution_payload,
     }
     report_path = destination / "report.json"
     _write_json(report_path, report)
@@ -212,6 +247,7 @@ def run_experiment(
     settings: Settings,
     formal_required: bool = True,
     max_tokens: int = 24000,
+    semantic_evaluation: bool = True,
     client: Hy3Client | None = None,
 ) -> ExperimentResult:
     """Run one auditable Hy3 generation-and-evaluation experiment."""
@@ -250,13 +286,14 @@ def run_experiment(
         api=api,
         formal_required=formal_required,
         candidate_generation={
-            "origin": "real_hy3",
+            "origin": _real_output_origin(generated.model),
             "provider": "Tencent Cloud TokenHub",
             "model": generated.model,
             "request_id": generated.request_id,
             "usage": generated.usage,
             "finish_reason": generated.finish_reason,
         },
+        semantic_evaluation=semantic_evaluation,
     )
 
 
@@ -268,6 +305,7 @@ def run_artifact_experiment(
     run_dir: str | Path,
     settings: Settings,
     formal_required: bool = True,
+    semantic_evaluation: bool = True,
     client: Hy3Client | None = None,
 ) -> ExperimentResult:
     """Evaluate an existing process artifact without invoking the Hy3 solver."""
@@ -298,4 +336,5 @@ def run_artifact_experiment(
             "source_process_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
             "embedded_generation": embedded_generation,
         },
+        semantic_evaluation=semantic_evaluation,
     )

@@ -469,17 +469,12 @@
     }
   ],
   "gold_rtl_correct": true,
-  "gold_process_correct": false,
-  "gold_first_error_stage": "S4",
-  "gold_root_error": "S4.2",
-  "gold_error_type_l1": "Property",
-  "gold_error_type_l2": "Incorrect Antecedent",
-  "gold_parent_dependency": [
-    {
-      "source": "S3.3",
-      "target": "S4.2"
-    }
-  ],
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
   "gold_affected_obligation": [],
   "predicted_rtl_correct": true,
   "predicted_process_correct": true,
@@ -1183,7 +1178,7 @@
     "status": "single_annotated",
     "annotator_id": "LT001",
     "annotator_role": "independent RTL reviewer",
-    "guideline_version": "1.0",
-    "notes": "S4.2 omits the non-reset condition from the rising-edge property. The trusted specification defines O_RISE only for a non-reset sample, while reset has highest priority and forces pulse to 0. Therefore, when rst=1, prev_sample=0, and signal_in=1, S4.2 incorrectly predicts pulse=1. The final RTL itself is correct and passes the trusted simulation and bounded formal checks."
+    "guideline_version": "1.1",
+    "notes": ""
   }
 }

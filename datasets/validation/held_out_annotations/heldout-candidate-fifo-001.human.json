@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the process was checked sequentially from specification understanding through state modeling, transition rules, candidate properties, and final RTL. The candidate correctly derives full and empty from current occupancy, accepts reads only when nonempty, permits a write to a full FIFO only when a simultaneous legal read occurs, preserves FIFO order, and holds dout when no read is accepted. In the second review, the implementation was independently stress-checked at the key boundary cases. At full occupancy with simultaneous read and write, both operations are accepted, count remains unchanged, nonblocking assignments preserve the old head for dout, and both pointers advance correctly. At empty occupancy with simultaneous wr_en and rd_en, only the write is accepted and no read-through occurs. Equality-based pointer wrap also correctly supports non-power-of-two DEPTH values within the frozen parameter contract. The wording that dout updates one cycle after an accepted read is consistent with the registered post-edge observation convention established by S2 and S3 and does not introduce an extra-cycle delay. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

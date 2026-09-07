@@ -1,0 +1,1063 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-pulse-001",
+  "split": "development",
+  "task_id": "pulse_stretcher_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/pulse-001",
+  "source_hashes": {
+    "process_sha256": "1489dfdbaae6ab88e2294a7d28aea8c131e2b0b39bb0f4e1ed6a394bfb2e4054",
+    "evidence_sha256": "51ccf1be53e4947081f454c1918e08a077b5bb7514d9f9bf7cbe340d38d3be80",
+    "report_sha256": "8c37ad154e1060f0628f5c3fb1a5f6212007aaba0bb9889223a842adf3fc1b34"
+  },
+  "candidate_process": {
+    "task_id": "pulse_stretcher_v1",
+    "architecture_summary": "Loadable down-counter with parallel load on trigger and registered active output; synchronous reset has highest priority.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears active and timer state with highest priority, even if trigger is high.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A sampled trigger with rst low makes active high immediately after that edge, and that edge is the first of exactly PULSE_CYCLES active cycles.",
+            "maps_to": [
+              "O_TRIGGER",
+              "O_DURATION"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Retrigger while active or on expiry edge restarts full interval without low gap; idle stays low.",
+            "maps_to": [
+              "O_RETRIGGER",
+              "O_EXPIRY_PRIORITY",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: a loadable down-counter cnt of width CNT_W=$clog2(PULSE_CYCLES) holds remaining post-trigger cycles; trigger loads PULSE_CYCLES-1.",
+            "maps_to": [
+              "O_DURATION",
+              "O_TRIGGER"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "cnt_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Registered output active is driven high when trigger is sampled or cnt>0, else low, implementing pulse and idle.",
+            "maps_to": [
+              "O_TRIGGER",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "cnt",
+              "trigger"
+            ],
+            "writes": [
+              "active"
+            ],
+            "rtl_blocks": [
+              "active_reg"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Reset overrides all: rst forces cnt<=0 and active<=0 in the same edge.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "reset_mux"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Transition: if !rst and trigger, next cnt=PULSE_CYCLES-1 and active=1 (handles first cycle, retrigger, expiry restart).",
+            "maps_to": [
+              "O_TRIGGER",
+              "O_RETRIGGER",
+              "O_EXPIRY_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "trigger",
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "trigger_load"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Transition: if !rst and !trigger and cnt>0, decrement cnt and hold active=1 for exact duration.",
+            "maps_to": [
+              "O_DURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "cnt",
+              "trigger",
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "decrement"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Transition: if !rst and !trigger and cnt==0, active=0 (idle); expiry edge with trigger is caught earlier by S3.1.",
+            "maps_to": [
+              "O_IDLE",
+              "O_EXPIRY_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "cnt",
+              "trigger",
+              "rst"
+            ],
+            "writes": [
+              "active",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "idle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: active high after an edge implies either trigger was sampled or cnt was >0 before that edge.",
+            "maps_to": [
+              "O_DURATION",
+              "O_TRIGGER"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "active",
+              "cnt",
+              "trigger"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: after rst sampled high, following edge shows active==0 and cnt==0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rst",
+              "active",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: a trigger while active or at expiry causes active to stay high for PULSE_CYCLES more cycles.",
+            "maps_to": [
+              "O_RETRIGGER",
+              "O_EXPIRY_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "trigger",
+              "active",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declaration with parameter PULSE_CYCLES default 4 and ports clk,rst,trigger,active.",
+            "maps_to": [
+              "O_RESET",
+              "O_TRIGGER"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "always_ff implements reset priority, trigger load, decrement, and idle exactly as transitions S3.1-S3.3.",
+            "maps_to": [
+              "O_RESET",
+              "O_TRIGGER",
+              "O_DURATION",
+              "O_RETRIGGER",
+              "O_EXPIRY_PRIORITY",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "trigger"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Registered active is connected directly to output port; no combinatorial path.",
+            "maps_to": [
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S5.2"
+            ],
+            "reads": [
+              "active"
+            ],
+            "writes": [
+              "active_port"
+            ],
+            "rtl_blocks": [
+              "output"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "pulse_stretcher",
+      "code": "module pulse_stretcher #(parameter int PULSE_CYCLES = 4) (\n  input  logic clk,\n  input  logic rst,\n  input  logic trigger,\n  output logic active\n);\n  localparam int CNT_W = $clog2(PULSE_CYCLES);\n  logic [CNT_W-1:0] cnt;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      cnt    <= '0;\n      active <= 1'b0;\n    end else if (trigger) begin\n      cnt    <= PULSE_CYCLES - 1;\n      active <= 1'b1;\n    end else if (cnt > 0) begin\n      cnt    <= cnt - 1'b1;\n      active <= 1'b1;\n    end else begin\n      cnt    <= '0;\n      active <= 1'b0;\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Counter width uses $clog2; trigger loads PULSE_CYCLES-1 so the trigger edge itself counts as cycle one."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "a49b2730-5fc2-42d8-b3d3-cd3bdd6c3f45",
+        "usage": {
+          "prompt_tokens": 1308,
+          "completion_tokens": 9209,
+          "total_tokens": 10517,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7174
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:pulse_stretcher_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DURATION",
+        "O_EXPIRY_PRIORITY",
+        "O_IDLE",
+        "O_RESET",
+        "O_RETRIGGER",
+        "O_TRIGGER"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:pulse_stretcher_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DURATION",
+        "O_EXPIRY_PRIORITY",
+        "O_IDLE",
+        "O_RESET",
+        "O_RETRIGGER",
+        "O_TRIGGER"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "3e75f95c504729651f3d3fb0863429f364fdacdab977a19dccdf077f9ea73a5e",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_EXPIRY_PRIORITY",
+            "shared_obligation_context:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_DURATION"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:active",
+            "shared_obligation_context:O_IDLE"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S5.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_DURATION"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_DURATION"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_RETRIGGER",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_DURATION"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DURATION"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DURATION",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY",
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_TRIGGER"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 15,
+        "claimed_dependency_count": 19,
+        "items_with_structural_traceability": 12,
+        "structural_traceability_coverage": 0.8,
+        "gaps": {
+          "S1.2": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "a49b2730-5fc2-42d8-b3d3-cd3bdd6c3f45",
+      "usage": {
+        "prompt_tokens": 1308,
+        "completion_tokens": 9209,
+        "total_tokens": 10517,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7174
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "84b4f58d-cadb-4d72-8cac-d27e17fe2bbe",
+      "usage": {
+        "prompt_tokens": 3674,
+        "completion_tokens": 12132,
+        "total_tokens": 15806,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 10726
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": ""
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/pulse-001.json",
+    "source_gold_sha256": "59d26b08b8fbf99fada6253feaa9dc1124e117f425d3cc712c0c27c6eb9de88d",
+    "source_report": "runs/evaluator-v1.4/development/pulse-001/report.json",
+    "source_report_sha256": "7badb869323716c542b700a110d2baa35fdca1b461d03e9fff2510533f16243f",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "3e75f95c504729651f3d3fb0863429f364fdacdab977a19dccdf077f9ea73a5e",
+    "gold_labels_modified": false
+  }
+}

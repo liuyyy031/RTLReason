@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: programmable_timer_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously sets stored period and remaining to one and clears tick.
+  - id: O_LOAD
+    category: control
+    statement: Load stores the clamped nonzero period into both the private period register and remaining and clears tick.
+  - id: O_PRIORITY
+    category: control
+    statement: Reset has priority over load, and load has priority over enable and expiry.
+  - id: O_COUNTDOWN
+    category: transition
+    statement: When enabled with remaining above one, remaining decrements by one and tick is zero.
+  - id: O_EXPIRY
+    category: boundary
+    statement: When enabled with remaining equal to one, tick pulses and remaining reloads the stored period on that edge.
+  - id: O_HOLD
+    category: transition
+    statement: When disabled without load, remaining holds and tick is zero.
+  - id: O_ZERO_CLAMP
+    category: boundary
+    statement: Loading period zero behaves exactly like loading period one.

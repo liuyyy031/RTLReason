@@ -55,3 +55,5 @@ M5 用独立人工 Gold 验证三件事：最终 RTL 判断是否可靠、过程
 人工 Gold 一旦晋升不得为适配新评测器而改写。Development 校准后，使用 `snapshot-gold` 将同一冻结候选的新 `report.json` 与原 Gold 标签组合成实验快照；命令会校验重评的 `process.json` 与 Gold 中的候选完全一致，并记录 Gold/report 哈希、Semantic Prompt 版本和 Dependency Graph digest。
 
 Baseline 必须基于同一评测器版本的快照目录计算。原始 Gold 记录保留首次预测，仅用于审计，不用手工覆盖其中的 `predicted_*` 字段。
+
+当前人工标注规则版本为 v1.1，冻结用于 Held-out 的 Semantic Judge Prompt 版本为 v1.5。v1.1 冻结普通 S4 运行性质的隐式 reset-disabled 作用域；由旧的 all-reachable-cycles 解释产生的 S4 Gold 必须按 `readjudication/v1.1-s4-scope.json` 重新裁决后才能用于指标。v1.4 进一步冻结 all-cycle 量词、多周期 guard、依赖不得补造 antecedent/时序量词、obligation 多对多映射、行为等价 RTL 表达和 EDA-fail 过程判定规则。v1.5 增加合法 `interface_semantics.*` trace 识别、reset-only 上下文继承、necessary/exclusive causal wording、ignored-input 因果边界、countdown 可观察时序和确定性编译失败归因；其 Development 校准结果不得用于提前查看或筛选 Held-out Batch 001。

@@ -1,7 +1,7 @@
 {
   "annotator_id": "REPLACE_WITH_INDEPENDENT_REVIEWER_ID",
   "annotator_role": "independent RTL reviewer",
-  "guideline_version": "1.0",
+  "guideline_version": "1.1",
   "independent_of_tested_model": true,
   "status": "single_annotated",
   "gold_rtl_correct": null,

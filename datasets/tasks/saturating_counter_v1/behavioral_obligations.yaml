@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: saturating_counter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously sets count to zero.
+  - id: O_INCREMENT
+    category: transition
+    statement: With rst low, en high, up high, and count below maximum, count increments by one.
+  - id: O_DECREMENT
+    category: transition
+    statement: With rst low, en high, up low, and count above zero, count decrements by one.
+  - id: O_SATURATE_MAX
+    category: boundary
+    statement: An enabled increment at maximum holds the maximum value and never wraps.
+  - id: O_SATURATE_MIN
+    category: boundary
+    statement: An enabled decrement at zero holds zero and never wraps.
+  - id: O_HOLD
+    category: transition
+    statement: With en low, count holds regardless of up.
+  - id: O_FLAGS
+    category: status
+    statement: at_min and at_max combinationally identify the current registered boundary state.

@@ -1,0 +1,575 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-serial-parity-001",
+  "task_id": "serial_parity_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/serial-parity-001",
+  "source_hashes": {
+    "process_sha256": "39db4e598700ff43df169922870ea0748938235d0b5fd9af8b16a77add7592f8",
+    "evidence_sha256": "5196f29597496f259e2bb18d1995656e505338332738b7dcf5926affcd8ce9a8",
+    "report_sha256": "b8721ae22021c9a27592e5733bcb523b668f9a87c3bcb5f7891d6e6606d7dd75"
+  },
+  "candidate_process": {
+    "task_id": "serial_parity_v1",
+    "architecture_summary": "Single synchronous FSM with internal accumulator acc; all state (busy, acc, parity, done) updated in one always_ff block seq_main under mutually exclusive accepted start/finish/bit conditions.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst clears busy, parity, done, and internal accumulator acc.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done",
+              "acc"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Frame opens on start&&!busy, clears acc, and may accept same-edge bit_in if bit_valid.",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "bit_valid",
+              "bit_in"
+            ],
+            "writes": [
+              "busy",
+              "acc"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Inputs outside active frame, start while busy, and finish while idle are ignored.",
+            "maps_to": [
+              "O_GATING"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "finish",
+              "bit_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Every bit_valid while busy XORs bit_in into working parity exactly once, including finish edge.",
+            "maps_to": [
+              "O_ACCUMULATE",
+              "O_FINAL_BIT"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "busy",
+              "bit_valid",
+              "bit_in",
+              "finish"
+            ],
+            "writes": [
+              "acc"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.5",
+            "stage": "S1",
+            "claim": "done pulses one cycle after accepted finish; parity holds until next accepted finish.",
+            "maps_to": [
+              "O_DONE",
+              "O_RESULT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "busy",
+              "finish"
+            ],
+            "writes": [
+              "done",
+              "parity"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "State elements are output regs busy, parity, done and internal reg acc.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "busy",
+              "parity",
+              "done",
+              "acc"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done",
+              "acc"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Single synchronous always_ff block seq_main computes all next-state updates from sampled inputs.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "start",
+              "bit_valid",
+              "bit_in",
+              "finish",
+              "busy"
+            ],
+            "writes": [
+              "busy",
+              "acc",
+              "parity",
+              "done"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Accepted conditions are mutually exclusive: start&&!busy, busy&&finish, busy&&bit_valid(!finish).",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "finish",
+              "bit_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On rst, seq_main clears busy, parity, done, acc synchronously.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done",
+              "acc"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Accepted start sets busy<=1 and acc<=bit_valid?bit_in:0, parity/done unchanged.",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.2"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "bit_valid",
+              "bit_in"
+            ],
+            "writes": [
+              "busy",
+              "acc"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Accepted finish XORs bit_in if bit_valid into acc, assigns parity<=new acc, busy<=0, done<=1.",
+            "maps_to": [
+              "O_FINAL_BIT",
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.4",
+              "S1.5"
+            ],
+            "reads": [
+              "busy",
+              "finish",
+              "bit_valid",
+              "bit_in",
+              "acc"
+            ],
+            "writes": [
+              "acc",
+              "parity",
+              "busy",
+              "done"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Normal active bit (busy&&bit_valid&&!finish) updates acc<=acc^bit_in only.",
+            "maps_to": [
+              "O_ACCUMULATE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.4"
+            ],
+            "reads": [
+              "busy",
+              "bit_valid",
+              "finish",
+              "bit_in",
+              "acc"
+            ],
+            "writes": [
+              "acc"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S3.5",
+            "stage": "S3",
+            "claim": "All other cycles hold registers, implementing gating and result hold.",
+            "maps_to": [
+              "O_GATING",
+              "O_RESULT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.3",
+              "S1.5"
+            ],
+            "reads": [
+              "busy",
+              "start",
+              "finish"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: busy remains 1 from accepted start until accepted finish.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "busy"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: parity only changes on reset or accepted finish.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.3"
+            ],
+            "reads": [
+              "parity"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: done is high for exactly one clock cycle after accepted finish.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "done",
+              "busy",
+              "finish"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: acc equals running XOR of all accepted bits in current frame.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.4",
+              "S3.3"
+            ],
+            "reads": [
+              "acc"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Declare module serial_parity with exact frozen ports and types.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "start",
+              "bit_valid",
+              "bit_in",
+              "finish"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done"
+            ],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement seq_main always_ff with reset and exclusive start/finish/bit branches.",
+            "maps_to": [
+              "O_RESET",
+              "O_START",
+              "O_ACCUMULATE",
+              "O_FINAL_BIT",
+              "O_DONE",
+              "O_GATING",
+              "O_RESULT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S3.5"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "start",
+              "bit_valid",
+              "bit_in",
+              "finish",
+              "busy",
+              "acc"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done",
+              "acc"
+            ],
+            "rtl_blocks": [
+              "seq_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Integrate blocks into complete synthesizable RTL matching interface.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl",
+              "seq_main"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "serial_parity",
+      "code": "module serial_parity (\n  input  logic clk,\n  input  logic rst,\n  input  logic start,\n  input  logic bit_valid,\n  input  logic bit_in,\n  input  logic finish,\n  output logic busy,\n  output logic parity,\n  output logic done\n);\n\n  logic acc;\n\n  // block: seq_main\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      busy  <= 1'b0;\n      parity <= 1'b0;\n      done   <= 1'b0;\n      acc    <= 1'b0;\n    end else begin\n      done <= 1'b0; // default no pulse\n      if (start && !busy) begin\n        // accepted start\n        busy <= 1'b1;\n        acc  <= bit_valid ? bit_in : 1'b0;\n      end else if (busy && finish) begin\n        // accepted finish\n        busy <= 1'b0;\n        acc  <= acc ^ (bit_valid ? bit_in : 1'b0);\n        parity <= acc ^ (bit_valid ? bit_in : 1'b0);\n        done   <= 1'b1;\n      end else if (busy && bit_valid) begin\n        // normal active bit\n        acc <= acc ^ bit_in;\n      end\n      // else all registers hold\n    end\n  end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Synchronous reset clears all state; done is default-low with one-cycle pulse on accepted finish."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "b3b7f76f-e02e-405c-ae4f-7e73af4c8c3d",
+        "usage": {
+          "prompt_tokens": 1433,
+          "completion_tokens": 15400,
+          "total_tokens": 16833,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 12833
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:serial_parity_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_DONE",
+        "O_FINAL_BIT",
+        "O_GATING",
+        "O_RESET",
+        "O_RESULT_HOLD",
+        "O_START"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:serial_parity_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_DONE",
+        "O_FINAL_BIT",
+        "O_GATING",
+        "O_RESET",
+        "O_RESULT_HOLD",
+        "O_START"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_ACCUMULATE",
+          "O_DONE",
+          "O_FINAL_BIT",
+          "O_GATING",
+          "O_RESET",
+          "O_RESULT_HOLD",
+          "O_START"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}

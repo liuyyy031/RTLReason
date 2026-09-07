@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "Under guideline v1.1, S4.3 is an ordinary runtime idle property and therefore is not invalid merely because it omits an explicit reset guard. S4.2 correctly relates a registered nonzero grant to the request sample that produced it and does not create an invalid cross-reset history dependency. The process accurately captures synchronous reset, round-robin priority scanning, pointer rotation, idle hold, registered grant timing, and the liveness boundary. Final RTL passes trusted simulation and bounded formal verification."
+}

@@ -1,0 +1,1091 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-dual-port-ram-001",
+  "split": "development",
+  "task_id": "dual_port_ram_sync_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/dual-port-ram-001",
+  "source_hashes": {
+    "process_sha256": "0ebc498deb8bb32c7c7ba19de63d3336fdcb57874a2c9a043a52afce9af19a5d",
+    "evidence_sha256": "be6e6eeb02fbe4cfba6544141b1dead783cc232bd9232efa79f1a875ad4e8446",
+    "report_sha256": "2defefe5837ba32aa2075807f8f174f6529a47bf5b65660dad47636b833e03a9"
+  },
+  "candidate_process": {
+    "task_id": "dual_port_ram_sync_v1",
+    "architecture_summary": "Single always_ff block with packed memory array and registered read data; synchronous reset clears all state; nonblocking assignments yield read-first collision semantics.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "rst sampled at posedge clk has highest priority and disables read/write.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Accepted write (wr_en & !rst) stores wr_data into mem[wr_addr] leaving other words unchanged.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Accepted read (rd_en & !rst) registers pre-edge mem[rd_addr]; same-edge write does not affect that read (read-first).",
+            "maps_to": [
+              "O_READ",
+              "O_READ_FIRST"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "State model: packed logic array mem [0:DEPTH-1] of DATA_WIDTH bits and output register rd_data.",
+            "maps_to": [
+              "O_WRITE",
+              "O_READ"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "mem",
+              "rd_data"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Architecture: unified always_ff @(posedge clk) performs reset, write, and read via nonblocking assignments, naturally giving read-first and independent ports.",
+            "maps_to": [
+              "O_READ_FIRST",
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.1"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rd_en",
+              "rd_addr",
+              "mem"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Reset strategy: synchronous high rst loops over mem to zero and zeroes rd_data, with no read/write inside reset branch.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Write rule: when !rst and wr_en, mem[wr_addr] <= wr_data; other entries retain value.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rst"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Read rule: when !rst and rd_en, rd_data <= mem[rd_addr] (pre-edge); when rd_en=0, rd_data holds.",
+            "maps_to": [
+              "O_READ",
+              "O_HOLD",
+              "O_READ_LATENCY"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rd_en",
+              "rd_addr",
+              "mem",
+              "rst"
+            ],
+            "writes": [
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Collision rule: simultaneous same-address rw uses nonblocking RHS so rd_data gets old mem while mem updates for later.",
+            "maps_to": [
+              "O_READ_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "wr_addr",
+              "rd_addr",
+              "mem",
+              "wr_en",
+              "rd_en"
+            ],
+            "writes": [
+              "rd_data",
+              "mem"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Independent ports rule: separate if clauses for wr_en and rd_en allow concurrent different-address operations.",
+            "maps_to": [
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "wr_addr",
+              "rd_addr"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: after posedge with rst=1, rd_data==0 and mem[i]==0 for all i (reset property).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "rd_data",
+              "mem",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: write then read next cycle at same address returns written data (write visibility).",
+            "maps_to": [
+              "O_WRITE",
+              "O_READ"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "mem",
+              "rd_data"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: simultaneous same-address rw yields rd_data==old and later read yields new (read-first).",
+            "maps_to": [
+              "O_READ_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "rd_data",
+              "mem"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: with rd_en=0 and !rst, rd_data unchanged across cycles (hold).",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "rd_data",
+              "rd_en",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module/port declaration with parameters DATA_WIDTH, ADDR_WIDTH and all frozen interface ports.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rd_en",
+              "rd_addr"
+            ],
+            "writes": [
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "module"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement always_ff reset branch clearing mem via loop and rd_data to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement write and read nonblocking assignments in else branch, enabling read-first and hold.",
+            "maps_to": [
+              "O_WRITE",
+              "O_READ",
+              "O_READ_FIRST",
+              "O_HOLD",
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rd_en",
+              "rd_addr",
+              "mem"
+            ],
+            "writes": [
+              "mem",
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "dual_port_ram_sync",
+      "code": "module dual_port_ram_sync #(\n  parameter int DATA_WIDTH = 8,\n  parameter int ADDR_WIDTH = 2\n) (\n  input  logic                 clk,\n  input  logic                 rst,\n  input  logic                 wr_en,\n  input  logic [ADDR_WIDTH-1:0] wr_addr,\n  input  logic [DATA_WIDTH-1:0] wr_data,\n  input  logic                 rd_en,\n  input  logic [ADDR_WIDTH-1:0] rd_addr,\n  output logic [DATA_WIDTH-1:0] rd_data\n);\n  localparam int DEPTH = 2**ADDR_WIDTH;\n  logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      rd_data <= '0;\n      for (int i = 0; i < DEPTH; i++) mem[i] <= '0;\n    end else begin\n      if (wr_en) mem[wr_addr] <= wr_data;\n      if (rd_en) rd_data <= mem[rd_addr];\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Read-first achieved via nonblocking assignment RHS evaluation before LHS updates."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "aaa755ad-55ea-43f3-ae05-9437d21d31fc",
+        "usage": {
+          "prompt_tokens": 1559,
+          "completion_tokens": 10682,
+          "total_tokens": 12241,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 8399
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:dual_port_ram_sync_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INDEPENDENT_PORTS",
+        "O_READ",
+        "O_READ_FIRST",
+        "O_READ_LATENCY",
+        "O_RESET",
+        "O_WRITE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:dual_port_ram_sync_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INDEPENDENT_PORTS",
+        "O_READ",
+        "O_READ_FIRST",
+        "O_READ_LATENCY",
+        "O_RESET",
+        "O_WRITE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_HOLD",
+          "O_INDEPENDENT_PORTS",
+          "O_READ",
+          "O_READ_FIRST",
+          "O_READ_LATENCY",
+          "O_RESET",
+          "O_WRITE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "cb5f2f754b71d851b40d38f8d9e5d94668e043c9d2c1e8c56336ca08f7124887",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:mem"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:mem",
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:mem"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:mem"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:mem",
+            "shared_obligation_context:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:rd_data"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:rd_data",
+            "shared_obligation_context:O_READ"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:rd_data",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:mem",
+            "property_derivation:def_use:rd_data",
+            "shared_obligation_context:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:always_ff_main"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:mem",
+            "rtl_traceability:always_ff_main"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READ",
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READ",
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READ",
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_INDEPENDENT_PORTS"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_INDEPENDENT_PORTS",
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD",
+            "shared_obligation:O_READ"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_INDEPENDENT_PORTS"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READ",
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READ_FIRST"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 17,
+        "claimed_dependency_count": 26,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.8235294117647058,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "aaa755ad-55ea-43f3-ae05-9437d21d31fc",
+      "usage": {
+        "prompt_tokens": 1559,
+        "completion_tokens": 10682,
+        "total_tokens": 12241,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8399
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "f7b50775-cbe7-4087-a40f-84cfc6c79330",
+      "usage": {
+        "prompt_tokens": 3698,
+        "completion_tokens": 7992,
+        "total_tokens": 11690,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6435
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": ""
+  }
+}

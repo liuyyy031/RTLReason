@@ -1,4 +1,8 @@
 from rtlreason.reference.arbiter import RoundRobinArbiterReferenceModel
+from rtlreason.reference.apb_register_bank import (
+    ApbRegisterBankOutput,
+    ApbRegisterBankReferenceModel,
+)
 from rtlreason.reference.counter import CounterOutput, CounterReferenceModel
 from rtlreason.reference.debounce_filter import (
     DebounceFilterReferenceModel,
@@ -10,6 +14,14 @@ from rtlreason.reference.dual_port_ram import (
 )
 from rtlreason.reference.fifo import FifoObservation, FifoReferenceModel
 from rtlreason.reference.grant_hold_arbiter import GrantHoldArbiterReferenceModel
+from rtlreason.reference.interrupt_pending import (
+    InterruptPendingOutput,
+    InterruptPendingReferenceModel,
+)
+from rtlreason.reference.programmable_timer import (
+    ProgrammableTimerOutput,
+    ProgrammableTimerReferenceModel,
+)
 from rtlreason.reference.ready_valid import (
     ReadyValidOutput,
     ReadyValidSliceReferenceModel,
@@ -31,6 +43,18 @@ from rtlreason.reference.pulse_stretcher import (
     PulseStretcherReferenceModel,
 )
 from rtlreason.reference.shift_register import ShiftRegisterReferenceModel
+from rtlreason.reference.saturating_counter import (
+    SaturatingCounterOutput,
+    SaturatingCounterReferenceModel,
+)
+from rtlreason.reference.serial_parity import (
+    SerialParityOutput,
+    SerialParityReferenceModel,
+)
+from rtlreason.reference.stream_width_adapter import (
+    StreamWidthAdapterOutput,
+    StreamWidthAdapterReferenceModel,
+)
 from rtlreason.reference.token_bucket import (
     TokenBucketOutput,
     TokenBucketReferenceModel,
@@ -41,6 +65,8 @@ from rtlreason.reference.sequence_detector import (
 )
 
 __all__ = [
+    "ApbRegisterBankOutput",
+    "ApbRegisterBankReferenceModel",
     "CounterOutput",
     "CounterReferenceModel",
     "DebounceFilterReferenceModel",
@@ -50,6 +76,10 @@ __all__ = [
     "FifoObservation",
     "FifoReferenceModel",
     "GrantHoldArbiterReferenceModel",
+    "InterruptPendingOutput",
+    "InterruptPendingReferenceModel",
+    "ProgrammableTimerOutput",
+    "ProgrammableTimerReferenceModel",
     "ReadyValidOutput",
     "ReadyValidFifo2Output",
     "ReadyValidFifo2ReferenceModel",
@@ -64,6 +94,12 @@ __all__ = [
     "SequenceDetector1011ReferenceModel",
     "SequenceDetectorOutput",
     "ShiftRegisterReferenceModel",
+    "SaturatingCounterOutput",
+    "SaturatingCounterReferenceModel",
+    "SerialParityOutput",
+    "SerialParityReferenceModel",
+    "StreamWidthAdapterOutput",
+    "StreamWidthAdapterReferenceModel",
     "TokenBucketOutput",
     "TokenBucketReferenceModel",
 ]

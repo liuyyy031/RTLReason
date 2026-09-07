@@ -520,6 +520,6 @@
     "blinded_to_evaluator_prediction": true,
     "use_trusted_task_assets": true,
     "annotation_schema": "human_annotation.schema.json",
-    "guideline_version": "1.0"
+    "guideline_version": "1.1"
   }
 }

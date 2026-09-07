@@ -1,0 +1,20 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "Under guideline v1.1, S4.3 is an ordinary runtime valid-write property and is interpreted in the reset-disabled operating domain, so omission of an explicit !rst guard is not an error. Its valid-write condition already captures the required APB access, write, ready, and valid-address conditions. The global pready property is literally true, and the pslverr and combinational read-data properties match the trusted interface. No reset-history or other non-reset control-condition omission is present. Final RTL passes trusted simulation and bounded formal verification."
+}

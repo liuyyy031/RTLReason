@@ -1,0 +1,1211 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-fifo-003",
+  "split": "development",
+  "task_id": "fifo_sync_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/fifo-003",
+  "source_hashes": {
+    "process_sha256": "5d68d190c46bebcbef8da65973fdff1a21ca03bd80f5fc50b566cfe25cb68d2a",
+    "evidence_sha256": "eeb725810ba4a86679cd0a969f67bc80b54359a05fae5b973adb98f09277a887",
+    "report_sha256": "9f88a1183609cfbb88922248d21c3e52cd74c7ea4e6de6e0fe5a084390ecd192"
+  },
+  "candidate_process": {
+    "task_id": "fifo_sync_v1",
+    "architecture_summary": "Ring buffer using register file mem[DEPTH], occupancy counter cnt, and write/read pointers wptr/rptr with modulo increment; full/empty combinational from cnt.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst empties FIFO, clears full, asserts empty, and zeroes dout.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "full and empty reflect current occupancy: full iff occupancy==DEPTH, empty iff occupancy==0.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Write accepted when wr_en and (not full or simultaneous read accepted); read accepted when rd_en and not empty.",
+            "maps_to": [
+              "O_WRITE_ACCEPT",
+              "O_READ_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Accepted read updates dout to oldest queued word after edge; dout holds otherwise; FIFO order preserved.",
+            "maps_to": [
+              "O_ORDERING",
+              "O_DOUT_HOLD",
+              "O_OCCUPANCY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses ring buffer register file mem[0:DEPTH-1] of DATA_WIDTH bits for storage.",
+            "maps_to": [
+              "O_ORDERING"
+            ],
+            "claimed_dependencies": [
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "mem"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Maintain state: occupancy counter cnt, write pointer wptr, read pointer rptr.",
+            "maps_to": [
+              "O_OCCUPANCY",
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt",
+              "wptr",
+              "rptr"
+            ],
+            "rtl_blocks": [
+              "cnt",
+              "wptr",
+              "rptr"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "full and empty are combinational outputs derived from cnt (full=cnt==DEPTH, empty=cnt==0).",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [
+              "full",
+              "empty"
+            ],
+            "rtl_blocks": [
+              "full_comb",
+              "empty_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk with rst high, synchronously set cnt=0, wptr=0, rptr=0, dout=0 (full=0, empty=1 via comb).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "wptr",
+              "rptr",
+              "dout"
+            ],
+            "rtl_blocks": [
+              "reset_seq"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Compute accept_read = rd_en && cnt>0; accept_write = wr_en && (cnt<DEPTH || (rd_en && cnt>0)).",
+            "maps_to": [
+              "O_WRITE_ACCEPT",
+              "O_READ_ACCEPT",
+              "O_FULL_SIMULTANEOUS",
+              "O_EMPTY_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.3"
+            ],
+            "reads": [
+              "wr_en",
+              "rd_en",
+              "cnt"
+            ],
+            "writes": [
+              "accept_write",
+              "accept_read"
+            ],
+            "rtl_blocks": [
+              "accept_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If accept_write, store din at mem[wptr] and advance wptr; if accept_read, assign dout<=mem[rptr] and advance rptr; else hold dout.",
+            "maps_to": [
+              "O_ORDERING",
+              "O_DOUT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.2"
+            ],
+            "reads": [
+              "mem",
+              "wptr",
+              "rptr",
+              "din"
+            ],
+            "writes": [
+              "mem",
+              "dout",
+              "wptr",
+              "rptr"
+            ],
+            "rtl_blocks": [
+              "write_seq",
+              "read_seq"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Update cnt <= cnt + accept_write - accept_read, staying within 0..DEPTH.",
+            "maps_to": [
+              "O_OCCUPANCY"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.2"
+            ],
+            "reads": [
+              "cnt",
+              "accept_write",
+              "accept_read"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "cnt_seq"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: full and empty are never simultaneously asserted for DEPTH>=2.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "full",
+              "empty"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: cnt changes by +1 (write only), -1 (read only), or 0 (both/none).",
+            "maps_to": [
+              "O_OCCUPANCY"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "cnt",
+              "accept_write",
+              "accept_read"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: after accept_read, dout equals previous mem[rptr] (oldest).",
+            "maps_to": [
+              "O_ORDERING"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "dout",
+              "mem",
+              "rptr"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: when full and rd_en, accept_read is true enabling simultaneous read/write.",
+            "maps_to": [
+              "O_FULL_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "full",
+              "rd_en",
+              "accept_read"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module fifo_sync with given parameters and ports exactly.",
+            "maps_to": [
+              "O_RESET",
+              "O_FLAGS",
+              "O_WRITE_ACCEPT",
+              "O_READ_ACCEPT",
+              "O_ORDERING",
+              "O_DOUT_HOLD",
+              "O_OCCUPANCY",
+              "O_FULL_SIMULTANEOUS",
+              "O_EMPTY_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "wr_en",
+              "rd_en",
+              "din"
+            ],
+            "writes": [
+              "dout",
+              "full",
+              "empty"
+            ],
+            "rtl_blocks": [
+              "module_decl",
+              "port_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential always_ff implements reset, pointer/memory/cnt updates, and dout hold/read.",
+            "maps_to": [
+              "O_RESET",
+              "O_OCCUPANCY",
+              "O_ORDERING",
+              "O_DOUT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "wr_en",
+              "rd_en",
+              "din",
+              "cnt",
+              "wptr",
+              "rptr",
+              "mem"
+            ],
+            "writes": [
+              "mem",
+              "cnt",
+              "wptr",
+              "rptr",
+              "dout"
+            ],
+            "rtl_blocks": [
+              "seq_proc"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Combinational assign of full/empty from cnt completes observable flags.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [
+              "full",
+              "empty"
+            ],
+            "rtl_blocks": [
+              "flag_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "fifo_sync",
+      "code": "module fifo_sync #(\n  parameter integer DATA_WIDTH = 8,\n  parameter integer DEPTH = 4\n) (\n  input  wire                  clk,\n  input  wire                  rst,\n  input  wire                  wr_en,\n  input  wire                  rd_en,\n  input  wire [DATA_WIDTH-1:0] din,\n  output reg  [DATA_WIDTH-1:0] dout,\n  output wire                  full,\n  output wire                  empty\n);\n\n  logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];\n  logic [$clog2(DEPTH)-1:0] wptr;\n  logic [$clog2(DEPTH)-1:0] rptr;\n  logic [$clog2(DEPTH+1)-1:0] cnt;\n\n  assign full  = (cnt == DEPTH);\n  assign empty = (cnt == 0);\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      cnt  <= '0;\n      wptr <= '0;\n      rptr <= '0;\n      dout <= '0;\n    end else begin\n      logic accept_write;\n      logic accept_read;\n      accept_read  = rd_en && (cnt > 0);\n      accept_write = wr_en && ((cnt < DEPTH) || (rd_en && cnt > 0));\n      if (accept_write) begin\n        mem[wptr] <= din;\n        wptr <= (wptr == DEPTH-1) ? '0 : wptr + 1'b1;\n      end\n      if (accept_read) begin\n        dout <= mem[rptr];\n        rptr <= (rptr == DEPTH-1) ? '0 : rptr + 1'b1;\n      end\n      cnt <= cnt + (accept_write ? 1'b1 : 1'b0) - (accept_read ? 1'b1 : 1'b0);\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Ring buffer chosen; no bypass for empty simultaneous read/write as required.",
+        "Pointers use modulo wrap via compare to DEPTH-1."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "85465ebe-add7-42f5-aa5a-37aa6f7a3f48",
+        "usage": {
+          "prompt_tokens": 1658,
+          "completion_tokens": 11522,
+          "total_tokens": 13180,
+          "prompt_tokens_details": {
+            "cached_tokens": 1536
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 8893
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:fifo_sync",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DOUT_HOLD",
+        "O_EMPTY_SIMULTANEOUS",
+        "O_FLAGS",
+        "O_FULL_SIMULTANEOUS",
+        "O_OCCUPANCY",
+        "O_ORDERING",
+        "O_READ_ACCEPT",
+        "O_RESET",
+        "O_WRITE_ACCEPT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:fifo_sync_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DOUT_HOLD",
+        "O_EMPTY_SIMULTANEOUS",
+        "O_FLAGS",
+        "O_FULL_SIMULTANEOUS",
+        "O_OCCUPANCY",
+        "O_ORDERING",
+        "O_READ_ACCEPT",
+        "O_RESET",
+        "O_WRITE_ACCEPT"
+      ],
+      "summary": "FIFO bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "1cf12043a9f3a3a1fb1b944f1c8633943f7117e582574a8395770da3591d2f6e",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:mem",
+            "shared_obligation_context:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:empty",
+            "property_derivation:def_use:full",
+            "shared_obligation_context:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:rptr",
+            "def_use:wptr"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:accept_read",
+            "def_use:accept_write"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:accept_read",
+            "shared_obligation_context:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:dout",
+            "property_derivation:def_use:mem",
+            "property_derivation:def_use:rptr",
+            "shared_obligation_context:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:mem",
+            "def_use:rptr",
+            "def_use:wptr",
+            "shared_obligation_context:O_DOUT_HOLD",
+            "shared_obligation_context:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.2"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_READ_ACCEPT",
+            "shared_obligation:O_WRITE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_READ_ACCEPT",
+            "shared_obligation:O_WRITE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_OCCUPANCY",
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_OCCUPANCY",
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS",
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_EMPTY_SIMULTANEOUS",
+            "shared_obligation:O_FULL_SIMULTANEOUS",
+            "shared_obligation:O_READ_ACCEPT",
+            "shared_obligation:O_WRITE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OCCUPANCY"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ORDERING"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DOUT_HOLD",
+            "shared_obligation:O_OCCUPANCY",
+            "shared_obligation:O_ORDERING",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 25,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {},
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "bf5e3bad-af31-431b-a183-8a45a078c8fb",
+      "usage": {
+        "prompt_tokens": 4638,
+        "completion_tokens": 10884,
+        "total_tokens": 15522,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9295
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.0",
+    "notes": "S1-S5 are consistent with the trusted synchronous FIFO semantics. Read and write acceptance correctly handle empty, full, and partial states; accepted operations update pointers and occupancy correctly; dout returns the pre-edge oldest unread word and otherwise holds; and current-state full/empty flags are derived correctly from occupancy. No substantive process error was identified. Final RTL passes trusted simulation and bounded formal verification."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/fifo-003.json",
+    "source_gold_sha256": "ffefe0642e2feba411a7717802badd6d9d840b005b9b061680d856d5dc8dc8ce",
+    "source_report": "runs/evaluator-v1.4/development/fifo-003/report.json",
+    "source_report_sha256": "87a92c9e38b37986f9bf49fde23489818d36a56a0593ef988940b4a693ddedaa",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "1cf12043a9f3a3a1fb1b944f1c8633943f7117e582574a8395770da3591d2f6e",
+    "gold_labels_modified": false
+  }
+}

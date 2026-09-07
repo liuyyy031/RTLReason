@@ -61,8 +61,27 @@ defined in `EXPERIMENT_PROTOCOL_CN.md`.
 
 ## Current pool
 
-As of 2026-09-02, the blinded review pool contains 29 genuine Hy3 runs and
-three controlled cases. Every trusted task has at least two genuine answers;
-FIFO has three. Controlled-mutation intent remains internal provenance
+As of 2026-09-03, the blinded review pool contains 44 complete real model runs
+and three controlled cases. Provenance identifies 40 Hy3 outputs and four
+`deepseek-v4-flash` outputs; these model families must not be pooled when
+reporting Hy3 accuracy. Every trusted task has at least two complete model
+answers, while FIFO, ready/valid FIFO, round-robin arbiter, and APB each have
+three. The interrupt
+task has one Hy3 and one DeepSeek answer; stream-width has two DeepSeek answers,
+and all three APB answers are independent Hy3 outputs. Replaced APB runs and
+their superseded review records remain recoverable under
+`archive/provenance-replaced-20260903-apb/` and are excluded from the active
+pool. `interrupt-001` retains its original Hy3 generation metadata and was
+completed with a DeepSeek Judge. `fifo2-003`, `arbiter-003`, and all three
+current APB outputs were collected with schema and trusted EDA only, without a
+Semantic Judge pass.
+Controlled-mutation intent remains internal provenance
 and is removed from reviewer packets. No record is Gold until an independent
 human annotation is completed and promoted through the command above.
+
+Annotation Guide v1.1 and Semantic Judge Prompt v1.4 freeze ordinary S4
+operational properties as implicitly reset-disabled. Fifteen v1.0 S4-error
+annotations are listed in `readjudication/v1.1-s4-scope.json`; they cannot be
+used as active Gold until a fresh blind v1.1 adjudication is completed. The
+superseded `rising-edge-001` Development record remains recoverable under
+`archive/readjudication-v1.1/`.

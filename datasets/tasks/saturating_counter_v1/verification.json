@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_saturating_counter.sv",
+    "top": "tb_saturating_counter",
+    "vcd": "saturating_counter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/saturating_counter_formal.sv",
+    "top": "saturating_counter_formal",
+    "depth": 20,
+    "obligations": ["O_RESET", "O_INCREMENT", "O_DECREMENT", "O_SATURATE_MAX", "O_SATURATE_MIN", "O_HOLD", "O_FLAGS"]
+  }
+}

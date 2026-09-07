@@ -1,0 +1,482 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-timer-002",
+  "task_id": "programmable_timer_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/timer-002",
+  "source_hashes": {
+    "process_sha256": "e61349da4ed9d4bfed619978e02cffb9ef39113c2c9e5b810e1e3c4719f6efb7",
+    "evidence_sha256": "40987281d5f6bae0ff68868537d31bf9fea72c515241b1c107877a187a15bb0f",
+    "report_sha256": "9d4eab0be6dee4bb4dfc1e5157e41445d30a6b29d8985fdfca2a7036260b1ff2"
+  },
+  "candidate_process": {
+    "task_id": "programmable_timer_v1",
+    "architecture_summary": "Single synchronous always_ff with private stored_period register and registered outputs via continuous assign; priority enforced by if-else chain.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst forces stored period and remaining to 1 and clears tick, highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Load stores clamped nonzero effective period into private period register and remaining, clears tick, and has priority over enable/expiry.",
+            "maps_to": [
+              "O_LOAD",
+              "O_PRIORITY",
+              "O_ZERO_CLAMP"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "When enabled, timer decrements remaining if >1, or pulses tick and reloads stored period if ==1; when disabled it holds with tick=0.",
+            "maps_to": [
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Chosen architecture: one synchronous always_ff block on posedge clk implements all prioritized transitions with non-blocking updates; outputs assigned from registers.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "load",
+              "period",
+              "enable"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "State model: stored_period_reg (WIDTH) holds effective period; remaining_reg (WIDTH) is live count; tick_reg is pulse; all updated only in always_ff.",
+            "maps_to": [
+              "O_LOAD",
+              "O_COUNTDOWN",
+              "O_EXPIRY"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output observation: continuous assign of remaining and tick from regs meets registered output timing.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [
+              "remaining",
+              "tick"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset transition: at posedge clk if rst, stored_period_reg<=1, remaining_reg<=1, tick_reg<=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Load transition: else if load, eff_period = (period==0)?1:period; stored_period_reg<=eff_period; remaining_reg<=eff_period; tick_reg<=0.",
+            "maps_to": [
+              "O_LOAD",
+              "O_ZERO_CLAMP",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "load",
+              "period"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Enable transition: else if enable, if remaining_reg==1 then tick_reg<=1, remaining_reg<=stored_period_reg; else remaining_reg<=remaining_reg-1, tick_reg<=0.",
+            "maps_to": [
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "enable",
+              "remaining_reg",
+              "stored_period_reg"
+            ],
+            "writes": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Disable transition: else tick_reg<=0 and remaining_reg holds (no assignment).",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "enable"
+            ],
+            "writes": [
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: tick_reg is never high for two consecutive cycles unless period==1 and enable held.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "tick_reg",
+              "enable"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: one cycle after load with period p>0, remaining_reg equals p.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "remaining_reg",
+              "period"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: loading period 0 yields remaining_reg==1 and stored_period_reg==1.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "period",
+              "remaining_reg",
+              "stored_period_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: if rst and load/enable coincide, next remaining_reg==1 and tick_reg==0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL declares WIDTH parameter, ports, and internal registers stored_period_reg, remaining_reg, tick_reg, and eff_period.",
+            "maps_to": [
+              "O_LOAD",
+              "O_COUNTDOWN"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg",
+              "eff_period"
+            ],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL always_ff implements reset/load/enable/hold priority exactly as specified, with clamping via eff_period.",
+            "maps_to": [
+              "O_RESET",
+              "O_LOAD",
+              "O_PRIORITY",
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_HOLD",
+              "O_ZERO_CLAMP"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "load",
+              "period",
+              "enable",
+              "remaining_reg",
+              "stored_period_reg",
+              "eff_period"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL drives outputs via assign remaining = remaining_reg; assign tick = tick_reg;.",
+            "maps_to": [
+              "O_HOLD",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [
+              "remaining",
+              "tick"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "programmable_timer",
+      "code": "module programmable_timer #(parameter int WIDTH = 8) (\n  input  logic             clk,\n  input  logic             rst,\n  input  logic             load,\n  input  logic [WIDTH-1:0] period,\n  input  logic             enable,\n  output logic [WIDTH-1:0] remaining,\n  output logic             tick\n);\n\n  logic [WIDTH-1:0] stored_period_reg;\n  logic [WIDTH-1:0] remaining_reg;\n  logic             tick_reg;\n  logic [WIDTH-1:0] eff_period;\n\n  assign eff_period = (period == {WIDTH{1'b0}}) ? WIDTH'(1) : period;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      stored_period_reg <= WIDTH'(1);\n      remaining_reg     <= WIDTH'(1);\n      tick_reg          <= 1'b0;\n    end else if (load) begin\n      stored_period_reg <= eff_period;\n      remaining_reg     <= eff_period;\n      tick_reg          <= 1'b0;\n    end else if (enable) begin\n      if (remaining_reg == WIDTH'(1)) begin\n        tick_reg     <= 1'b1;\n        remaining_reg <= stored_period_reg;\n      end else begin\n        remaining_reg <= remaining_reg - WIDTH'(1);\n        tick_reg      <= 1'b0;\n      end\n    end else begin\n      tick_reg <= 1'b0;\n    end\n  end\n\n  assign remaining = remaining_reg;\n  assign tick = tick_reg;\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Single always_ff with combinational clamping; priority via if-else ordering."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "3eb59648-3d39-4185-b2c3-26fa1a359986",
+        "usage": {
+          "prompt_tokens": 1341,
+          "completion_tokens": 15447,
+          "total_tokens": 16788,
+          "prompt_tokens_details": {
+            "cached_tokens": 1216
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 13059
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:programmable_timer_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_COUNTDOWN",
+        "O_EXPIRY",
+        "O_HOLD",
+        "O_LOAD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_ZERO_CLAMP"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:programmable_timer_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_COUNTDOWN",
+        "O_EXPIRY",
+        "O_HOLD",
+        "O_LOAD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_ZERO_CLAMP"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_COUNTDOWN",
+          "O_EXPIRY",
+          "O_HOLD",
+          "O_LOAD",
+          "O_PRIORITY",
+          "O_RESET",
+          "O_ZERO_CLAMP"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

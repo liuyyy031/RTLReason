@@ -44,6 +44,11 @@ from rtlreason.hy3.prompts import (
 from rtlreason.models import ItemAssessment, ProcessArtifact, VerificationEvidence
 from rtlreason.mutations import build_controlled_mutation
 from rtlreason.reference import FifoReferenceModel
+from rtlreason.regression import (
+    load_regression_matrix,
+    run_regression_matrix,
+    summarize_regression_matrix,
+)
 from rtlreason.validation import (
     audit_review_pool,
     build_adjudication_candidate,
@@ -392,6 +397,21 @@ def command_dataset_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_regression_summary(args: argparse.Namespace) -> int:
+    root = Path(args.project_root or find_project_root()).resolve()
+    matrix = load_regression_matrix(args.matrix, project_root=root)
+    print(_json_dump(summarize_regression_matrix(matrix, project_root=root)))
+    return 0
+
+
+def command_regression_run(args: argparse.Namespace) -> int:
+    root = Path(args.project_root or find_project_root()).resolve()
+    matrix = load_regression_matrix(args.matrix, project_root=root)
+    result = run_regression_matrix(matrix, project_root=root)
+    print(_json_dump(result))
+    return 0 if result["valid"] else 3
+
+
 def command_queue_case(args: argparse.Namespace) -> int:
     root = Path(args.project_root or find_project_root()).resolve()
     load_task(args.task_id, project_root=root)
@@ -432,7 +452,10 @@ def command_blind_case(args: argparse.Namespace) -> int:
 
 
 def command_audit_review_pool(args: argparse.Namespace) -> int:
-    result = audit_review_pool(args.candidates, args.review_packets)
+    root = Path(args.project_root or find_project_root()).resolve()
+    result = audit_review_pool(
+        args.candidates, args.review_packets, project_root=root
+    )
     print(_json_dump(result))
     return 0 if result["valid"] else 3
 
@@ -482,6 +505,7 @@ def command_run(args: argparse.Namespace) -> int:
         settings=settings,
         formal_required=not args.skip_formal,
         max_tokens=args.max_tokens,
+        semantic_evaluation=not args.skip_judge,
     )
     print(_json_dump(asdict(result)))
     return 0
@@ -496,6 +520,7 @@ def command_run_artifact(args: argparse.Namespace) -> int:
         run_dir=args.run_dir,
         settings=settings,
         formal_required=not args.skip_formal,
+        semantic_evaluation=not args.skip_judge,
     )
     print(_json_dump(asdict(result)))
     return 0
@@ -605,6 +630,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dataset_summary.set_defaults(func=command_dataset_summary)
 
+    regression_summary = subparsers.add_parser(
+        "regression-summary",
+        help="Validate and summarize the controlled EDA fault matrix",
+    )
+    regression_summary.add_argument("--matrix")
+    regression_summary.set_defaults(func=command_regression_summary)
+
+    regression_run = subparsers.add_parser(
+        "regression-run",
+        help="Run every controlled known-bad RTL against trusted simulation",
+    )
+    regression_run.add_argument("--matrix")
+    regression_run.set_defaults(func=command_regression_run)
+
     queue_case = subparsers.add_parser(
         "queue-case", help="Export a run for independent human adjudication"
     )
@@ -658,6 +697,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--run-dir", required=True)
     run.add_argument("--skip-formal", action="store_true")
     run.add_argument(
+        "--skip-judge",
+        action="store_true",
+        help="Collect one sample with schema, graph, and EDA only",
+    )
+    run.add_argument(
         "--max-tokens",
         type=int,
         default=int(os.getenv("HY3_MAX_TOKENS", "24000")),
@@ -672,6 +716,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_artifact.add_argument("--process", required=True)
     run_artifact.add_argument("--run-dir", required=True)
     run_artifact.add_argument("--skip-formal", action="store_true")
+    run_artifact.add_argument("--skip-judge", action="store_true")
     run_artifact.set_defaults(func=command_run_artifact)
 
     mutate_process = subparsers.add_parser(

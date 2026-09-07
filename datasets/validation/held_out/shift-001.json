@@ -1,0 +1,1155 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-shift-001",
+  "split": "held_out",
+  "task_id": "shift_register_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/shift-001",
+  "source_hashes": {
+    "process_sha256": "57d7f02dc787302b725d9a2b1253f316460e4eee23cacb8ed2923c66dbbb596d",
+    "evidence_sha256": "49b2a5452c5ae0c33483a237d69d430306786b73031190f1fc64e9ca06d7d92b",
+    "report_sha256": "96a6bb885358edfca1d812135ad46b8a2be7393dc6aa6d7855a3fa3f55d1d6ae"
+  },
+  "candidate_process": {
+    "task_id": "shift_register_v1",
+    "architecture_summary": "Single registered output vector q of width WIDTH updated by a synchronous always_ff process with priority-ordered reset/enable; serial_out is combinational from q[WIDTH-1].",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module implements synchronous active-high reset clearing all bits of q.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Reset takes priority over enable and serial_in on any clock edge.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "On enabled non-reset clock edge q shifts toward MSB with serial_in inserted at LSB.",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "When en is low and not reset, q holds its previous value.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.5",
+            "stage": "S1",
+            "claim": "serial_out continuously reflects current q[WIDTH-1].",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a single registered output vector q of width WIDTH as the only stored state.",
+            "maps_to": [
+              "O_RESET",
+              "O_HOLD",
+              "O_SHIFT"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "q"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "serial_out is purely combinational logic driven by q[WIDTH-1], with no additional state.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S1.5"
+            ],
+            "reads": [
+              "q"
+            ],
+            "writes": [
+              "serial_out"
+            ],
+            "rtl_blocks": [
+              "serial_out_comb"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Synchronous reset is implemented by conditional clear of q within the clocked process, highest priority.",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "sync_reset"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk, if rst sampled high, q becomes zero (synchronous reset).",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.1"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "sync_reset"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If rst low and en high, q transitions to {q[WIDTH-2:0], serial_in}.",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S2.1"
+            ],
+            "reads": [
+              "en",
+              "q",
+              "serial_in"
+            ],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "shift_enable"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If rst low and en low, q retains previous value (no assignment in clocked process).",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S2.1"
+            ],
+            "reads": [
+              "en",
+              "q"
+            ],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "hold"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "serial_out is continuously assigned q[WIDTH-1] independent of clock.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "q"
+            ],
+            "writes": [
+              "serial_out"
+            ],
+            "rtl_blocks": [
+              "serial_out_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: after rst high then clock, q==0 and serial_out==0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "q",
+              "serial_out"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: with rst=0, en=1, next q[WIDTH-1] equals previous q[WIDTH-2] and q[0]==serial_in.",
+            "maps_to": [
+              "O_SHIFT",
+              "O_DIRECTION"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "q",
+              "serial_in"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: with rst=0, en=0, q unchanged across cycles.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "q",
+              "en"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: serial_out == q[WIDTH-1] at all times.",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "q",
+              "serial_out"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module header with parameter WIDTH default 8 and declared ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_header"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement always_ff block for synchronous reset, enabled shift, and implicit hold.",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY",
+              "O_SHIFT",
+              "O_DIRECTION",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "serial_in",
+              "q"
+            ],
+            "writes": [
+              "q"
+            ],
+            "rtl_blocks": [
+              "always_ff_shift"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement continuous assign of serial_out from q[WIDTH-1].",
+            "maps_to": [
+              "O_SERIAL_OUT"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "q"
+            ],
+            "writes": [
+              "serial_out"
+            ],
+            "rtl_blocks": [
+              "assign_serial_out"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "shift_register",
+      "code": "module shift_register #(parameter int WIDTH = 8) (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic        en,\n  input  logic        serial_in,\n  output logic [WIDTH-1:0] q,\n  output logic        serial_out\n);\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      q <= '0;\n    end else if (en) begin\n      q <= {q[WIDTH-2:0], serial_in};\n    end\n  end\n\n  assign serial_out = q[WIDTH-1];\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Single registered state; reset priority achieved by if-else ordering in clocked process."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "1a66b574-9635-40ce-a8d9-9120167aee0c",
+        "usage": {
+          "prompt_tokens": 1207,
+          "completion_tokens": 7305,
+          "total_tokens": 8512,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 5165
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:shift_register_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DIRECTION",
+        "O_HOLD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SERIAL_OUT",
+        "O_SHIFT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:shift_register_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DIRECTION",
+        "O_HOLD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SERIAL_OUT",
+        "O_SHIFT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_DIRECTION",
+          "O_HOLD",
+          "O_PRIORITY",
+          "O_RESET",
+          "O_SERIAL_OUT",
+          "O_SHIFT"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "ffe99e9787f89a4cc541826e40201ea467cdd72cdd8a1d10d7c5b14d43063953",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S1.5",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:q"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:serial_out_comb",
+            "shared_obligation_context:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:sync_reset",
+            "shared_obligation_context:O_PRIORITY",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:q"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:q",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:q"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:q",
+            "shared_obligation_context:O_DIRECTION",
+            "shared_obligation_context:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:q"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:q",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:q",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:serial_out",
+            "shared_obligation_context:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:q"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.3",
+            "S1.4"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.5"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S3.1"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD",
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIRECTION",
+            "shared_obligation:O_SHIFT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SERIAL_OUT"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 19,
+        "claimed_dependency_count": 22,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7368421052631579,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "1a66b574-9635-40ce-a8d9-9120167aee0c",
+      "usage": {
+        "prompt_tokens": 1207,
+        "completion_tokens": 7305,
+        "total_tokens": 8512,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5165
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, synchronous reset, reset-over-enable priority, enabled shift direction, disabled hold, combinational serial output, and final RTL were checked sequentially and found correct. In the second review, the bit movement was independently reconstructed: an enabled edge assigns q_next={q[WIDTH-2:0],serial_in}, moving each stored bit toward the next larger index and inserting serial_in at q[0]. Reset correctly overrides this transition and an unenabled non-reset edge leaves q unchanged. The global S4.4 statement is literally true because serial_out is continuously assigned from the current q[WIDTH-1] in every state, including reset. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  }
+}

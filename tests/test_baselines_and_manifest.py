@@ -56,10 +56,10 @@ class BaselineAndManifestTests(unittest.TestCase):
         summary = summarize_task_manifest(
             load_task_manifest(project_root=PROJECT_ROOT)
         )
-        self.assertEqual(summary["task_count"], 14)
+        self.assertEqual(summary["task_count"], 20)
         self.assertEqual(
             summary["by_layer"],
-            {"basic": 3, "hard": 4, "intermediate": 7},
+            {"basic": 6, "hard": 5, "intermediate": 9},
         )
 
     def test_eda_only_misses_correct_rtl_wrong_process(self) -> None:

@@ -1,0 +1,479 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-grant-hold-001",
+  "task_id": "grant_hold_arbiter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/grant-hold-001",
+  "source_hashes": {
+    "process_sha256": "bdfcc3486f1e21f8e24486238204d8a1b153f03f627e6002d5c6ff53487109c5",
+    "evidence_sha256": "1d67e2df3c70370d816efc79a78f5b8b8c4324a0980bae07a590936b8a7357ee",
+    "report_sha256": "815bcd598811811ec0b0d2c675092f0ee24fec40c6b3542f82adb31d14523cfc"
+  },
+  "candidate_process": {
+    "task_id": "grant_hold_arbiter_v1",
+    "architecture_summary": "Single registered grant vector used as state and output, with combinational next-state logic that priority-encodes req when idle and holds or clears on accept when busy.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module has synchronous active-high reset that clears grant to zero regardless of inputs.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "On idle non-reset edges, asserted req yields registered one-hot grant for lowest index; no req yields zero.",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Nonzero grant holds until sampled accept, then clears with no same-edge replacement; accept while idle ignored.",
+            "maps_to": [
+              "O_HOLD",
+              "O_ACCEPT_CLEAR",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "grant is registered and always one-hot-or-zero.",
+            "maps_to": [
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a 4-bit registered state grant (output) as both state and one-hot-or-zero output.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "grant_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational block select_next computes next grant: if grant zero priority-encode req, else hold or clear on accept.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "grant",
+              "req",
+              "accept"
+            ],
+            "writes": [
+              "grant_next"
+            ],
+            "rtl_blocks": [
+              "select_next"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Synchronous reset has highest priority in update_reg always_ff, assigning zero before next-state.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "update_reg"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk if rst high, grant transitions to 4'b0000 regardless of other inputs.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "update_reg"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If current grant zero and rst low, next edge registers priority-encoded req (or zero).",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "grant",
+              "req"
+            ],
+            "writes": [
+              "grant_next"
+            ],
+            "rtl_blocks": [
+              "select_next"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If current grant nonzero and accept low, grant stays unchanged across edge despite req changes.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "grant",
+              "accept",
+              "req"
+            ],
+            "writes": [
+              "grant_next"
+            ],
+            "rtl_blocks": [
+              "select_next"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If current grant nonzero and accept high, next grant becomes zero; no req replacement on same edge.",
+            "maps_to": [
+              "O_ACCEPT_CLEAR",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "grant",
+              "accept",
+              "req"
+            ],
+            "writes": [
+              "grant_next"
+            ],
+            "rtl_blocks": [
+              "select_next"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: always (rst |-> ##1 grant==0) reset clears grant.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: always (grant==0 && req!=0 && !rst |-> ##1 $onehot(grant)) idle selects one-hot.",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "grant",
+              "req",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: always (grant!=0 && !accept |-> ##1 grant==$past(grant)) hold stable.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "grant",
+              "accept"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: always (grant!=0 && accept |-> ##1 grant==0) accept clears.",
+            "maps_to": [
+              "O_ACCEPT_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "grant",
+              "accept"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implements grant_reg in update_reg always_ff with synchronous reset and clocked grant_next load.",
+            "maps_to": [
+              "O_RESET",
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3",
+              "S3.1"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "grant_next"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "update_reg"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implements select_next combinational priority encoder and hold/clear exactly as specified.",
+            "maps_to": [
+              "O_IDLE_SELECT",
+              "O_PRIORITY",
+              "O_HOLD",
+              "O_ACCEPT_CLEAR",
+              "O_NO_REPLACE",
+              "O_IDLE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "grant",
+              "req",
+              "accept"
+            ],
+            "writes": [
+              "grant_next"
+            ],
+            "rtl_blocks": [
+              "select_next"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Top module grant_hold_arbiter encapsulates update_reg and select_next meeting frozen interface.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "req",
+              "accept"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "grant_hold_arbiter"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "grant_hold_arbiter",
+      "code": "module grant_hold_arbiter (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic [3:0]  req,\n  input  logic        accept,\n  output logic [3:0]  grant\n);\n\n  logic [3:0] grant_next;\n\n  always_comb begin\n    if (grant == 4'b0000) begin\n      if (req[0])      grant_next = 4'b0001;\n      else if (req[1]) grant_next = 4'b0010;\n      else if (req[2]) grant_next = 4'b0100;\n      else if (req[3]) grant_next = 4'b1000;\n      else             grant_next = 4'b0000;\n    end else begin\n      if (accept) grant_next = 4'b0000;\n      else        grant_next = grant;\n    end\n  end\n\n  always_ff @(posedge clk) begin\n    if (rst) grant <= 4'b0000;\n    else     grant <= grant_next;\n  end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Synchronous reset priority; grant reused as state; priority encoder for lowest index; no same-edge replacement."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "cd12d126-3f44-4efd-815a-cba6fa8d1ca2",
+        "usage": {
+          "prompt_tokens": 1397,
+          "completion_tokens": 9287,
+          "total_tokens": 10684,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7072
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:grant_hold_arbiter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT_CLEAR",
+        "O_HOLD",
+        "O_IDLE_ACCEPT",
+        "O_IDLE_SELECT",
+        "O_NO_REPLACE",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:grant_hold_arbiter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT_CLEAR",
+        "O_HOLD",
+        "O_IDLE_ACCEPT",
+        "O_IDLE_SELECT",
+        "O_NO_REPLACE",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_ACCEPT_CLEAR",
+          "O_HOLD",
+          "O_IDLE_ACCEPT",
+          "O_IDLE_SELECT",
+          "O_NO_REPLACE",
+          "O_ONEHOT",
+          "O_PRIORITY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}

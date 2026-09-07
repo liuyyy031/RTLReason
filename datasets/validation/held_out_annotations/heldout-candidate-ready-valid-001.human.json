@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the specification understanding, single-entry state model, ready equation, fill, drain, replacement, backpressure, and final RTL were checked sequentially and found consistent with the frozen semantics. In the second review, the full-and-ready replacement case, full-and-blocked case, empty acceptance case, and no-combinational-bypass boundary were independently reconstructed. A full entry with out_ready and in_valid simultaneously consumes the old output and stores the new input without a bubble; under backpressure in_ready is low and both registered outputs hold. Every accepted input becomes the registered output immediately after its accepting edge, so the ordering statement does not require an additional liveness assumption. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

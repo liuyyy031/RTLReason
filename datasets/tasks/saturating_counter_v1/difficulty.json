@@ -1,0 +1,6 @@
+{
+  "level": "basic",
+  "concepts": ["synchronous reset", "saturation", "boundary flags", "enable hold"],
+  "formal_core": true,
+  "expected_process_items": "12-20"
+}

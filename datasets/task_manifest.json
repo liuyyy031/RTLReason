@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "manifest_version": "2026-09-02",
+  "manifest_version": "2026-09-02.2",
   "layer_policy": {
     "basic": "single-state or direct datapath with limited boundary interaction",
     "intermediate": "stateful control, exact timing, handshake, or one major concurrency boundary",
@@ -10,6 +10,9 @@
     {"task_id": "counter_enable_v1", "layer": "basic", "family": "counter", "focus": ["control_priority", "overflow_pulse"]},
     {"task_id": "shift_register_v1", "layer": "basic", "family": "datapath", "focus": ["shift_direction", "enable_hold"]},
     {"task_id": "rising_edge_detector_v1", "layer": "basic", "family": "edge_detection", "focus": ["sample_history", "one_cycle_pulse", "reset_release_boundary"]},
+    {"task_id": "saturating_counter_v1", "layer": "basic", "family": "counter", "focus": ["saturation", "boundary_flags"]},
+    {"task_id": "serial_parity_v1", "layer": "basic", "family": "serial_datapath", "focus": ["frame_gating", "finish_edge_inclusion"]},
+    {"task_id": "programmable_timer_v1", "layer": "basic", "family": "timer", "focus": ["exact_expiry", "period_reload", "zero_clamp"]},
     {"task_id": "round_robin_arbiter_v1", "layer": "intermediate", "family": "arbitration", "focus": ["rotation", "wraparound_priority"]},
     {"task_id": "ready_valid_slice_v1", "layer": "intermediate", "family": "handshake", "focus": ["backpressure", "simultaneous_replace"]},
     {"task_id": "sequence_detector_1011_v1", "layer": "intermediate", "family": "fsm", "focus": ["overlap", "valid_gating"]},
@@ -17,9 +20,12 @@
     {"task_id": "grant_hold_arbiter_v1", "layer": "intermediate", "family": "arbitration", "focus": ["grant_stability", "completion_gap"]},
     {"task_id": "debounce_filter_v1", "layer": "intermediate", "family": "filter", "focus": ["consecutive_samples", "threshold_edge"]},
     {"task_id": "token_bucket_v1", "layer": "intermediate", "family": "resource_control", "focus": ["current_state_acceptance", "simultaneous_add_consume"]},
+    {"task_id": "interrupt_pending_v1", "layer": "intermediate", "family": "interrupt_control", "focus": ["capture_mask", "priority", "set_dominant_collision"]},
+    {"task_id": "stream_width_adapter_v1", "layer": "intermediate", "family": "stream_datapath", "focus": ["byte_order", "backpressure", "no_replacement"]},
     {"task_id": "fifo_sync_v1", "layer": "hard", "family": "queue", "focus": ["ordering", "full_empty_concurrency", "read_latency"]},
     {"task_id": "request_ack_timeout_v1", "layer": "hard", "family": "protocol_fsm", "focus": ["exact_timeout", "final_edge_priority"]},
     {"task_id": "ready_valid_fifo2_v1", "layer": "hard", "family": "queue", "focus": ["ordering", "backpressure", "full_replacement"]},
-    {"task_id": "dual_port_ram_sync_v1", "layer": "hard", "family": "memory", "focus": ["registered_read", "read_first_collision", "independent_ports"]}
+    {"task_id": "dual_port_ram_sync_v1", "layer": "hard", "family": "memory", "focus": ["registered_read", "read_first_collision", "independent_ports"]},
+    {"task_id": "apb_register_bank_v1", "layer": "hard", "family": "bus_protocol", "focus": ["setup_access_phase", "address_decode", "error_gating"]}
   ]
 }

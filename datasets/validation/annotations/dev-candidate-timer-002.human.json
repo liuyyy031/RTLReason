@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.1",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Consequent",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S4.1"
+    },
+    {
+      "source": "S3.3",
+      "target": "S4.1"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "S4.1 incorrectly uses the current period input as a necessary condition for consecutive tick pulses. The timer reloads from stored_period_reg, and the external period input may change freely after a load without affecting the active stored period. For example, load period=1, then deassert load, change period to 5, and hold enable high; stored_period_reg remains one and tick can be high on consecutive expiry cycles even though the current period input is not one. The correct condition concerns the stored period, not the live period input. Final RTL implements the trusted behavior and passes trusted simulation and bounded formal verification."
+}

@@ -1,0 +1,1 @@
+{"level":"hard","concepts":["APB phase protocol","address decode","read/write separation","invalid access","zero wait state"],"formal_core":true,"expected_process_items":"18-30"}

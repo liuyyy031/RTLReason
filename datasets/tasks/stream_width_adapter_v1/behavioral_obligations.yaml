@@ -1,0 +1,10 @@
+schema_version: "1.0"
+task_id: stream_width_adapter_v1
+obligations:
+  - {id: O_RESET, category: reset, statement: A sampled high rst synchronously clears partial state, out_valid, and out_data.}
+  - {id: O_READY, category: handshake, statement: in_ready equals not out_valid and does not anticipate a same-edge output transfer.}
+  - {id: O_FIRST_BYTE, category: ordering, statement: The first accepted input byte is retained as the low byte without asserting out_valid.}
+  - {id: O_PACK_ORDER, category: ordering, statement: The second accepted byte becomes bits 15:8 and the first becomes bits 7:0 of the published word.}
+  - {id: O_BACKPRESSURE, category: handshake, statement: While out_valid is high and out_ready is low, out_valid and out_data remain stable and no input is accepted.}
+  - {id: O_OUTPUT_TRANSFER, category: handshake, statement: An accepted output clears out_valid after the edge while out_data retains its last published value.}
+  - {id: O_NO_REPLACEMENT, category: boundary, statement: An input cannot be accepted on an edge whose current state has out_valid high, even when out_ready is high.}

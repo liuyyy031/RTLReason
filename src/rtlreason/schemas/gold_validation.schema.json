@@ -11,7 +11,7 @@
     "case_id": {"type": "string"},
     "split": {"enum": ["development", "held_out"]},
     "task_id": {"type": "string"},
-    "candidate_origin": {"enum": ["real_hy3", "human_authored", "controlled_mutation"]},
+    "candidate_origin": {"enum": ["real_hy3", "real_model_output", "human_authored", "controlled_mutation"]},
     "candidate_process": {"type": "object"},
     "gold_rtl_correct": {"type": "boolean"},
     "gold_process_correct": {"type": "boolean"},

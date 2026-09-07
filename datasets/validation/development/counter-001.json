@@ -1,0 +1,1058 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-counter-001",
+  "split": "development",
+  "task_id": "counter_enable_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/counter-001",
+  "source_hashes": {
+    "process_sha256": "e155180bf01c30dc9d701cc5c22a471f56da8a0abd47137f700cc3f202495125",
+    "evidence_sha256": "2557e8991de7dd545c906e335458a15525df9fa9cbb8114e1511c2baa3bc47df",
+    "report_sha256": "992ac141e878e52e3664fddfc42bbb9b23e7a11b892cb33fce975250b7662733"
+  },
+  "candidate_process": {
+    "task_id": "counter_enable_v1",
+    "architecture_summary": "Single synchronous always_ff with combinational next-state function; registered count and overflow; wrap detected when current count is all ones and enable active, with reset/load/enable priority encoded in if-else.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Sampled high rst synchronously forces count and overflow to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Priority order is reset > load > enable > hold.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "overflow is a registered one-cycle pulse only after enabled wrap from max to zero.",
+            "maps_to": [
+              "O_OVERFLOW",
+              "O_INCREMENT"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses registered state: count[WIDTH-1:0] and overflow, plus combinational next_count and next_overflow.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "count",
+              "overflow"
+            ],
+            "writes": [
+              "count",
+              "overflow",
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "state_decl"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Chosen architecture: single always_comb next-state function feeding a single always_ff at posedge clk; no separate FSM.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "arch_choice"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Wrap condition computed as (count == MAX) && en && !load && !rst, producing next_overflow.",
+            "maps_to": [
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "count",
+              "en",
+              "load",
+              "rst"
+            ],
+            "writes": [
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "wrap_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset rule: if rst high, next_count=0 and next_overflow=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "reset_rule"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Load rule: else if load high, next_count=load_value and next_overflow=0.",
+            "maps_to": [
+              "O_LOAD"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "load",
+              "load_value"
+            ],
+            "writes": [
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "load_rule"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Enable rule: else if en high, next_count=count+1 and next_overflow=1 iff count==MAX.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.3"
+            ],
+            "reads": [
+              "en",
+              "count"
+            ],
+            "writes": [
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "enable_rule"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Hold rule: else next_count=count and next_overflow=0.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "count"
+            ],
+            "writes": [
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "hold_rule"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: after rst high then low, count==0 and overflow==0 at next edge.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "count",
+              "overflow"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_reset"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: overflow==1 only in cycle after count wraps from MAX via enable.",
+            "maps_to": [
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "overflow",
+              "count",
+              "en"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_overflow"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: load overrides en (count becomes load_value not incremented).",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_LOAD"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "load",
+              "en",
+              "count"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_priority"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL module counter_enable with parameter WIDTH default 8 and exact ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL combinational block computes next_count/next_overflow per priority and wrap.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_LOAD",
+              "O_INCREMENT",
+              "O_HOLD",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S2.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "load",
+              "load_value",
+              "count"
+            ],
+            "writes": [
+              "next_count",
+              "next_overflow"
+            ],
+            "rtl_blocks": [
+              "comb_logic"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL sequential block updates count and overflow on posedge clk.",
+            "maps_to": [
+              "O_RESET",
+              "O_LOAD",
+              "O_INCREMENT",
+              "O_HOLD",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S5.2"
+            ],
+            "reads": [
+              "clk",
+              "next_count",
+              "next_overflow"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_logic"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "counter_enable",
+      "code": "module counter_enable #(parameter WIDTH = 8) (\n  input  logic         clk,\n  input  logic         rst,\n  input  logic         en,\n  input  logic         load,\n  input  logic [WIDTH-1:0] load_value,\n  output logic [WIDTH-1:0] count,\n  output logic         overflow\n);\n\n  logic [WIDTH-1:0] next_count;\n  logic             next_overflow;\n\n  always_comb begin\n    next_count   = count;\n    next_overflow = 1'b0;\n    if (rst) begin\n      next_count   = '0;\n      next_overflow = 1'b0;\n    end else if (load) begin\n      next_count   = load_value;\n      next_overflow = 1'b0;\n    end else if (en) begin\n      next_count   = count + 1'b1;\n      if (count == {(WIDTH){1'b1}})\n        next_overflow = 1'b1;\n      else\n        next_overflow = 1'b0;\n    end else begin\n      next_count   = count;\n      next_overflow = 1'b0;\n    end\n  end\n\n  always_ff @(posedge clk) begin\n    count    <= next_count;\n    overflow <= next_overflow;\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "a8129e96-2e51-4bd4-a0e2-5bfae2d48e6f",
+        "usage": {
+          "prompt_tokens": 1298,
+          "completion_tokens": 6761,
+          "total_tokens": 8059,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 4630
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:counter_enable_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_LOAD",
+        "O_OVERFLOW",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:counter_enable_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_LOAD",
+        "O_OVERFLOW",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.1",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Consequent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S4.1"
+    }
+  ],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": false,
+  "predicted_first_error_stage": "S4",
+  "predicted_root_error": "S4.1",
+  "predicted_error_type_l1": "Property",
+  "predicted_error_type_l2": "Incorrect Consequent",
+  "predicted_parent_dependency": [
+    {
+      "source": "S2.1",
+      "target": "S4.1"
+    }
+  ],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.1"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.1",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.1",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Consequent",
+        "explanation": "Claim that after rst high then low count and overflow are zero at next edge is overgeneralized: if en=1 after rst deasserts, count increments (O_RESET only guarantees zero when rst sampled high).",
+        "confidence": 0.85
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "4ff5f21e672e5645bff442d80a0c8d461742b0f57745868a4eace6ecb9d1852f",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:count"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:count"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:count",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:count",
+            "def_use:overflow"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:count",
+            "def_use:overflow"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:count"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:count",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:next_count",
+            "def_use:next_overflow",
+            "shared_obligation_context:O_HOLD",
+            "shared_obligation_context:O_INCREMENT",
+            "shared_obligation_context:O_LOAD",
+            "shared_obligation_context:O_OVERFLOW"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S5.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOAD",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD",
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_LOAD",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 16,
+        "claimed_dependency_count": 22,
+        "items_with_structural_traceability": 13,
+        "structural_traceability_coverage": 0.8125,
+        "gaps": {
+          "S1.2": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "a8129e96-2e51-4bd4-a0e2-5bfae2d48e6f",
+      "usage": {
+        "prompt_tokens": 1298,
+        "completion_tokens": 6761,
+        "total_tokens": 8059,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4630
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "1b6556f0-163f-4d33-9a88-305df35c232b",
+      "usage": {
+        "prompt_tokens": 3069,
+        "completion_tokens": 7813,
+        "total_tokens": 10882,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6677
+        }
+      },
+      "finish_reason": "stop",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "S4.1 incorrectly states that after rst is high then low, count and overflow must remain zero at the next edge. The trusted specification defines synchronous reset only for an edge where rst is sampled high. Once rst is low, the next edge may legally load or increment the counter. For example, after reset clears count to zero, a following non-reset edge with en=1 increments count to one, contradicting S4.1. The final RTL itself is correct and passes trusted simulation and bounded formal verification."
+  }
+}

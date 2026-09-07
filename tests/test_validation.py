@@ -5,7 +5,10 @@ import uuid
 from pathlib import Path
 
 from rtlreason.validation import (
+    ANNOTATION_GUIDELINE_VERSION,
+    READJUDICATION_REQUIRED_CASES,
     audit_review_pool,
+    build_adjudication_candidate,
     build_blinded_review_packet,
     build_gold_evaluation_snapshot,
     promote_adjudicated_case,
@@ -54,7 +57,7 @@ def error_annotation() -> dict:
     return {
         "annotator_id": "reviewer-01",
         "annotator_role": "independent RTL reviewer",
-        "guideline_version": "1.0",
+        "guideline_version": ANNOTATION_GUIDELINE_VERSION,
         "independent_of_tested_model": True,
         "status": "single_annotated",
         "gold_rtl_correct": True,
@@ -72,6 +75,23 @@ def error_annotation() -> dict:
 
 
 class GoldPromotionTests(unittest.TestCase):
+    def test_readjudication_queue_matches_enforced_cases(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        queue = json.loads(
+            (
+                root
+                / "datasets"
+                / "validation"
+                / "readjudication"
+                / "v1.1-s4-scope.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(queue["target_guideline_version"], "1.1")
+        self.assertEqual(
+            {item["case_id"] for item in queue["cases"]},
+            set(READJUDICATION_REQUIRED_CASES),
+        )
+
     def test_blinded_packet_removes_evaluator_outputs(self) -> None:
         packet = build_blinded_review_packet(pending_candidate())
         self.assertNotIn("evaluator_prediction", packet)
@@ -94,6 +114,16 @@ class GoldPromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires"):
             promote_adjudicated_case(
                 pending_candidate(), annotation, split="development"
+            )
+
+    def test_rejects_stale_guideline_for_readjudication_case(self) -> None:
+        candidate = pending_candidate()
+        candidate["case_id"] = "dev-candidate-rising-edge-001"
+        annotation = error_annotation()
+        annotation["guideline_version"] = "1.0"
+        with self.assertRaisesRegex(ValueError, "requires annotation guideline 1.1"):
+            promote_adjudicated_case(
+                candidate, annotation, split="development"
             )
 
     def test_rejects_error_labels_for_correct_process(self) -> None:
@@ -147,6 +177,70 @@ class GoldPromotionTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     item["issue"] == "sensitive_reviewer_field"
+                    for item in result["issues"]
+                )
+            )
+        finally:
+            shutil.rmtree(root)
+
+    def test_review_pool_audit_detects_candidate_source_mismatch(self) -> None:
+        root = Path.cwd() / f".test-review-source-{uuid.uuid4().hex}"
+        run_dir = root / "runs" / "case-1"
+        candidates = root / "datasets" / "validation" / "candidates"
+        packets = root / "datasets" / "validation" / "review_packets"
+        run_dir.mkdir(parents=True)
+        candidates.mkdir(parents=True)
+        packets.mkdir(parents=True)
+        try:
+            process = {
+                "task_id": "fifo_sync_v1",
+                "stages": [],
+                "metadata": {"generation": {"model": "deepseek-v4-flash"}},
+            }
+            evidence: list[dict[str, object]] = []
+            report = {
+                "task_id": "fifo_sync_v1",
+                "candidate_generation": {
+                    "origin": "real_model_output",
+                    "model": "deepseek-v4-flash",
+                },
+                "semantic_evaluator": {"status": "not_run"},
+                "verification": {"final_rtl_correct": True},
+                "attribution": {},
+                "assessments": [],
+                "dependency_graph": {},
+            }
+            for name, value in (
+                ("process.json", process),
+                ("evidence.json", evidence),
+                ("report.json", report),
+            ):
+                (run_dir / name).write_text(json.dumps(value), encoding="utf-8")
+            candidate = build_adjudication_candidate(
+                case_id="case-1",
+                task_id="fifo_sync_v1",
+                run_dir=run_dir,
+                project_root=root,
+            )
+            candidate["candidate_process"]["metadata"]["generation"][
+                "model"
+            ] = "hy3"
+            packet = build_blinded_review_packet(candidate)
+            (candidates / "case-1.json").write_text(
+                json.dumps(candidate), encoding="utf-8"
+            )
+            (packets / "case-1.review.json").write_text(
+                json.dumps(packet), encoding="utf-8"
+            )
+
+            result = audit_review_pool(
+                candidates, packets, project_root=root
+            )
+
+            self.assertFalse(result["valid"])
+            self.assertTrue(
+                any(
+                    item["issue"] == "candidate_process_source_mismatch"
                     for item in result["issues"]
                 )
             )

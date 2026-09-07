@@ -1,0 +1,54 @@
+[
+  {
+    "id": "simulation:apb_register_bank_v1",
+    "source": "iverilog",
+    "status": "pass",
+    "obligations": [
+      "O_ACCESS_PHASE",
+      "O_ERROR_GATING",
+      "O_INVALID_ADDRESS",
+      "O_READBACK",
+      "O_READY",
+      "O_RESET",
+      "O_WRITE_DECODE",
+      "O_WRITE_READ_SEPARATION"
+    ],
+    "summary": "Trusted directed simulation passed.",
+    "cycle": null,
+    "details": {}
+  },
+  {
+    "id": "formal:apb_register_bank_v1_safety",
+    "source": "symbiyosys",
+    "status": "pass",
+    "obligations": [
+      "O_ACCESS_PHASE",
+      "O_ERROR_GATING",
+      "O_INVALID_ADDRESS",
+      "O_READBACK",
+      "O_READY",
+      "O_RESET",
+      "O_WRITE_DECODE",
+      "O_WRITE_READ_SEPARATION"
+    ],
+    "summary": "Trusted bounded safety check passed (depth 28).",
+    "cycle": null,
+    "details": {
+      "returncode": 0,
+      "property_class": "safety",
+      "formal_mode": "bmc",
+      "depth": 28,
+      "configured_obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "obligation_mapping": "all_properties_passed"
+    }
+  }
+]

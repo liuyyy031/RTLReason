@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "The process correctly models valid-gated consumption, synchronous reset, registered one-cycle match timing, invalid-cycle state hold with match clear, and overlapping detection of pattern 1011. The transition from the full-prefix state retains the final 1 as the next length-one prefix, so stream 1011011 correctly produces two match pulses with two intervening cycles. No reset-history or other material process error is present. Final RTL passes trusted simulation and bounded formal verification."
+}

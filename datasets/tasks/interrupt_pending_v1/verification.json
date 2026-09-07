@@ -1,0 +1,5 @@
+{
+  "schema_version":"1.0",
+  "simulation":{"testbench":"testbench/tb_interrupt_pending.sv","top":"tb_interrupt_pending","vcd":"interrupt_pending.vcd"},
+  "formal":{"enabled":true,"harness":"formal/interrupt_pending_formal.sv","top":"interrupt_pending_formal","depth":24,"obligations":["O_RESET","O_CAPTURE","O_MASK","O_PRIORITY","O_ACK","O_SET_DOMINANT","O_ACCUMULATE"]}
+}

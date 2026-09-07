@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: serial_parity_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears busy, parity, done, and the working accumulator.
+  - id: O_START
+    category: control
+    statement: A start while idle opens a new frame and clears prior working parity before accepting an optional same-edge bit.
+  - id: O_GATING
+    category: acceptance
+    statement: Bits outside a frame, start while busy, and finish while idle do not change frame state or published parity.
+  - id: O_ACCUMULATE
+    category: datapath
+    statement: Every bit_valid sample in the active frame is XORed exactly once into the working parity.
+  - id: O_FINAL_BIT
+    category: boundary
+    statement: A bit_valid sample on the accepted finish edge is included in the published parity.
+  - id: O_DONE
+    category: status
+    statement: done is a one-cycle registered pulse only after an accepted finish and busy clears on that edge.
+  - id: O_RESULT_HOLD
+    category: status
+    statement: Published parity holds between accepted finishes.

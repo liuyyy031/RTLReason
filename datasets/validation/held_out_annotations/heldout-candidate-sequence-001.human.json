@@ -1,0 +1,34 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S5",
+  "gold_root_error": "S5.2",
+  "gold_error_type_l1": "Implementation",
+  "gold_error_type_l2": "RTL Syntax or Elaboration",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S5.2"
+    },
+    {
+      "source": "S3.2",
+      "target": "S5.2"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_RESET",
+    "O_VALID_GATE",
+    "O_MATCH_1011",
+    "O_NONMATCH",
+    "O_OVERLAP",
+    "O_PULSE"
+  ],
+
+  "notes": "Two independent review passes reached the same implementation-error conclusion. The specification understanding, prefix-state model, valid gating, overlap transitions, and match timing in S1 through S4 are semantically correct. The first substantive failure appears in S5.2 and the delivered RTL: next_state is an enum-typed variable but several assignments use conditional expressions such as bit_in ? S1 : S0 with a four-state logic condition. The trusted Icarus simulation fails during compilation and never runs, while bounded formal verification accepts the design, indicating a tool-dependent enum-expression elaboration difference rather than a behavioral FSM error. The second review independently inspected the implementation and confirmed that these enum conditional assignments are the relevant compilation-sensitive construct. Because the frozen trusted simulation toolchain cannot compile the delivered RTL, the final RTL cannot be marked correct even though the intended FSM behavior is otherwise sound."
+}

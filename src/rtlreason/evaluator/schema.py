@@ -12,6 +12,19 @@ class SchemaIssue:
     item_id: str | None = None
 
 
+def _valid_interface_trace(reference: str, interface: dict) -> bool:
+    """Return whether interface_semantics.a.b names a real frozen field."""
+    prefix = "interface_semantics."
+    if not reference.startswith(prefix):
+        return False
+    current: object = interface
+    for part in reference[len(prefix) :].split("."):
+        if not part or not isinstance(current, dict) or part not in current:
+            return False
+        current = current[part]
+    return True
+
+
 def validate_process(
     process: ProcessArtifact, task: TaskAssets | None = None
 ) -> list[SchemaIssue]:
@@ -74,7 +87,14 @@ def validate_process(
                     )
                 )
         if task is not None:
-            unknown = set(item.maps_to) - task.obligation_ids
+            unknown = {
+                reference
+                for reference in item.maps_to
+                if reference not in task.obligation_ids
+                and not _valid_interface_trace(
+                    reference, task.interface_semantics
+                )
+            }
             if unknown:
                 issues.append(
                     SchemaIssue(

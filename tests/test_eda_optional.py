@@ -115,6 +115,36 @@ class OptionalEdaRegressionTests(unittest.TestCase):
                 "dual_port_ram_sync.sv",
                 "dual_port_ram_write_first.sv",
             ),
+            (
+                "saturating_counter_v1",
+                "saturating_counter.sv",
+                "saturating_counter_wrap.sv",
+            ),
+            (
+                "serial_parity_v1",
+                "serial_parity.sv",
+                "serial_parity_excludes_final.sv",
+            ),
+            (
+                "programmable_timer_v1",
+                "programmable_timer.sv",
+                "programmable_timer_late.sv",
+            ),
+            (
+                "interrupt_pending_v1",
+                "interrupt_pending.sv",
+                "interrupt_pending_clear_dominant.sv",
+            ),
+            (
+                "stream_width_adapter_v1",
+                "stream_width_adapter.sv",
+                "stream_width_adapter_big_endian.sv",
+            ),
+            (
+                "apb_register_bank_v1",
+                "apb_register_bank.sv",
+                "apb_register_bank_setup_write.sv",
+            ),
         )
         faults = PROJECT_ROOT / "tests" / "fixtures" / "task_faults"
         for task_id, reference_name, fault_name in cases:

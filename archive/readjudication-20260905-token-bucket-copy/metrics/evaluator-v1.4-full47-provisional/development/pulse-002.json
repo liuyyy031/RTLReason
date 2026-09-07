@@ -1,0 +1,775 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-pulse-002",
+  "split": "development",
+  "task_id": "pulse_stretcher_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/pulse-002",
+  "source_hashes": {
+    "process_sha256": "bb4c4a6f277ca55128b05da2f7222747e950cf7aab7860de54d04e70d7022b82",
+    "evidence_sha256": "53cabfe9164211e80c6dbd136ba4a0508647b74cdbbedc1e040039b0b4556821",
+    "report_sha256": "d645f4f47c0fee03ac768ef1b5fdaafb38f33c2a77a7941bd11a97ff9df41fc7"
+  },
+  "candidate_process": {
+    "task_id": "pulse_stretcher_v1",
+    "architecture_summary": "Loadable down-counter with registered active output; trigger loads PULSE_CYCLES-1, counter>0 holds active, synchronous reset clears all.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst must clear active and timer state even if trigger is high.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A sampled high trigger makes active high immediately after that edge, counting as first of exactly PULSE_CYCLES active cycles.",
+            "maps_to": [
+              "O_TRIGGER",
+              "O_DURATION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "A trigger while active or on the expiring edge restarts the full interval with no low gap.",
+            "maps_to": [
+              "O_RETRIGGER",
+              "O_EXPIRY_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "When no interval is live and trigger is low, active stays low.",
+            "maps_to": [
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a down-counter register cnt of width $clog2(PULSE_CYCLES) to track remaining post-trigger active cycles.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "down_counter"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Registered output active is driven by sequential logic from trigger and cnt, never combinatorially from trigger.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.4"
+            ],
+            "reads": [
+              "trigger",
+              "cnt"
+            ],
+            "writes": [
+              "active"
+            ],
+            "rtl_blocks": [
+              "active_reg"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Synchronous reset has highest priority and forces cnt and active to zero.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "reset_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "If rst low and trigger high, load cnt with PULSE_CYCLES-1 and set active high (handles first cycle, retrigger, and expiry-edge restart).",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "trigger"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "load_on_trigger"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If rst low, trigger low, and cnt>0, decrement cnt and keep active high.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "trigger",
+              "cnt"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "decrement_hold"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "If rst low, trigger low, and cnt==0, clear active and hold cnt at zero (idle).",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.4"
+            ],
+            "reads": [
+              "rst",
+              "trigger",
+              "cnt"
+            ],
+            "writes": [
+              "active",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "idle_state"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If rst high, override all branches: cnt<=0 and active<=0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "reset_override"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: after a lone trigger, active stays high for exactly PULSE_CYCLES consecutive cycles then falls.",
+            "maps_to": [
+              "O_DURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "active"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: a trigger while active reloads cnt and prevents any low cycle on active.",
+            "maps_to": [
+              "O_RETRIGGER"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "active",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: a trigger sampled on the cycle where cnt==0 and active==1 restarts instead of expiring.",
+            "maps_to": [
+              "O_EXPIRY_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "active",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: synchronous reset drives active and cnt to zero regardless of trigger.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "active",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module pulse_stretcher declared with parameter PULSE_CYCLES and ports clk, rst, trigger, active.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Localparam CNT_WIDTH and register cnt defined to hold countdown state.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "counter_decl"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "always_ff implements reset-over-trigger-over-decrement-over-idle transition rules producing registered active and cnt.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "trigger"
+            ],
+            "writes": [
+              "cnt",
+              "active"
+            ],
+            "rtl_blocks": [
+              "always_ff"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "pulse_stretcher",
+      "code": "module pulse_stretcher #(parameter int PULSE_CYCLES = 4) (\n  input  logic clk,\n  input  logic rst,\n  input  logic trigger,\n  output logic active\n);\n  localparam int CNT_WIDTH = (PULSE_CYCLES <= 1) ? 1 : $clog2(PULSE_CYCLES);\n  logic [CNT_WIDTH-1:0] cnt;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      cnt    <= '0;\n      active <= 1'b0;\n    end else if (trigger) begin\n      cnt    <= PULSE_CYCLES - 1;\n      active <= 1'b1;\n    end else if (cnt > 0) begin\n      cnt    <= cnt - 1'b1;\n      active <= 1'b1;\n    end else begin\n      cnt    <= '0;\n      active <= 1'b0;\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Down-counter width uses $clog2; PULSE_CYCLES>=2 ensures correct load value. Reset priority handled by if-else ordering."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "9f9cb7f8-95cb-42f2-a12e-67fe121754e6",
+        "usage": {
+          "prompt_tokens": 1308,
+          "completion_tokens": 11186,
+          "total_tokens": 12494,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 9069
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:pulse_stretcher_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DURATION",
+        "O_EXPIRY_PRIORITY",
+        "O_IDLE",
+        "O_RESET",
+        "O_RETRIGGER",
+        "O_TRIGGER"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:pulse_stretcher_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DURATION",
+        "O_EXPIRY_PRIORITY",
+        "O_IDLE",
+        "O_RESET",
+        "O_RETRIGGER",
+        "O_TRIGGER"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_DURATION",
+          "O_EXPIRY_PRIORITY",
+          "O_IDLE",
+          "O_RESET",
+          "O_RETRIGGER",
+          "O_TRIGGER"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "2166f23657822d617525d428b2e5201b3381b345a379dc9f5881a143e714d7f8",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:active"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:active"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:active"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:active",
+            "property_derivation:def_use:cnt"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4",
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.1"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_DURATION"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RETRIGGER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EXPIRY_PRIORITY"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 25,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "9f9cb7f8-95cb-42f2-a12e-67fe121754e6",
+      "usage": {
+        "prompt_tokens": 1308,
+        "completion_tokens": 11186,
+        "total_tokens": 12494,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9069
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "6fca9eb8-40aa-4a2e-8b83-9bdba7df1cac",
+      "usage": {
+        "prompt_tokens": 3775,
+        "completion_tokens": 7803,
+        "total_tokens": 11578,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6286
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": ""
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/pulse-002.json",
+    "source_gold_sha256": "344c772815c17b111ed329aa7e3b423a987c9829a5a162da4a170b17f3ac70f6",
+    "source_report": "runs/evaluator-v1.4/development/pulse-002/report.json",
+    "source_report_sha256": "c22d458ef70b448e183e539cc129fd27e7148d23a29ccc7486ca25698c723a54",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "2166f23657822d617525d428b2e5201b3381b345a379dc9f5881a143e714d7f8",
+    "gold_labels_modified": false
+  }
+}

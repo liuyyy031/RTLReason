@@ -1,0 +1,31 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.1",
+
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Consequent",
+
+  "gold_parent_dependency": [
+    {
+      "source": "S3.3",
+      "target": "S4.1"
+    },
+    {
+      "source": "S3.4",
+      "target": "S4.1"
+    }
+  ],
+
+  "gold_affected_obligation": [],
+
+  "notes": "S4.1 incorrectly states that debounced toggles when the internal cnt reaches STABLE_CYCLES. In the actual transition rule, the threshold sample is accepted when the pre-edge cnt equals STABLE_CYCLES-1; debounced then updates and cnt resets to zero. Thus the internal counter need not and normally does not reach STABLE_CYCLES. The final RTL correctly implements the required consecutive-sample threshold and passes trusted simulation and bounded formal verification."
+}

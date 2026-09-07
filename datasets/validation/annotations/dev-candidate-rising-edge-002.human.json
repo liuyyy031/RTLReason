@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.2",
+
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+
+  "gold_parent_dependency": [
+    {
+      "source": "S3.2",
+      "target": "S4.2"
+    }
+  ],
+
+  "gold_affected_obligation": [],
+
+  "notes": "S4.2 overgeneralizes the history relationship by stating that prev_sample always equals signal_in sampled at the previous non-reset edge. A synchronous reset clears prev_sample to 0 without sampling signal_in, so a reset can break this relationship. For example, if the previous non-reset edge sampled signal_in=1 and a reset edge then occurs, prev_sample becomes 0 although the previous non-reset sample was 1. The property therefore requires a no-intervening-reset or current-reset-epoch condition. Final RTL is correct and passes trusted simulation and bounded formal verification."
+}

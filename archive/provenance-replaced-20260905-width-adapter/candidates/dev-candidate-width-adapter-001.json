@@ -1,0 +1,1098 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-width-adapter-001",
+  "task_id": "stream_width_adapter_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/calibration/width-adapter-001",
+  "source_hashes": {
+    "process_sha256": "e3e0f19e19485c482f2128aacc75465477cd649410a91bfb056ce374708a8e84",
+    "evidence_sha256": "408066ae87c5fa65d79b28f78a50cf09ac8732e5b98f15c56af4d53c67274ba1",
+    "report_sha256": "506304f01e1378b2e76cbbac6080a511a06e86d7a0211ec3055da17be68de704"
+  },
+  "candidate_process": {
+    "task_id": "stream_width_adapter_v1",
+    "architecture_summary": "Two-register architecture with has_low and out_valid_r flags; low_byte stores first byte, out_data_r holds full word; combinational in_ready = !out_valid_r.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module accepts two 8-bit inputs and outputs one 16-bit word; first byte is low byte [7:0], second byte is high byte [15:8].",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "in_data"
+            ],
+            "writes": [
+              "out_data"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "in_ready is combinational inverse of out_valid; no input accepted when out_valid is high.",
+            "maps_to": [
+              "O_READY",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "out_valid_r"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Output remains stable under backpressure; cleared on acceptance after the edge.",
+            "maps_to": [
+              "O_BACKPRESSURE",
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Synchronous reset clears all state (has_low, low_byte, out_valid_r, out_data_r).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses two registers: low_byte (8-bit) for stored first byte, out_data_r (16-bit) for full output word. State is encoded by a has_low flag and out_valid_r register. No explicit state machine; combinational logic drives in_ready and transitions.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Input acceptance: on first byte (in_ready && in_valid && !has_low), store in_data into low_byte and set has_low; on second byte (in_ready && in_valid && has_low), combine low_byte with in_data into out_data_r, set out_valid_r, clear has_low.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "in_valid",
+              "in_data",
+              "has_low",
+              "low_byte"
+            ],
+            "writes": [
+              "low_byte",
+              "has_low",
+              "out_data_r",
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "input_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output acceptance: when out_valid_r && out_ready, clear out_valid_r; out_data_r persists unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "output_acceptance_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset (synchronous high) takes priority: on posedge clk if rst=1, all registers cleared (has_low=0, low_byte=0, out_valid_r=0, out_data_r=0).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst",
+              "clk"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "rtl_blocks": [
+              "reset_block"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "On non-reset edge, if out_valid_r && out_ready, then out_valid_r <= 0; out_data_r unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "output_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "On non-reset edge, if in_ready && in_valid, then: if !has_low, store low byte; else publish full word.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "in_valid",
+              "in_data",
+              "has_low",
+              "low_byte"
+            ],
+            "writes": [
+              "low_byte",
+              "has_low",
+              "out_data_r",
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "input_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "No simultaneous input and output acceptance because in_ready is low when out_valid_r is high; thus input acceptance only occurs when out_valid_r is low.",
+            "maps_to": [
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "in_ready",
+              "out_valid_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "in_ready === !out_valid_r at all times (combinational).",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.4"
+            ],
+            "reads": [
+              "out_valid_r"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "After reset, out_valid_r == 0, has_low == 0, low_byte == 0, out_data_r == 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "If in_valid && in_ready && !has_low, then next cycle has_low == 1 and low_byte == in_data.",
+            "maps_to": [
+              "O_FIRST_BYTE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "has_low",
+              "in_data"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "If in_valid && in_ready && has_low, then next cycle out_valid_r == 1, out_data_r == {in_data, low_byte}, has_low == 0.",
+            "maps_to": [
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "has_low",
+              "in_data",
+              "low_byte"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "If out_valid_r && out_ready, then next cycle out_valid_r == 0, out_data_r unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "The RTL code implements the module with registers (has_low, low_byte, out_valid_r, out_data_r), combinational in_ready, and sequential logic for transitions as specified.",
+            "maps_to": [
+              "O_RESET",
+              "O_READY",
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER",
+              "O_BACKPRESSURE",
+              "O_OUTPUT_TRANSFER",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3",
+              "S1.4",
+              "S2.1",
+              "S2.2",
+              "S2.3",
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "in_valid",
+              "in_data",
+              "out_ready",
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r",
+              "in_ready",
+              "out_valid",
+              "out_data"
+            ],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "stream_width_adapter",
+      "code": "module stream_width_adapter (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic        in_valid,\n  output logic        in_ready,\n  input  logic [7:0]  in_data,\n  output logic        out_valid,\n  input  logic        out_ready,\n  output logic [15:0] out_data\n);\n\n  // Registers\n  logic        has_low;\n  logic [7:0]  low_byte;\n  logic        out_valid_r;\n  logic [15:0] out_data_r;\n\n  // Combinational\n  assign in_ready = !out_valid_r;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      has_low     <= 1'b0;\n      low_byte    <= 8'b0;\n      out_valid_r <= 1'b0;\n      out_data_r  <= 16'b0;\n    end else begin\n      // Output acceptance\n      if (out_valid_r && out_ready) begin\n        out_valid_r <= 1'b0;\n        // out_data_r retains value\n      end\n\n      // Input acceptance\n      if (in_ready && in_valid) begin\n        if (!has_low) begin\n          // First byte\n          has_low  <= 1'b1;\n          low_byte <= in_data;\n        end else begin\n          // Second byte\n          out_data_r  <= {in_data, low_byte}; // high byte is in_data, low byte is low_byte\n          out_valid_r <= 1'b1;\n          has_low     <= 1'b0;\n        end\n      end\n    end\n  end\n\n  // Output ports\n  assign out_valid = out_valid_r;\n  assign out_data  = out_data_r;\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "deepseek-v4-flash",
+        "request_id": "30bbb70e-a38f-4d17-bc23-faa23c462860",
+        "usage": {
+          "prompt_tokens": 1421,
+          "completion_tokens": 7136,
+          "total_tokens": 8557,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 4336
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:stream_width_adapter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:stream_width_adapter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_BACKPRESSURE",
+          "O_FIRST_BYTE",
+          "O_NO_REPLACEMENT",
+          "O_OUTPUT_TRANSFER",
+          "O_PACK_ORDER",
+          "O_READY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.3",
+      "S4.4",
+      "S4.5"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.3",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.3",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Property lacks reset guard. If rst is high when antecedent holds, reset overrides and the consequent fails (has_low and low_byte become 0, not stored values). The property must include !rst to be valid.",
+        "confidence": 0.99
+      },
+      {
+        "item_id": "S4.4",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Property lacks reset guard. If rst is high, the consequent is not guaranteed (all registers cleared). Property must include !rst in antecedent.",
+        "confidence": 0.99
+      },
+      {
+        "item_id": "S4.5",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Property lacks reset guard. If rst is high, out_data_r is cleared to 0, not unchanged. Antecedent must include !rst.",
+        "confidence": 0.99
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "84be9a7db73f6230c4b367817b26e3418b84076d24240819f68ac8d82b800c5c",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1"
+      ],
+      "edges": [
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:in_ready",
+            "shared_obligation_context:O_NO_REPLACEMENT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:has_low",
+            "def_use:low_byte"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:stream_width_adapter"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:out_valid_r"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:input_acceptance_logic",
+            "shared_obligation_context:O_FIRST_BYTE",
+            "shared_obligation_context:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:output_acceptance_logic",
+            "shared_obligation_context:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:out_valid_r"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:has_low",
+            "def_use:low_byte"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.5",
+          "reasons": [
+            "property_derivation:def_use:out_valid_r",
+            "shared_obligation_context:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:out_valid_r"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:out_valid_r"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:has_low",
+            "shared_obligation_context:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:has_low",
+            "property_derivation:def_use:low_byte",
+            "shared_obligation_context:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:has_low",
+            "def_use:low_byte",
+            "def_use:out_data_r",
+            "def_use:out_valid_r",
+            "shared_obligation_context:O_FIRST_BYTE",
+            "shared_obligation_context:O_PACK_ORDER"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3",
+            "S1.4"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S1.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S1.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S3.4"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3",
+            "S1.4",
+            "S2.2",
+            "S2.3",
+            "S3.1",
+            "S3.2",
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_NO_REPLACEMENT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_NO_REPLACEMENT",
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_NO_REPLACEMENT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 17,
+        "claimed_dependency_count": 28,
+        "items_with_structural_traceability": 17,
+        "structural_traceability_coverage": 1.0,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_model_output",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "30bbb70e-a38f-4d17-bc23-faa23c462860",
+      "usage": {
+        "prompt_tokens": 1421,
+        "completion_tokens": 7136,
+        "total_tokens": 8557,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4336
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "b6a899f1-f2ec-4aa5-8a1e-e1a8fbab2545",
+      "usage": {
+        "prompt_tokens": 4129,
+        "completion_tokens": 6563,
+        "total_tokens": 10692,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5111
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

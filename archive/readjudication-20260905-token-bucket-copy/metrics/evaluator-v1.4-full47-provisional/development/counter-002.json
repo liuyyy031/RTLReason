@@ -1,0 +1,855 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-counter-002",
+  "split": "development",
+  "task_id": "counter_enable_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/counter-002",
+  "source_hashes": {
+    "process_sha256": "2ff1fdb31a292fef36e22fdc2040da2a1266f61cac9c4ed59548a547dc8a45ef",
+    "evidence_sha256": "d06796abb297dca73fccb5bd1560e8caaab9785f5205f42de98b8730a60da552",
+    "report_sha256": "1c982efd10ed987a80ba132b66202b0960e0704b326ad70ab892a4239414867d"
+  },
+  "candidate_process": {
+    "task_id": "counter_enable_v1",
+    "architecture_summary": "Single synchronous always_ff block with prioritized if-else (rst>load>en>hold) updating count and overflow flops; no separate next-state process.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Counter uses synchronous active-high rst with highest priority, driving count and overflow to zero.",
+            "maps_to": [
+              "O_RESET",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Load takes priority over enable: when rst low and load high, count gets load_value and overflow zero.",
+            "maps_to": [
+              "O_LOAD",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "When rst and load low and en high, count increments modulo 2**WIDTH; overflow pulses only on wrap from max.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "When rst, load, en all low, count holds and overflow stays zero.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: single synchronous always_ff block at posedge clk implementing prioritized sequential updates (rst > load > en > hold).",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "State variables: count[WIDTH-1:0] and overflow (1-bit) are the only stored elements, both reset synchronously.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "No separate next-state registers; next values computed inside the sequential block to minimize area.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk, if rst sampled high, count<=0 and overflow<=0 (highest priority).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Else if load high, count<=load_value and overflow<=0.",
+            "maps_to": [
+              "O_LOAD"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "load",
+              "load_value"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Else if en high, if count==MAX then count<=0 and overflow<=1 else count<=count+1 and overflow<=0.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "rst",
+              "load",
+              "en",
+              "count"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Else (all controls low) count and overflow hold at zero-overflow.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "rst",
+              "load",
+              "en"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Property: rst implies next count==0 and overflow==0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "count",
+              "overflow"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Property: load with !rst implies next count==load_value and overflow==0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "load",
+              "rst",
+              "load_value",
+              "count",
+              "overflow"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Property: en && !rst && !load && count==MAX implies next overflow==1 and count==0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "en",
+              "rst",
+              "load",
+              "count",
+              "overflow"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Property: overflow never persists more than one cycle after a wrap.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "overflow",
+              "en",
+              "rst",
+              "load"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module counter_enable with parameter WIDTH and declared ports.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "load",
+              "load_value"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement seq_block with prioritized if-else and wrap detection via count==(2**WIDTH-1).",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "load",
+              "load_value",
+              "count"
+            ],
+            "writes": [
+              "count",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Ensure overflow is assigned 0 in all non-wrap branches to meet pulse requirement.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "en",
+              "count"
+            ],
+            "writes": [
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "seq_block"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "counter_enable",
+      "code": "module counter_enable #(parameter int WIDTH = 8) (\n  input  logic clk,\n  input  logic rst,\n  input  logic en,\n  input  logic load,\n  input  logic [WIDTH-1:0] load_value,\n  output logic [WIDTH-1:0] count,\n  output logic overflow\n);\n\n  localparam [WIDTH-1:0] MAX_VAL = (2**WIDTH - 1);\n\n  seq_block: always_ff @(posedge clk) begin\n    if (rst) begin\n      count <= '0;\n      overflow <= 1'b0;\n    end else if (load) begin\n      count <= load_value;\n      overflow <= 1'b0;\n    end else if (en) begin\n      if (count == MAX_VAL) begin\n        count <= '0;\n        overflow <= 1'b1;\n      end else begin\n        count <= count + 1'b1;\n        overflow <= 1'b0;\n      end\n    end else begin\n      count <= count;\n      overflow <= 1'b0;\n    end\n  end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "overflow is a single-cycle registered pulse exactly on enabled wrap from MAX to 0."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "4e6f4617-4cf7-46d0-b71d-0688f4407a04",
+        "usage": {
+          "prompt_tokens": 1298,
+          "completion_tokens": 6147,
+          "total_tokens": 7445,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 3950
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:counter_enable_v1",
+      "source": "iverilog",
+      "status": "fail",
+      "obligations": [
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_LOAD",
+        "O_OVERFLOW",
+        "O_PRIORITY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation failed.",
+      "cycle": null,
+      "details": {
+        "compile_returncode": 25,
+        "run_returncode": null
+      }
+    },
+    {
+      "id": "formal:counter_enable_v1_safety",
+      "source": "symbiyosys",
+      "status": "error",
+      "obligations": [],
+      "summary": "Formal toolchain error; no property verdict was produced.",
+      "cycle": null,
+      "details": {
+        "returncode": 16,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_HOLD",
+          "O_INCREMENT",
+          "O_LOAD",
+          "O_OVERFLOW",
+          "O_PRIORITY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "unavailable"
+      }
+    }
+  ],
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S5",
+  "gold_root_error": "S5.2",
+  "gold_error_type_l1": "Implementation",
+  "gold_error_type_l2": "RTL Syntax or Elaboration",
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [
+    "O_RESET",
+    "O_PRIORITY",
+    "O_LOAD",
+    "O_INCREMENT",
+    "O_HOLD",
+    "O_OVERFLOW"
+  ],
+  "predicted_rtl_correct": false,
+  "predicted_process_correct": false,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [
+    "O_HOLD",
+    "O_INCREMENT",
+    "O_LOAD",
+    "O_OVERFLOW",
+    "O_PRIORITY",
+    "O_RESET"
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": false,
+    "process_correct": false,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [
+      "O_HOLD",
+      "O_INCREMENT",
+      "O_LOAD",
+      "O_OVERFLOW",
+      "O_PRIORITY",
+      "O_RESET"
+    ],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "f4c93d55429a301535a5b1466dfe4d8213b26472dbb1b3a6bcb003b5671702bf",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:count",
+            "property_derivation:def_use:overflow"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:count",
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:count",
+            "property_derivation:def_use:overflow"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:count",
+            "property_derivation:def_use:overflow"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:overflow"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:overflow"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:count",
+            "rtl_traceability:seq_block"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:count",
+            "rtl_traceability:seq_block"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3",
+            "S1.4"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S1.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 24,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "4e6f4617-4cf7-46d0-b71d-0688f4407a04",
+      "usage": {
+        "prompt_tokens": 1298,
+        "completion_tokens": 6147,
+        "total_tokens": 7445,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3950
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "b5c3f24d-b065-4718-a6f0-64bfc03978a9",
+      "usage": {
+        "prompt_tokens": 3786,
+        "completion_tokens": 7607,
+        "total_tokens": 11393,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6040
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.0",
+    "notes": "S1-S4 correctly capture the counter specification, priority, transition behavior, overflow semantics, and candidate properties. The first substantive error appears in S5.2: the generated RTL uses `seq_block: always_ff @(posedge clk)`, which fails compilation. Trusted simulation reports compile_returncode=25 and formal verification cannot produce a property verdict. The intended sequential logic is semantically consistent with the specification, but the candidate RTL is not a compilable implementation."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/counter-002.json",
+    "source_gold_sha256": "133d0c23b98868a7520bbef3c573471fce4eb9e37def2ed9f6be908f7f380ce5",
+    "source_report": "runs/evaluator-v1.4/development/counter-002/report.json",
+    "source_report_sha256": "31a9bfaf79009790cad660ab3d9d446831524b106e8cdde804c1c25c5a58fcee",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "f4c93d55429a301535a5b1466dfe4d8213b26472dbb1b3a6bcb003b5671702bf",
+    "gold_labels_modified": false
+  }
+}

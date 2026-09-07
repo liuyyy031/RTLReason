@@ -1,10 +1,13 @@
 import unittest
 
 from rtlreason.reference import (
+    ApbRegisterBankReferenceModel,
     CounterReferenceModel,
     DebounceFilterReferenceModel,
     DualPortRamReferenceModel,
     GrantHoldArbiterReferenceModel,
+    InterruptPendingReferenceModel,
+    ProgrammableTimerReferenceModel,
     ReadyValidSliceReferenceModel,
     PulseStretcherReferenceModel,
     ReadyValidFifo2ReferenceModel,
@@ -13,11 +16,68 @@ from rtlreason.reference import (
     RoundRobinArbiterReferenceModel,
     SequenceDetector1011ReferenceModel,
     ShiftRegisterReferenceModel,
+    SaturatingCounterReferenceModel,
+    SerialParityReferenceModel,
+    StreamWidthAdapterReferenceModel,
     TokenBucketReferenceModel,
 )
 
 
 class ReferenceModelTests(unittest.TestCase):
+    def test_saturating_counter_holds_boundaries(self) -> None:
+        model = SaturatingCounterReferenceModel(width=2)
+        self.assertTrue(model.step(rst=True).at_min)
+        self.assertTrue(model.step(en=True, up=False).at_min)
+        for _ in range(4):
+            top = model.step(en=True, up=True)
+        self.assertEqual(top.count, 3)
+        self.assertTrue(top.at_max)
+
+    def test_serial_parity_includes_start_and_finish_bits(self) -> None:
+        model = SerialParityReferenceModel()
+        self.assertTrue(model.step(start=True, bit_valid=True, bit_in=True).busy)
+        model.step(bit_valid=True, bit_in=False)
+        final = model.step(finish=True, bit_valid=True, bit_in=True)
+        self.assertFalse(final.parity)
+        self.assertTrue(final.done)
+        self.assertFalse(model.step(bit_valid=True, bit_in=True).done)
+
+    def test_programmable_timer_clamps_and_reloads(self) -> None:
+        model = ProgrammableTimerReferenceModel(width=4)
+        self.assertEqual(model.step(load=True, period=0).remaining, 1)
+        self.assertTrue(model.step(enable=True).tick)
+        model.step(load=True, period=3)
+        self.assertEqual(model.step(enable=True).remaining, 2)
+        self.assertEqual(model.step(enable=True).remaining, 1)
+        expired = model.step(enable=True)
+        self.assertTrue(expired.tick)
+        self.assertEqual(expired.remaining, 3)
+
+    def test_interrupt_pending_is_set_dominant(self) -> None:
+        model = InterruptPendingReferenceModel()
+        self.assertEqual(model.step(irq=0b0110).index, 1)
+        collision = model.step(ack=True, irq=0b0010)
+        self.assertEqual(collision.pending, 0b0110)
+        self.assertEqual(model.step(ack=True).pending, 0b0100)
+
+    def test_stream_width_adapter_packs_little_endian_and_has_gap(self) -> None:
+        model = StreamWidthAdapterReferenceModel()
+        self.assertTrue(model.step(in_valid=True, in_data=0x34).in_ready)
+        word = model.step(in_valid=True, in_data=0x12)
+        self.assertTrue(word.out_valid)
+        self.assertEqual(word.out_data, 0x1234)
+        drained = model.step(in_valid=True, in_data=0x56, out_ready=True)
+        self.assertFalse(drained.out_valid)
+        self.assertEqual(model.step(in_valid=True, in_data=0x56).out_data, 0x1234)
+
+    def test_apb_register_bank_requires_access_phase(self) -> None:
+        model = ApbRegisterBankReferenceModel()
+        model.step(psel=True, penable=False, pwrite=True, paddr=0, pwdata=0xAA)
+        self.assertEqual(model.step(paddr=0).prdata, 0)
+        model.step(psel=True, penable=True, pwrite=True, paddr=0, pwdata=0xAA)
+        self.assertEqual(model.step(paddr=0).prdata, 0xAA)
+        self.assertTrue(model.step(psel=True, penable=True, paddr=8).pslverr)
+
     def test_dual_port_ram_is_registered_read_first_and_holds(self) -> None:
         model = DualPortRamReferenceModel(data_width=8, addr_width=2)
         model.step(wr_en=True, wr_addr=1, wr_data=0xA1)

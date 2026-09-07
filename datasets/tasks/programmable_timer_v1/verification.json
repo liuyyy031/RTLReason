@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_programmable_timer.sv",
+    "top": "tb_programmable_timer",
+    "vcd": "programmable_timer.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/programmable_timer_formal.sv",
+    "top": "programmable_timer_formal",
+    "depth": 24,
+    "obligations": ["O_RESET", "O_LOAD", "O_PRIORITY", "O_COUNTDOWN", "O_EXPIRY", "O_HOLD", "O_ZERO_CLAMP"]
+  }
+}

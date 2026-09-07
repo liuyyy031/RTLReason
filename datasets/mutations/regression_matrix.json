@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "matrix_version": "2026-09-02",
+  "purpose": "Controlled EDA regression only. These known faults are not independent Gold labels.",
+  "cases": [
+    {"id":"fifo-empty-read-through","task_id":"fifo_sync_v1","rtl":"tests/fixtures/fifo_faults/empty_read_through.sv","mutation_class":"acceptance_boundary","expected_obligations":["O_EMPTY_SIMULTANEOUS"],"expected_simulation":"fail"},
+    {"id":"fifo-full-blocks-write","task_id":"fifo_sync_v1","rtl":"tests/fixtures/fifo_faults/full_blocks_write.sv","mutation_class":"simultaneous_boundary","expected_obligations":["O_FULL_SIMULTANEOUS"],"expected_simulation":"fail"},
+    {"id":"fifo-wrong-order","task_id":"fifo_sync_v1","rtl":"tests/fixtures/fifo_faults/wrong_read_order.sv","mutation_class":"ordering","expected_obligations":["O_ORDERING"],"expected_simulation":"fail"},
+    {"id":"counter-wrong-priority","task_id":"counter_enable_v1","rtl":"tests/fixtures/task_faults/counter_wrong_priority.sv","mutation_class":"control_priority","expected_obligations":["O_PRIORITY"],"expected_simulation":"fail"},
+    {"id":"shift-wrong-direction","task_id":"shift_register_v1","rtl":"tests/fixtures/task_faults/shift_wrong_direction.sv","mutation_class":"datapath_direction","expected_obligations":["O_DIRECTION"],"expected_simulation":"fail"},
+    {"id":"arbiter-fixed-priority","task_id":"round_robin_arbiter_v1","rtl":"tests/fixtures/task_faults/arbiter_fixed_priority.sv","mutation_class":"state_update","expected_obligations":["O_ROTATE"],"expected_simulation":"fail"},
+    {"id":"ready-valid-no-replace","task_id":"ready_valid_slice_v1","rtl":"tests/fixtures/task_faults/ready_valid_no_replace.sv","mutation_class":"simultaneous_boundary","expected_obligations":["O_REPLACE"],"expected_simulation":"fail"},
+    {"id":"request-ack-early-timeout","task_id":"request_ack_timeout_v1","rtl":"tests/fixtures/task_faults/request_ack_timeout_early.sv","mutation_class":"off_by_one_timing","expected_obligations":["O_TIMEOUT_EXACT"],"expected_simulation":"fail"},
+    {"id":"fifo2-full-blocks-input","task_id":"ready_valid_fifo2_v1","rtl":"tests/fixtures/task_faults/ready_valid_fifo2_full_blocks.sv","mutation_class":"simultaneous_boundary","expected_obligations":["O_FULL_REPLACE"],"expected_simulation":"fail"},
+    {"id":"sequence-no-overlap","task_id":"sequence_detector_1011_v1","rtl":"tests/fixtures/task_faults/sequence_detector_no_overlap.sv","mutation_class":"fsm_overlap","expected_obligations":["O_OVERLAP"],"expected_simulation":"fail"},
+    {"id":"pulse-too-short","task_id":"pulse_stretcher_v1","rtl":"tests/fixtures/task_faults/pulse_stretcher_short.sv","mutation_class":"off_by_one_timing","expected_obligations":["O_DURATION"],"expected_simulation":"fail"},
+    {"id":"grant-hold-reselect","task_id":"grant_hold_arbiter_v1","rtl":"tests/fixtures/task_faults/grant_hold_reselect.sv","mutation_class":"stability","expected_obligations":["O_HOLD"],"expected_simulation":"fail"},
+    {"id":"debounce-early","task_id":"debounce_filter_v1","rtl":"tests/fixtures/task_faults/debounce_early.sv","mutation_class":"threshold_boundary","expected_obligations":["O_HOLD_BEFORE_THRESHOLD"],"expected_simulation":"fail"},
+    {"id":"token-bucket-lookahead","task_id":"token_bucket_v1","rtl":"tests/fixtures/task_faults/token_bucket_lookahead.sv","mutation_class":"current_next_state","expected_obligations":["O_EMPTY_NO_LOOKAHEAD"],"expected_simulation":"fail"},
+    {"id":"rising-edge-level","task_id":"rising_edge_detector_v1","rtl":"tests/fixtures/task_faults/rising_edge_level_detector.sv","mutation_class":"history_omission","expected_obligations":["O_NO_REPEAT"],"expected_simulation":"fail"},
+    {"id":"dual-port-write-first","task_id":"dual_port_ram_sync_v1","rtl":"tests/fixtures/task_faults/dual_port_ram_write_first.sv","mutation_class":"collision_semantics","expected_obligations":["O_READ_FIRST"],"expected_simulation":"fail"},
+    {"id":"saturating-counter-wrap","task_id":"saturating_counter_v1","rtl":"tests/fixtures/task_faults/saturating_counter_wrap.sv","mutation_class":"boundary_wrap","expected_obligations":["O_SATURATE_MAX","O_SATURATE_MIN"],"expected_simulation":"fail"},
+    {"id":"serial-parity-excludes-final","task_id":"serial_parity_v1","rtl":"tests/fixtures/task_faults/serial_parity_excludes_final.sv","mutation_class":"final_edge_omission","expected_obligations":["O_FINAL_BIT"],"expected_simulation":"fail"},
+    {"id":"programmable-timer-late","task_id":"programmable_timer_v1","rtl":"tests/fixtures/task_faults/programmable_timer_late.sv","mutation_class":"off_by_one_timing","expected_obligations":["O_EXPIRY"],"expected_simulation":"fail"},
+    {"id":"interrupt-clear-dominant","task_id":"interrupt_pending_v1","rtl":"tests/fixtures/task_faults/interrupt_pending_clear_dominant.sv","mutation_class":"collision_priority","expected_obligations":["O_SET_DOMINANT"],"expected_simulation":"fail"},
+    {"id":"width-adapter-big-endian","task_id":"stream_width_adapter_v1","rtl":"tests/fixtures/task_faults/stream_width_adapter_big_endian.sv","mutation_class":"ordering","expected_obligations":["O_PACK_ORDER"],"expected_simulation":"fail"},
+    {"id":"apb-setup-write","task_id":"apb_register_bank_v1","rtl":"tests/fixtures/task_faults/apb_register_bank_setup_write.sv","mutation_class":"protocol_phase","expected_obligations":["O_ACCESS_PHASE"],"expected_simulation":"fail"}
+  ]
+}

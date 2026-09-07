@@ -1,0 +1,188 @@
+{
+  "task_id": "apb_register_bank_v1",
+  "architecture_summary": "Dual 32-bit register file with synchronous write on APB access phase, combinational address-decoded read and error output; no FSM needed due to always-ready slave.",
+  "stages": [
+    {
+      "id": "S1",
+      "title": "Specification Understanding",
+      "items": [
+        {
+          "id": "S1.1",
+          "claim": "Transfers occur only in access phase psel && penable; setup phase never transfers.",
+          "maps_to": ["O_ACCESS_PHASE"],
+          "claimed_dependencies": [],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.2",
+          "claim": "Two 32-bit registers at byte addresses 0x0 and 0x4 reset synchronously to zero.",
+          "maps_to": ["O_RESET", "O_WRITE_DECODE"],
+          "claimed_dependencies": [],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.3",
+          "claim": "pready constant 1; prdata combinational valid-addr read; pslverr only on invalid transfer.",
+          "maps_to": ["O_READY", "O_READBACK", "O_INVALID_ADDRESS", "O_ERROR_GATING"],
+          "claimed_dependencies": [],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Architecture / State Modeling",
+      "items": [
+        {
+          "id": "S2.1",
+          "claim": "Architecture uses two synchronous registers reg0, reg1 updated post-edge on valid write.",
+          "maps_to": ["O_WRITE_DECODE", "O_RESET"],
+          "claimed_dependencies": ["S1.2"],
+          "reads": [],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["reg_update"]
+        },
+        {
+          "id": "S2.2",
+          "claim": "Combinational address decoder selects reg0/reg1 for prdata and flags invalid address.",
+          "maps_to": ["O_READBACK", "O_INVALID_ADDRESS"],
+          "claimed_dependencies": ["S1.3", "S2.1"],
+          "reads": ["reg0", "reg1"],
+          "writes": [],
+          "rtl_blocks": ["addr_decode"]
+        },
+        {
+          "id": "S2.3",
+          "claim": "pready driven constant high via continuous assign.",
+          "maps_to": ["O_READY"],
+          "claimed_dependencies": ["S1.3"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": ["pready_assign"]
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Transition & Temporal Rules",
+      "items": [
+        {
+          "id": "S3.1",
+          "claim": "Sampled high rst synchronously clears reg0 and reg1 at posedge clk with highest priority.",
+          "maps_to": ["O_RESET"],
+          "claimed_dependencies": ["S2.1"],
+          "reads": ["rst"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["reg_update"]
+        },
+        {
+          "id": "S3.2",
+          "claim": "Valid write (psel&&penable&&pwrite&&valid addr) updates only addressed reg after edge.",
+          "maps_to": ["O_WRITE_DECODE", "O_WRITE_READ_SEPARATION"],
+          "claimed_dependencies": ["S2.1", "S1.1"],
+          "reads": ["psel", "penable", "pwrite", "paddr", "pwdata"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["reg_update"]
+        },
+        {
+          "id": "S3.3",
+          "claim": "Setup phase (psel && !penable) produces no register side effects.",
+          "maps_to": ["O_ACCESS_PHASE"],
+          "claimed_dependencies": ["S1.1"],
+          "reads": ["psel", "penable"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S3.4",
+          "claim": "pslverr rises only when psel&&penable and paddr invalid; otherwise low including setup.",
+          "maps_to": ["O_ERROR_GATING", "O_INVALID_ADDRESS"],
+          "claimed_dependencies": ["S2.2", "S1.1"],
+          "reads": ["psel", "penable", "paddr"],
+          "writes": ["pslverr"],
+          "rtl_blocks": ["err_logic"]
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Candidate Properties",
+      "items": [
+        {
+          "id": "S4.1",
+          "claim": "Candidate: reg0 and reg1 retain previous value when no valid write occurs.",
+          "maps_to": ["O_WRITE_READ_SEPARATION"],
+          "claimed_dependencies": ["S3.2"],
+          "reads": ["reg0", "reg1"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.2",
+          "claim": "Candidate: prdata equals addressed register for valid read, zero otherwise.",
+          "maps_to": ["O_READBACK"],
+          "claimed_dependencies": ["S2.2"],
+          "reads": ["prdata", "reg0", "reg1"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.3",
+          "claim": "Candidate: pslverr=1 implies transfer and invalid address.",
+          "maps_to": ["O_ERROR_GATING"],
+          "claimed_dependencies": ["S3.4"],
+          "reads": ["pslverr", "psel", "penable", "paddr"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.4",
+          "claim": "Candidate: pready stays high in all cycles.",
+          "maps_to": ["O_READY"],
+          "claimed_dependencies": ["S2.3"],
+          "reads": ["pready"],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "RTL Implementation",
+      "items": [
+        {
+          "id": "S5.1",
+          "claim": "RTL: always_ff block implements synchronous reset and gated valid-write register update.",
+          "maps_to": ["O_RESET", "O_WRITE_DECODE"],
+          "claimed_dependencies": ["S3.1", "S3.2"],
+          "reads": ["clk", "rst", "psel", "penable", "pwrite", "paddr", "pwdata"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["reg_update"]
+        },
+        {
+          "id": "S5.2",
+          "claim": "RTL: continuous assigns implement pready, prdata decode, and pslverr gating.",
+          "maps_to": ["O_READBACK", "O_INVALID_ADDRESS", "O_ERROR_GATING", "O_READY"],
+          "claimed_dependencies": ["S2.2", "S3.4", "S2.3"],
+          "reads": ["reg0", "reg1", "psel", "penable", "paddr"],
+          "writes": ["prdata", "pslverr", "pready"],
+          "rtl_blocks": ["addr_decode", "err_logic", "pready_assign"]
+        }
+      ]
+    }
+  ],
+  "rtl": {
+    "language": "systemverilog",
+    "module_name": "apb_register_bank",
+    "code": "module apb_register_bank (\n  input  wire        clk,\n  input  wire        rst,\n  input  wire        psel,\n  input  wire        penable,\n  input  wire        pwrite,\n  input  wire [3:0]  paddr,\n  input  wire [31:0] pwdata,\n  output wire        pready,\n  output wire [31:0] prdata,\n  output wire        pslverr\n);\n\n  reg [31:0] reg0;\n  reg [31:0] reg1;\n\n  // Synchronous update with highest priority reset\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      reg0 <= 32'd0;\n      reg1 <= 32'd0;\n    end else if (psel && penable && pwrite) begin\n      if (paddr == 4'h0)      reg0 <= pwdata;\n      else if (paddr == 4'h4) reg1 <= pwdata;\n    end\n  end\n\n  // Always ready\n  assign pready = 1'b1;\n\n  // Combinational read data\n  assign prdata = (paddr == 4'h0) ? reg0 :\n                  (paddr == 4'h4) ? reg1 : 32'd0;\n\n  // Error only on access-phase transfer to invalid address\n  assign pslverr = (psel && penable && !(paddr == 4'h0 || paddr == 4'h4)) ? 1'b1 : 1'b0;\n\nendmodule"
+  },
+  "metadata": {
+    "notes": ["No FSM required because slave is always ready and APB transfer completes in one access phase."]
+  }
+}

@@ -12,7 +12,7 @@
     "schema_version": {"type": "string"},
     "case_id": {"type": "string", "minLength": 1},
     "task_id": {"type": "string", "minLength": 1},
-    "candidate_origin": {"enum": ["real_hy3", "controlled_mutation"]},
+    "candidate_origin": {"enum": ["real_hy3", "real_model_output", "controlled_mutation"]},
     "source_run": {"type": "string"},
     "source_hashes": {
       "type": "object",

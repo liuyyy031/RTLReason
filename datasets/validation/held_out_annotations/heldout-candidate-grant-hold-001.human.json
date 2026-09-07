@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.3",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S4.3"
+    },
+    {
+      "source": "S3.3",
+      "target": "S4.3"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "Two independent review passes reached the same substantive error conclusion. In the first review, S1 through S3 and the final RTL were found to correctly implement reset, idle fixed-priority selection, grant hold, accepted-grant clearing, no same-edge replacement, and accept-while-idle behavior. The earliest process error appears in S4.3, which explicitly states an always property requiring a nonzero grant to remain unchanged whenever accept is low but omits reset from the antecedent. Under guideline v1.1, the explicit global term always must be interpreted literally and cannot inherit an implicit reset disable. A legal reset edge with a current nonzero grant and accept low clears grant because reset has highest priority, contradicting S4.3. In the second review, the same reset counterexample was independently reconstructed and confirmed that adding a non-reset guard would remove the conflict. The final RTL is nevertheless correct and trusted directed simulation and bounded formal verification pass all configured obligations."
+}

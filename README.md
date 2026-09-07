@@ -152,7 +152,7 @@ formal/
 
 `provenance.json` 记录任务来源、许可证、版本和可信资产生成政策；`verification.json` 冻结每题的 testbench、simulation top、VCD 文件、Formal harness/top、BMC 深度和覆盖的 obligations。任何被测 Hy3 输出都不得反向修改这些资产。
 
-当前已闭环的可信任务有 14 道：
+当前已闭环的可信任务有 20 道：
 
 - `fifo_sync_v1`：满/空并发读写、一周期读延迟与 FIFO ordering；
 - `counter_enable_v1`：reset/load/enable 优先级与 overflow 脉冲；
@@ -168,6 +168,12 @@ formal/
 - `debounce_filter_v1`：连续稳定采样阈值、抖动清零、双向转换和 changed 脉冲。
 - `token_bucket_v1`：当前状态消费判定、自动补充、饱和计数和空/满并发边界。
 - `dual_port_ram_sync_v1`：注册读延迟、输出保持、独立双端口和同地址 read-first 冲突语义。
+- `saturating_counter_v1`：上下计数、边界饱和、enable hold 和当前状态边界标志。
+- `serial_parity_v1`：帧内 valid gating、start/finish 同边沿数据纳入和 done 脉冲。
+- `programmable_timer_v1`：周期装载、零值钳位、精确到期和同边沿 tick+reload。
+- `interrupt_pending_v1`：中断捕获与 mask、最低位优先、ack 和同源 set-dominant 冲突。
+- `stream_width_adapter_v1`：8→16 位小端打包、部分字状态、背压稳定和禁止同边沿替换。
+- `apb_register_bank_v1`：APB setup/access 阶段、地址译码、零等待读写和错误门控。
 
 ### 5.2 S1–S5 Process Artifact
 
@@ -300,7 +306,11 @@ Gold Validation Set 可以包含：
 - Semantic-only：使用逐项语义 Judge，但不使用依赖图和 Evidence Attribution；
 - Full RTLReason：Semantic、Dependency 与 Attribution 完整链路。
 
-截至 2026-09-02，盲审池包含 29 个真实 Hy3 输出和 3 个受控样本，Development Set 已有 1 条独立人工 Gold。14 道可信题目均已有至少 2 个真实回答，FIFO 有 3 个。首条 Gold 暴露了 S4 性质遗漏 reset 前提的 Semantic false negative；Judge Prompt v1.1 和经结构证据支持的 S4 property-derivation 规则已在版本化快照中修正。Gold 样本量仍不足以宣称评测器总体可靠性。
+截至 2026-09-06，盲审池包含 44 个真实模型输出和 3 个受控样本，47/47 通过 provenance 与盲审包一致性审计；其中 42 份为 Hy3，2 份为其它真实模型输出，不同模型来源不得在“Hy3 准确率”中混算。Development Set 已晋升 47 份独立 Gold，并完成 Semantic Judge v1.5 的冻结候选重评和 47/47 版本化 snapshots。Full RTLReason 的 Development Process Accuracy 与 Macro-F1 均为 1.0000，17 个过程错误全部被召回；First-stage 与 Root Error Accuracy 均为 0.9412，关键依赖 micro-F1 为 0.5098。EDA-only 仍无法召回任何“正确 RTL/错误过程”样本。v1.5 的规则来自同一 Development 集的 v1.4 误差分析，因此这些只能视为校准结果，不能作为 held-out 泛化结论。可信题目共 20 道，详细结果及剩余误差见 `runs/metrics/evaluator-v1.5-full47/ERROR_ANALYSIS_CN.md`。
+
+截至 2026-09-07，另有20份覆盖全部可信任务的新 Hy3 回答在运行评测器前完成双人复核并冻结为 Held-out Batch 001。冻结的 v1.5 在该批上的 Full Process Accuracy 为 0.7500、Macro-F1 为 0.7151、Root Error Accuracy 为 0.5000、Correct-RTL/Wrong-Process Recall 为 0.6000，关键依赖 micro-F1 为 0.2500；Final RTL Accuracy 为 1.0000。EDA-only 同样得到0.7500 Process Accuracy，但无法召回任何正确 RTL/错误过程样本。该批是已见任务上的 sample-level held-out，不代表新任务泛化；结果已一次性冻结，不得用于调整 v1.5 后重测同一批。详细分析见 `runs/metrics/evaluator-v1.5-held-out-batch-001/HELD_OUT_RESULTS_CN.md`。
+
+受控 EDA 回归由 `datasets/mutations/regression_matrix.json` 冻结，目前包含 22 个已知故障，覆盖全部 20 道可信题目。运行 `python -m rtlreason regression-summary` 可校验任务、RTL 路径、obligation 映射并汇总覆盖；运行 `python -m rtlreason regression-run` 会逐个执行已知错误 RTL，并要求可信仿真失败且至少命中一个预期 obligation。该矩阵只用于工程回归，不属于独立 Gold。
 
 ## 6. 第一题 FIFO 的重点技术
 

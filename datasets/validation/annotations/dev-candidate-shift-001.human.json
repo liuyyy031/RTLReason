@@ -6,22 +6,15 @@
   "status": "single_annotated",
 
   "gold_rtl_correct": true,
-  "gold_process_correct": false,
+  "gold_process_correct": true,
 
-  "gold_first_error_stage": "S4",
-  "gold_root_error": "S4.1",
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
 
-  "gold_error_type_l1": "Property",
-  "gold_error_type_l2": "Incorrect Consequent",
-
-  "gold_parent_dependency": [
-    {
-      "source": "S3.1",
-      "target": "S4.1"
-    }
-  ],
-
+  "gold_parent_dependency": [],
   "gold_affected_obligation": [],
 
-  "notes": "S4.1 states that rst high implies q_reg remains zero in the next cycle. The trusted specification defines synchronous reset on the edge where rst is sampled high. Once rst is low, the following edge may legally perform an enabled shift. Therefore q_reg is not required to remain zero one clock later. The final RTL itself correctly implements reset priority, enabled shifting, hold behavior, and serial_out semantics and passes trusted simulation and bounded formal verification."
+  "notes": "Re-reviewed under the calibrated synchronous temporal-language convention. S4.1's 'next-cycle q_reg == 0' is interpreted as the registered state immediately after the edge sampling rst high, consistent with the trusted synchronous-reset semantics. No substantive error was found in S1-S5. Final RTL passes trusted simulation and bounded formal verification."
 }

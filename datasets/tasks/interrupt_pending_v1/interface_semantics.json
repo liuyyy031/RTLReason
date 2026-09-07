@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "task_id": "interrupt_pending_v1",
+  "module_name": "interrupt_pending",
+  "clock": {"port": "clk", "active_edge": "posedge", "input_sampling": "immediately_before_active_edge", "registered_output_observation": "immediately_after_active_edge"},
+  "reset": {"port": "rst", "type": "synchronous", "active_level": "high", "priority": "highest", "pending_after_reset": 0},
+  "ports": {
+    "irq": {"direction": "input", "width": 4},
+    "mask": {"direction": "input", "width": 4},
+    "ack": {"direction": "input", "width": 1},
+    "pending": {"direction": "output", "width": 4},
+    "valid": {"direction": "output", "width": 1},
+    "index": {"direction": "output", "width": 2}
+  },
+  "acceptance": {
+    "incoming": "irq & ~mask",
+    "acknowledged_source": "lowest-numbered bit set in current pending when ack && valid",
+    "simultaneous_set_clear": "incoming set is dominant"
+  },
+  "transition": {"next_pending": "(pending & ~ack_onehot) | (irq & ~mask)", "mask_existing": "mask changes do not clear existing pending bits"},
+  "output_semantics": {"valid": "combinational OR of current pending", "index": "combinational lowest-numbered pending source; zero when invalid"}
+}

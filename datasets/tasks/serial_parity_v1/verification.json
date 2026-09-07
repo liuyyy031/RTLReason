@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_serial_parity.sv",
+    "top": "tb_serial_parity",
+    "vcd": "serial_parity.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/serial_parity_formal.sv",
+    "top": "serial_parity_formal",
+    "depth": 24,
+    "obligations": ["O_RESET", "O_START", "O_GATING", "O_ACCUMULATE", "O_FINAL_BIT", "O_DONE", "O_RESULT_HOLD"]
+  }
+}

@@ -1,0 +1,1122 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-serial-parity-001",
+  "task_id": "serial_parity_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/serial-parity-001",
+  "source_hashes": {
+    "process_sha256": "5f7abb5dd039921ee3862ee7b0cca60a360152816b7c40ac9ae434df8f8e53ee",
+    "evidence_sha256": "5196f29597496f259e2bb18d1995656e505338332738b7dcf5926affcd8ce9a8",
+    "report_sha256": "de5a28e6e19e4a9105cdf41bca08a47bdf2a7875d59ad07481f402883e471c48"
+  },
+  "candidate_process": {
+    "task_id": "serial_parity_v1",
+    "architecture_summary": "Busy-flag sequential accumulator with separate working and published parity registers, updated in a single synchronous always block.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Interface requires a synchronous high rst clearing busy, parity, done and internal accumulator.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A frame opens only on start when idle and closes only on finish when busy; same-edge valid bits are included.",
+            "maps_to": [
+              "O_START",
+              "O_FINAL_BIT",
+              "O_GATING"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Working parity is internal and published only at accepted finish; output parity holds otherwise.",
+            "maps_to": [
+              "O_RESULT_HOLD",
+              "O_ACCUMULATE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: busy flag plus working accumulator and published parity registers; no explicit state enum (busy implies frame active).",
+            "maps_to": [
+              "O_START",
+              "O_GATING"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "busy_r",
+              "acc_r",
+              "parity_r",
+              "done_r"
+            ],
+            "rtl_blocks": [
+              "busy_r",
+              "acc_r",
+              "parity_r",
+              "done_r"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Working accumulator acc_r is cleared on start and XORs bit_in when bit_valid during frame.",
+            "maps_to": [
+              "O_ACCUMULATE",
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.1"
+            ],
+            "reads": [
+              "bit_in",
+              "bit_valid",
+              "busy_r"
+            ],
+            "writes": [
+              "acc_r"
+            ],
+            "rtl_blocks": [
+              "acc_r"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Published parity_r updates only from acc_r at accepted finish or reset; done_r pulses one cycle.",
+            "maps_to": [
+              "O_RESULT_HOLD",
+              "O_DONE",
+              "O_FINAL_BIT"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "acc_r",
+              "finish",
+              "busy_r"
+            ],
+            "writes": [
+              "parity_r",
+              "done_r"
+            ],
+            "rtl_blocks": [
+              "parity_r",
+              "done_r"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "start_accepted = start && !busy_r; clears acc_r and sets busy_r high on same edge.",
+            "maps_to": [
+              "O_START",
+              "O_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "start",
+              "busy_r"
+            ],
+            "writes": [
+              "busy_r",
+              "acc_r"
+            ],
+            "rtl_blocks": [
+              "next_busy",
+              "next_acc"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "During busy, each bit_valid sample XORs bit_in into acc_r; finish_accepted = finish && busy_r publishes acc_r to parity_r, clears busy_r, and sets done_r for one cycle.",
+            "maps_to": [
+              "O_ACCUMULATE",
+              "O_FINAL_BIT",
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S3.1"
+            ],
+            "reads": [
+              "busy_r",
+              "bit_valid",
+              "bit_in",
+              "finish",
+              "acc_r"
+            ],
+            "writes": [
+              "acc_r",
+              "parity_r",
+              "busy_r",
+              "done_r"
+            ],
+            "rtl_blocks": [
+              "next_acc",
+              "next_parity",
+              "next_busy",
+              "next_done"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Ignored conditions (start while busy, finish while idle, bit when idle) leave all registers unchanged.",
+            "maps_to": [
+              "O_GATING"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "busy_r",
+              "start",
+              "finish",
+              "bit_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "default_hold"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: after reset, busy=0, parity=0, done=0, acc=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "busy_r",
+              "parity_r",
+              "done_r",
+              "acc_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: if busy=1 and finish=1 and bit_valid=1, next parity = acc ^ bit_in.",
+            "maps_to": [
+              "O_FINAL_BIT"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "busy_r",
+              "finish",
+              "bit_valid",
+              "acc_r",
+              "bit_in"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: done is high for exactly one cycle after finish accepted, then low.",
+            "maps_to": [
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "done_r",
+              "busy_r",
+              "finish"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: parity output stable when busy=0 and finish=0.",
+            "maps_to": [
+              "O_RESULT_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "parity_r",
+              "busy_r",
+              "finish"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement synchronous reset clearing all registers.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy_r",
+              "acc_r",
+              "parity_r",
+              "done_r"
+            ],
+            "rtl_blocks": [
+              "always_ff_reset"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement next-state computation for busy, acc, parity, done as described.",
+            "maps_to": [
+              "O_START",
+              "O_ACCUMULATE",
+              "O_FINAL_BIT",
+              "O_DONE",
+              "O_GATING"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "start",
+              "bit_valid",
+              "bit_in",
+              "finish",
+              "busy_r",
+              "acc_r"
+            ],
+            "writes": [
+              "busy_r",
+              "acc_r",
+              "parity_r",
+              "done_r"
+            ],
+            "rtl_blocks": [
+              "always_ff"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Assign output ports from registers: busy=busy_r, parity=parity_r, done=done_r.",
+            "maps_to": [
+              "O_RESULT_HOLD",
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S5.2"
+            ],
+            "reads": [
+              "busy_r",
+              "parity_r",
+              "done_r"
+            ],
+            "writes": [
+              "busy",
+              "parity",
+              "done"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "serial_parity",
+      "code": "module serial_parity (\n    input  logic clk,\n    input  logic rst,\n    input  logic start,\n    input  logic bit_valid,\n    input  logic bit_in,\n    input  logic finish,\n    output logic busy,\n    output logic parity,\n    output logic done\n);\n\n    logic busy_r;\n    logic acc_r;\n    logic parity_r;\n    logic done_r;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            busy_r   <= 1'b0;\n            acc_r    <= 1'b0;\n            parity_r <= 1'b0;\n            done_r   <= 1'b0;\n        end else begin\n            busy_r   <= busy_r;\n            acc_r    <= acc_r;\n            parity_r <= parity_r;\n            done_r   <= 1'b0;\n\n            if (start && !busy_r) begin\n                busy_r <= 1'b1;\n                acc_r  <= bit_valid ? bit_in : 1'b0;\n            end else if (busy_r) begin\n                if (finish) begin\n                    acc_r    <= bit_valid ? (acc_r ^ bit_in) : acc_r;\n                    parity_r <= bit_valid ? (acc_r ^ bit_in) : acc_r;\n                    busy_r   <= 1'b0;\n                    done_r   <= 1'b1;\n                end else if (bit_valid) begin\n                    acc_r <= acc_r ^ bit_in;\n                end\n            end\n        end\n    end\n\n    assign busy  = busy_r;\n    assign parity = parity_r;\n    assign done  = done_r;\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Single always block with synchronous reset; working accumulator separated from published parity."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "cedae94e-1276-4ba9-b6b5-4aba1489a5e5",
+        "usage": {
+          "prompt_tokens": 1433,
+          "completion_tokens": 13375,
+          "total_tokens": 14808,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 11038
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:serial_parity_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_DONE",
+        "O_FINAL_BIT",
+        "O_GATING",
+        "O_RESET",
+        "O_RESULT_HOLD",
+        "O_START"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:serial_parity_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_DONE",
+        "O_FINAL_BIT",
+        "O_GATING",
+        "O_RESET",
+        "O_RESULT_HOLD",
+        "O_START"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_ACCUMULATE",
+          "O_DONE",
+          "O_FINAL_BIT",
+          "O_GATING",
+          "O_RESET",
+          "O_RESULT_HOLD",
+          "O_START"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S3.1",
+      "S4.4"
+    ],
+    "earliest_error_stage": "S3",
+    "primary_error_item": "S3.1",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S3.1",
+        "status": "incorrect",
+        "error_type_l1": "Transition Logic",
+        "error_type_l2": "Simultaneous Operation Error",
+        "explanation": "Transition rule for start_accepted omits optional same-edge bit inclusion required by O_START/interface. As stated it would miss boundary case.",
+        "confidence": 0.9
+      },
+      {
+        "item_id": "S4.2",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Property lacks !rst guard; if rst=1 with busy=1,finish=1,bit_valid=1 pre-edge, reset forces parity=0 not acc^bit_in, violating claim.",
+        "confidence": 0.9
+      },
+      {
+        "item_id": "S4.4",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Claim parity stable when busy=0&finish=0 ignores synchronous reset which updates parity to 0, violating stability. Needs !rst qualifier.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "04439a602a5b73e5cab27d4ea1dc42cc5483419820454b89406e9df7a0468186",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:busy_r",
+            "rtl_traceability:acc_r",
+            "shared_obligation_context:O_START"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:busy_r",
+            "rtl_traceability:done_r",
+            "rtl_traceability:parity_r"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:busy_r",
+            "shared_obligation_context:O_GATING",
+            "shared_obligation_context:O_START"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:acc_r",
+            "property_derivation:def_use:busy_r",
+            "property_derivation:def_use:done_r",
+            "property_derivation:def_use:parity_r"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:acc_r"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:parity_r",
+            "shared_obligation_context:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:acc_r",
+            "def_use:busy_r",
+            "rtl_traceability:next_acc",
+            "rtl_traceability:next_busy"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:busy_r"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:acc_r",
+            "property_derivation:def_use:busy_r",
+            "shared_obligation_context:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:busy_r",
+            "property_derivation:def_use:done_r",
+            "shared_obligation_context:O_DONE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:acc_r",
+            "def_use:busy_r"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:busy_r",
+            "def_use:done_r",
+            "def_use:parity_r",
+            "shared_obligation_context:O_DONE"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S3.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S5.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_GATING"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT",
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_GATING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_GATING"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_GATING",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE",
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_GATING"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FINAL_BIT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESULT_HOLD"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DONE"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 16,
+        "claimed_dependency_count": 23,
+        "items_with_structural_traceability": 13,
+        "structural_traceability_coverage": 0.8125,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "cedae94e-1276-4ba9-b6b5-4aba1489a5e5",
+      "usage": {
+        "prompt_tokens": 1433,
+        "completion_tokens": 13375,
+        "total_tokens": 14808,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11038
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "c41bef56-992e-451f-aff9-4934340cf2f8",
+      "usage": {
+        "prompt_tokens": 3663,
+        "completion_tokens": 10327,
+        "total_tokens": 13990,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8970
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

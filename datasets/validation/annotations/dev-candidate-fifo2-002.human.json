@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S1",
+  "gold_root_error": "S1.3",
+  "gold_error_type_l1": "Specification",
+  "gold_error_type_l2": "Interface Semantics Misread",
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "S1.3 incorrectly states that both in_ready and out_valid are pure functions of current occupancy. While out_valid depends only on whether occupancy is nonzero, the trusted ready/valid semantics require in_ready to also depend on whether a current output transfer can occur. In particular, when occupancy is two, in_ready depends on out_ready. S2.2 later gives the correct formula, but this does not erase the earlier specification-level error. S3.4 also independently overstates backpressure as requiring no state change, but S1.3 is the earliest substantive error. Final RTL passes trusted simulation and bounded formal verification."
+}

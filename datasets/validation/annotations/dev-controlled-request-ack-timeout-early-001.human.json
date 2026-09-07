@@ -1,0 +1,31 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S3",
+  "gold_root_error": "S3.1",
+  "gold_error_type_l1": "Temporal Semantics",
+  "gold_error_type_l2": "Current-vs-Next State Error",
+  "gold_parent_dependency": [
+    {
+      "source": "S1.3",
+      "target": "S3.1"
+    },
+    {
+      "source": "S2.2",
+      "target": "S3.1"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_TIMEOUT_EXACT",
+    "O_ACK_PRIORITY",
+    "O_BUSY_REQUEST_IGNORED"
+  ],
+
+  "notes": "S3.1 incorrectly counts the request-acceptance edge as the first timeout service edge and therefore loads TIMEOUT_CYCLES-1 rather than TIMEOUT_CYCLES. The frozen timing defines the allowed acknowledgement window as edges N+1 through N+TIMEOUT_CYCLES after a request accepted at edge N. The mutated countdown therefore times out one service edge too early. S2.2 had already stated the correct TIMEOUT_CYCLES load, making S3.1 the earliest substantive error. The final RTL reproduces the early-timeout behavior, and trusted simulation fails O_TIMEOUT_EXACT, O_ACK_PRIORITY, and O_BUSY_REQUEST_IGNORED while bounded formal verification also finds a counterexample."
+}

@@ -1,0 +1,31 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S3",
+  "gold_root_error": "S3.4",
+  "gold_error_type_l1": "Transition Logic",
+  "gold_error_type_l2": "Guard Condition Omission",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S3.4"
+    },
+    {
+      "source": "S2.3",
+      "target": "S3.4"
+    },
+    {
+      "source": "S2.4",
+      "target": "S3.4"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "Two independent review passes reached the same substantive error conclusion. In the first review, S3.4 was identified as the earliest incorrect process item because it states that tokens==CAPACITY unconditionally implies consume=1, next_tokens=CAPACITY-1, and grant=1. The frozen full-consume behavior requires req to be high; with tokens==CAPACITY and req==0, consume is zero, the count remains at CAPACITY, and grant is low. This contradicts the correct consume expression already established in S2.2 and the correct next-state equation in S2.4, making the missing req guard the root error. In the second review, the same counterexample was independently reconstructed from the RTL and trusted obligation. A later independent concern also exists in S4.2 because its $past(consume) property conditions only on the current non-reset cycle and does not explicitly protect the history epoch across reset, but this occurs after the S3.4 root. The final RTL itself uses consume = req && tokens>0 and is functionally correct; trusted simulation and bounded formal verification pass all obligations."
+}

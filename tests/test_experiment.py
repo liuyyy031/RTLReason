@@ -53,7 +53,46 @@ class JudgeOnlyClient:
         return Hy3Response(json.dumps(payload), "hy3", {"total_tokens": 1}, "judge-only")
 
 
+class DeepSeekFakeClient(FakeClient):
+    def chat(self, messages, **kwargs):
+        response = super().chat(messages, **kwargs)
+        return Hy3Response(
+            response.content,
+            "deepseek-v4-flash",
+            response.usage,
+            response.request_id,
+        )
+
+
 class ExperimentTests(unittest.TestCase):
+    def test_non_hy3_generation_is_not_mislabeled(self) -> None:
+        directory = PROJECT_ROOT / "tests" / "work" / f"deepseek-{uuid.uuid4().hex}"
+        directory.mkdir(parents=True)
+        try:
+            client = DeepSeekFakeClient()
+            run_experiment(
+                "fifo_sync_v1",
+                project_root=PROJECT_ROOT,
+                run_dir=directory,
+                settings=Settings(api_key="unused", model="deepseek-v4-flash"),
+                formal_required=False,
+                semantic_evaluation=False,
+                client=client,
+            )
+            report = json.loads((directory / "report.json").read_text(encoding="utf-8"))
+            self.assertEqual(client.calls, 1)
+            self.assertEqual(report["semantic_evaluator"]["status"], "not_run")
+            self.assertIsNone(report["attribution"]["process_correct"])
+            candidate = build_adjudication_candidate(
+                case_id="deepseek-output",
+                task_id="fifo_sync_v1",
+                run_dir=directory,
+                project_root=PROJECT_ROOT,
+            )
+            self.assertEqual(candidate["candidate_origin"], "real_model_output")
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
     def test_auditable_run_with_optional_eda_tools(self) -> None:
         directory = PROJECT_ROOT / "tests" / "work" / f"run-{uuid.uuid4().hex}"
         directory.mkdir(parents=True)
@@ -88,6 +127,7 @@ class ExperimentTests(unittest.TestCase):
                 candidate["adjudication"]["status"], "pending_human"
             )
             self.assertFalse(candidate["adjudication"]["gold_fields_present"])
+            self.assertEqual(candidate["candidate_origin"], "real_hy3")
             self.assertNotIn("gold_process_correct", candidate)
 
             artifact_directory = (

@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S3",
+  "gold_root_error": "S3.2",
+  "gold_error_type_l1": "Transition Logic",
+  "gold_error_type_l2": "Incorrect State Update",
+  "gold_parent_dependency": [
+    {
+      "source": "S1.5",
+      "target": "S3.2"
+    },
+    {
+      "source": "S2.2",
+      "target": "S3.2"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "Two independent review passes reached the same substantive error conclusion. The earliest incorrect process item is S3.2, which states that an accepted start leaves parity and done unchanged. The one-cycle done semantics require done to clear on the cycle following an accepted finish, including when that following cycle simultaneously accepts a new start. The RTL correctly defaults done to zero before evaluating the start/finish/bit branches, so a start immediately after a finish clears the previous done pulse rather than preserving it. In the second review, the concrete finish-at-N followed by accepted-start-at-N+1 sequence independently reproduced the contradiction. S3.5 contains a later related overstatement that all other cycles hold registers, because an otherwise ignored cycle may still clear the previous one-cycle done pulse. The final RTL itself correctly implements start, accumulation, final-bit inclusion, result hold, gating, and one-cycle done behavior, and trusted directed simulation and bounded formal verification pass all configured obligations."
+}

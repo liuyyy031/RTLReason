@@ -1,0 +1,1014 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-saturating-001",
+  "split": "development",
+  "task_id": "saturating_counter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/saturating-001",
+  "source_hashes": {
+    "process_sha256": "233bae6dc1838989d49ce313fe20286cd16614ced03ceb262ad3b8ca7c542ee5",
+    "evidence_sha256": "d90304470dea793b4aba8a0a23de7eeb5cbf1a16ec39e9b2c93d4a170c880049",
+    "report_sha256": "7ea3c1d7b9e619bbef330b4df2a563cd203deb137ac6598d298122282e0d95a8"
+  },
+  "candidate_process": {
+    "task_id": "saturating_counter_v1",
+    "architecture_summary": "Single registered count with combinational saturation flags and next-state mux.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Clock is posedge clk; high rst synchronously forces count to zero with highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "When rst low and en high, up=1 increments below max, up=0 decrements above zero, with saturation (no wrap).",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "When en low count holds; at_min and at_max are combinational flags of current count (0 and 2**WIDTH-1).",
+            "maps_to": [
+              "O_HOLD",
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a single WIDTH-bit registered state 'count_reg' holding the count, updated on posedge clk.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "count_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Flags at_min and at_max are pure combinational functions of count_reg, not separately stored.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "count_reg"
+            ],
+            "writes": [
+              "at_min",
+              "at_max"
+            ],
+            "rtl_blocks": [
+              "flag_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Next state is computed by enable/direction with saturation: inc if en&up&!at_max, dec if en&!up&!at_min, else hold.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "count_reg",
+              "en",
+              "up",
+              "at_max",
+              "at_min"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "next_state"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Synchronous reset rule: if rst sampled high at posedge clk, count_reg <= 0 ignoring en/up.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "reset_rule"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Enabled increment rule: if en&up and !at_max then count_reg <= count_reg+1 else hold at max.",
+            "maps_to": [
+              "O_INCREMENT",
+              "O_SATURATE_MAX"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "en",
+              "up",
+              "at_max",
+              "count_reg"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "inc_rule"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Enabled decrement rule: if en&!up and !at_min then count_reg <= count_reg-1 else hold at min.",
+            "maps_to": [
+              "O_DECREMENT",
+              "O_SATURATE_MIN"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "en",
+              "up",
+              "at_min",
+              "count_reg"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "dec_rule"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Hold rule: if en is low, count_reg retains its value regardless of up.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "en"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "hold_rule"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: at_max equals (count_reg == (2**WIDTH-1)).",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.3"
+            ],
+            "reads": [
+              "count_reg",
+              "at_max"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_at_max"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: at_min equals (count_reg == 0).",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.3"
+            ],
+            "reads": [
+              "count_reg",
+              "at_min"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_at_min"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: count never wraps; at_max prevents increment overflow and at_min prevents decrement underflow.",
+            "maps_to": [
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "count_reg",
+              "at_max",
+              "at_min"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_no_wrap"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: after synchronous reset, count_reg==0 and at_min==1.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "count_reg",
+              "at_min"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_reset"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL implements clocked update of count_reg with reset priority and saturation via always_ff.",
+            "maps_to": [
+              "O_RESET",
+              "O_INCREMENT",
+              "O_DECREMENT",
+              "O_SATURATE_MAX",
+              "O_SATURATE_MIN",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "en",
+              "up",
+              "at_max",
+              "at_min",
+              "count_reg"
+            ],
+            "writes": [
+              "count_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_count"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL implements combinational flag outputs at_min and at_max from count_reg via assign.",
+            "maps_to": [
+              "O_FLAGS"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "count_reg"
+            ],
+            "writes": [
+              "at_min",
+              "at_max"
+            ],
+            "rtl_blocks": [
+              "assign_flags"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL connects registered count_reg to output port count.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "count_reg"
+            ],
+            "writes": [
+              "count"
+            ],
+            "rtl_blocks": [
+              "assign_count"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "saturating_counter",
+      "code": "module saturating_counter #(parameter WIDTH = 8) (\n  input  wire clk,\n  input  wire rst,\n  input  wire en,\n  input  wire up,\n  output wire [WIDTH-1:0] count,\n  output wire at_min,\n  output wire at_max\n);\n  logic [WIDTH-1:0] count_reg;\n  assign count = count_reg;\n  assign at_min = (count_reg == '0);\n  assign at_max = (count_reg == (2**WIDTH - 1));\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      count_reg <= '0;\n    end else if (en) begin\n      if (up && !at_max) begin\n        count_reg <= count_reg + 1'b1;\n      end else if (!up && !at_min) begin\n        count_reg <= count_reg - 1'b1;\n      end\n    end\n  end\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Synchronous reset highest priority; at_min/at_max combinational from registered count."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "caeb149b-cc75-40c7-95ec-78c33bf19c25",
+        "usage": {
+          "prompt_tokens": 1306,
+          "completion_tokens": 10970,
+          "total_tokens": 12276,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 8809
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:saturating_counter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_DECREMENT",
+        "O_FLAGS",
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_RESET",
+        "O_SATURATE_MAX",
+        "O_SATURATE_MIN"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:saturating_counter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_DECREMENT",
+        "O_FLAGS",
+        "O_HOLD",
+        "O_INCREMENT",
+        "O_RESET",
+        "O_SATURATE_MAX",
+        "O_SATURATE_MIN"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_DECREMENT",
+          "O_FLAGS",
+          "O_HOLD",
+          "O_INCREMENT",
+          "O_RESET",
+          "O_SATURATE_MAX",
+          "O_SATURATE_MIN"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "658d26e59b3b9221b739f2cdd8cb2d436a041e27dc5e51b6ec2dcd2236f2450f",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:at_max",
+            "def_use:at_min"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:at_max"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:at_min"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:at_max"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:at_min"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:at_max",
+            "def_use:at_min"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:count_reg",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:count_reg",
+            "shared_obligation_context:O_SATURATE_MAX"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:count_reg",
+            "shared_obligation_context:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:count_reg",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:count_reg"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_SATURATE_MAX"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DECREMENT",
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_SATURATE_MAX",
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_DECREMENT",
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_SATURATE_MAX",
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_SATURATE_MAX"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_INCREMENT",
+            "shared_obligation:O_SATURATE_MAX"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_DECREMENT",
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_SATURATE_MAX",
+            "shared_obligation:O_SATURATE_MIN"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 17,
+        "claimed_dependency_count": 25,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.8235294117647058,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "caeb149b-cc75-40c7-95ec-78c33bf19c25",
+      "usage": {
+        "prompt_tokens": 1306,
+        "completion_tokens": 10970,
+        "total_tokens": 12276,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8809
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "0cbf517f-ceb8-46b0-9b2a-205d9a6787ce",
+      "usage": {
+        "prompt_tokens": 3803,
+        "completion_tokens": 7204,
+        "total_tokens": 11007,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5692
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "The process correctly models synchronous reset, enabled increment/decrement behavior, direction-sensitive saturation, idle hold, and combinational boundary flags. The previous Width or Signedness concern about the expression (2**WIDTH - 1) is not supported by a reproducible counterexample in the trusted toolchain; additional validation shows correct maximum-value interpretation across a broad set of legal WIDTH values, and Yosys expands the expression to the expected WIDTH-bit all-ones value. Trusted simulation and bounded formal verification pass all obligations. No substantive RTL or process error is established."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/saturating-001.json",
+    "source_gold_sha256": "00a01eb16726331c5403ef67ee01d9e03eb14dee02456e54f538d54bec3bad9c",
+    "source_report": "runs/evaluator-v1.4/development/saturating-001/report.json",
+    "source_report_sha256": "53f6353c17b2e04334e4ddd467c351a8a1c09694beb23a945b530c8cb2ba2f6a",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "658d26e59b3b9221b739f2cdd8cb2d436a041e27dc5e51b6ec2dcd2236f2450f",
+    "gold_labels_modified": false
+  }
+}

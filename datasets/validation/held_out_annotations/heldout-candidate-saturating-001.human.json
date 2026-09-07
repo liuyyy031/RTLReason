@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, synchronous reset, enabled increment and decrement, direction-sensitive saturation, disabled hold, boundary flags, and final RTL were checked sequentially and found correct. In the second review, the minimum, maximum, opposite-direction boundary cases, and parameterized MAX expression were independently rechecked. At MAX only an enabled upward transition holds, while an enabled downward transition decrements; at zero only an enabled downward transition holds, while an upward transition increments. The flags continuously reflect the registered count. No reproducible legal-parameter counterexample is provided for the MAX expression, and the trusted simulation and bounded formal toolchain passes the delivered implementation, so a speculative width or signedness concern cannot be promoted to a Gold error under the frozen parameterized-RTL rule. No substantive process or RTL error was found."
+}

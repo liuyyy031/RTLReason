@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "held-out-batch-001",
+  "created_at": "2026-09-06",
+  "task_manifest_version": "2026-09-02.2",
+  "evaluator_frozen_version": "1.5",
+  "partition_scope": "sample_level_held_out_seen_tasks",
+  "candidate_model": "hy3",
+  "generation_provider": "Tencent Cloud TokenHub",
+  "generation_policy": {
+    "reuse_frozen_task_assets": true,
+    "reuse_solver_prompt_and_s1_s5_schema": true,
+    "semantic_judge_during_collection": false,
+    "trusted_simulation_required": true,
+    "trusted_formal_required": true,
+    "retain_first_valid_generation": true,
+    "resample_based_on_content_or_evidence": false,
+    "prior_candidate_or_gold_exposure": false,
+    "technical_retry_policy": "Retry only API, transport, truncation, or invalid-artifact failures; preserve every failed-attempt log and never retry because of RTL, process, simulation, or formal quality."
+  },
+  "review_policy": {
+    "blind_packet_required": true,
+    "evaluator_prediction_hidden": true,
+    "promotion_split": "held_out",
+    "required_annotation_status": "adjudicated"
+  },
+  "samples": [
+    {"task_id": "counter_enable_v1", "slug": "counter", "case_id": "heldout-candidate-counter-001", "run_dir": "runs/held-out/counter-001"},
+    {"task_id": "shift_register_v1", "slug": "shift", "case_id": "heldout-candidate-shift-001", "run_dir": "runs/held-out/shift-001"},
+    {"task_id": "rising_edge_detector_v1", "slug": "rising-edge", "case_id": "heldout-candidate-rising-edge-001", "run_dir": "runs/held-out/rising-edge-001"},
+    {"task_id": "saturating_counter_v1", "slug": "saturating", "case_id": "heldout-candidate-saturating-001", "run_dir": "runs/held-out/saturating-001"},
+    {"task_id": "serial_parity_v1", "slug": "serial-parity", "case_id": "heldout-candidate-serial-parity-001", "run_dir": "runs/held-out/serial-parity-001"},
+    {"task_id": "programmable_timer_v1", "slug": "timer", "case_id": "heldout-candidate-timer-001", "run_dir": "runs/held-out/timer-001"},
+    {"task_id": "round_robin_arbiter_v1", "slug": "arbiter", "case_id": "heldout-candidate-arbiter-001", "run_dir": "runs/held-out/arbiter-001"},
+    {"task_id": "ready_valid_slice_v1", "slug": "ready-valid", "case_id": "heldout-candidate-ready-valid-001", "run_dir": "runs/held-out/ready-valid-001"},
+    {"task_id": "sequence_detector_1011_v1", "slug": "sequence", "case_id": "heldout-candidate-sequence-001", "run_dir": "runs/held-out/sequence-001"},
+    {"task_id": "pulse_stretcher_v1", "slug": "pulse", "case_id": "heldout-candidate-pulse-001", "run_dir": "runs/held-out/pulse-001"},
+    {"task_id": "grant_hold_arbiter_v1", "slug": "grant-hold", "case_id": "heldout-candidate-grant-hold-001", "run_dir": "runs/held-out/grant-hold-001"},
+    {"task_id": "debounce_filter_v1", "slug": "debounce", "case_id": "heldout-candidate-debounce-001", "run_dir": "runs/held-out/debounce-001"},
+    {"task_id": "token_bucket_v1", "slug": "token-bucket", "case_id": "heldout-candidate-token-bucket-001", "run_dir": "runs/held-out/token-bucket-001"},
+    {"task_id": "interrupt_pending_v1", "slug": "interrupt", "case_id": "heldout-candidate-interrupt-001", "run_dir": "runs/held-out/interrupt-001"},
+    {"task_id": "stream_width_adapter_v1", "slug": "width-adapter", "case_id": "heldout-candidate-width-adapter-001", "run_dir": "runs/held-out/width-adapter-001"},
+    {"task_id": "fifo_sync_v1", "slug": "fifo", "case_id": "heldout-candidate-fifo-001", "run_dir": "runs/held-out/fifo-001"},
+    {"task_id": "request_ack_timeout_v1", "slug": "request-ack", "case_id": "heldout-candidate-request-ack-001", "run_dir": "runs/held-out/request-ack-001"},
+    {"task_id": "ready_valid_fifo2_v1", "slug": "fifo2", "case_id": "heldout-candidate-fifo2-001", "run_dir": "runs/held-out/fifo2-001"},
+    {"task_id": "dual_port_ram_sync_v1", "slug": "dual-port-ram", "case_id": "heldout-candidate-dual-port-ram-001", "run_dir": "runs/held-out/dual-port-ram-001"},
+    {"task_id": "apb_register_bank_v1", "slug": "apb", "case_id": "heldout-candidate-apb-001", "run_dir": "runs/held-out/apb-001"}
+  ]
+}

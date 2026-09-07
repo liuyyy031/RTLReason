@@ -1,0 +1,6 @@
+{
+  "level": "basic",
+  "concepts": ["framing", "valid gating", "same-edge inclusion", "one-cycle pulse"],
+  "formal_core": true,
+  "expected_process_items": "14-22"
+}

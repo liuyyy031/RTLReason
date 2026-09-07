@@ -1,0 +1,10 @@
+schema_version: "1.0"
+task_id: interrupt_pending_v1
+obligations:
+  - {id: O_RESET, category: reset, statement: A sampled high rst synchronously clears all pending bits.}
+  - {id: O_CAPTURE, category: acceptance, statement: Every sampled unmasked irq bit is set in pending after the edge.}
+  - {id: O_MASK, category: control, statement: Masked new irq samples are ignored while already-pending bits are unaffected by mask changes.}
+  - {id: O_PRIORITY, category: status, statement: valid and index expose the lowest-numbered currently pending source, with index zero when invalid.}
+  - {id: O_ACK, category: transition, statement: ack clears only the lowest-numbered source selected from the current pending state.}
+  - {id: O_SET_DOMINANT, category: boundary, statement: A simultaneous unmasked irq for the acknowledged source keeps that source pending.}
+  - {id: O_ACCUMULATE, category: transition, statement: Unacknowledged pending sources and simultaneous incoming sources are preserved.}

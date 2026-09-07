@@ -1,0 +1,1342 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-apb-002",
+  "split": "development",
+  "task_id": "apb_register_bank_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/apb-002",
+  "source_hashes": {
+    "process_sha256": "5783b996e40fbb42c4a57f1565ecf0cd7f8147e6c240dbad00b132409b2e6359",
+    "evidence_sha256": "8700fcc7e213a198844db3584e8a79573602d1e94c865577ad77e751cebbff17",
+    "report_sha256": "8dabde342218eb860039868aef7db5aa82d122492c9036f74ebbf8b7617b0828"
+  },
+  "candidate_process": {
+    "task_id": "apb_register_bank_v1",
+    "architecture_summary": "Zero-wait APB slave with two 32-bit flops, combinational address decode for read data and error, and a single sequential block for synchronous reset and write update.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module implements APB-like slave with clk, rst, psel, penable, pwrite, paddr[3:0], pwdata[31:0], pready, prdata[31:0], pslverr exactly as frozen interface.",
+            "maps_to": [
+              "O_ACCESS_PHASE",
+              "O_READY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Two 32-bit registers reside at byte addresses 0x0 and 0x4; only these are valid.",
+            "maps_to": [
+              "O_WRITE_DECODE",
+              "O_READBACK"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Transfer occurs only when psel && penable (pready constant 1); setup phase psel && !penable never transfers.",
+            "maps_to": [
+              "O_ACCESS_PHASE",
+              "O_ERROR_GATING"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Invalid access (transfer to other address) asserts pslverr with no state side effect.",
+            "maps_to": [
+              "O_INVALID_ADDRESS",
+              "O_ERROR_GATING"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "State model uses two 32-bit flops reg0 (0x0) and reg1 (0x4) as only state, synchronously reset to zero.",
+            "maps_to": [
+              "O_RESET",
+              "O_WRITE_READ_SEPARATION"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [
+              "reg0",
+              "reg1"
+            ],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational read path selects reg0 or reg1 by paddr and returns zero for invalid addresses.",
+            "maps_to": [
+              "O_READBACK"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S2.1"
+            ],
+            "reads": [
+              "reg0",
+              "reg1"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "COMB_PRDATA"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "pready tied high; pslverr computed combinationally as transfer to invalid address.",
+            "maps_to": [
+              "O_READY",
+              "O_INVALID_ADDRESS",
+              "O_ERROR_GATING"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "COMB_PREADY",
+              "COMB_PSLAVERR"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Write decode selects exactly one register from paddr; no stored address needed due to zero-wait protocol.",
+            "maps_to": [
+              "O_WRITE_DECODE",
+              "O_ACCESS_PHASE"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "reg0",
+              "reg1"
+            ],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk, synchronous high rst clears both registers with highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "reg0",
+              "reg1"
+            ],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Only when psel&&penable&&pwrite and valid address, after edge the addressed register takes pwdata; other register unchanged.",
+            "maps_to": [
+              "O_WRITE_DECODE",
+              "O_WRITE_READ_SEPARATION"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.4"
+            ],
+            "reads": [
+              "pwdata"
+            ],
+            "writes": [
+              "reg0",
+              "reg1"
+            ],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Setup phase, read transfers, and invalid transfers cause no register update.",
+            "maps_to": [
+              "O_ACCESS_PHASE",
+              "O_INVALID_ADDRESS"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Outputs pready, prdata, pslverr are combinational each cycle with no extra sequencing.",
+            "maps_to": [
+              "O_READBACK",
+              "O_ERROR_GATING",
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "reg0",
+              "reg1"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "COMB_PRDATA",
+              "COMB_PSLAVERR",
+              "COMB_PREADY"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: reg0 changes only if paddr==0 and pwrite and valid transfer; similarly reg1 for addr 4.",
+            "maps_to": [
+              "O_WRITE_DECODE",
+              "O_WRITE_READ_SEPARATION"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "reg0",
+              "reg1"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: prdata equals reg0 when paddr==0, reg1 when paddr==4, else zero.",
+            "maps_to": [
+              "O_READBACK"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "reg0",
+              "reg1"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: pslverr == (psel&&penable && paddr not in {0,4}) and low otherwise.",
+            "maps_to": [
+              "O_INVALID_ADDRESS",
+              "O_ERROR_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: pready == 1'b1 at all times; reset yields zero registers.",
+            "maps_to": [
+              "O_READY",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.1"
+            ],
+            "reads": [
+              "reg0",
+              "reg1"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Sequential always_ff implements synchronous reset and decoded write update of reg0/reg1.",
+            "maps_to": [
+              "O_RESET",
+              "O_WRITE_DECODE",
+              "O_ACCESS_PHASE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "psel",
+              "penable",
+              "pwrite",
+              "paddr",
+              "pwdata",
+              "rst"
+            ],
+            "writes": [
+              "reg0",
+              "reg1"
+            ],
+            "rtl_blocks": [
+              "SEQ_REG_UPDATE"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Continuous assign computes prdata from reg0/reg1 with zero on invalid address.",
+            "maps_to": [
+              "O_READBACK"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.4"
+            ],
+            "reads": [
+              "reg0",
+              "reg1",
+              "paddr"
+            ],
+            "writes": [
+              "prdata"
+            ],
+            "rtl_blocks": [
+              "COMB_PRDATA"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Continuous assigns set pready=1 and pslverr=transfer&&!valid_addr.",
+            "maps_to": [
+              "O_READY",
+              "O_INVALID_ADDRESS",
+              "O_ERROR_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.4"
+            ],
+            "reads": [
+              "psel",
+              "penable",
+              "paddr"
+            ],
+            "writes": [
+              "pready",
+              "pslverr"
+            ],
+            "rtl_blocks": [
+              "COMB_PREADY",
+              "COMB_PSLAVERR"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "apb_register_bank",
+      "code": "module apb_register_bank (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic        psel,\n  input  logic        penable,\n  input  logic        pwrite,\n  input  logic [3:0]  paddr,\n  input  logic [31:0] pwdata,\n  output logic        pready,\n  output logic [31:0] prdata,\n  output logic        pslverr\n);\n\n  logic [31:0] reg0;\n  logic [31:0] reg1;\n\n  assign pready = 1'b1;\n\n  logic valid_addr;\n  assign valid_addr = (paddr == 4'h0) || (paddr == 4'h4);\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      reg0 <= 32'h0;\n      reg1 <= 32'h0;\n    end else if (psel && penable && pwrite) begin\n      if (paddr == 4'h0)      reg0 <= pwdata;\n      else if (paddr == 4'h4) reg1 <= pwdata;\n    end\n  end\n\n  assign prdata = (paddr == 4'h0) ? reg0 :\n                  (paddr == 4'h4) ? reg1 : 32'h0;\n\n  assign pslverr = (psel && penable && !valid_addr);\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Zero-wait slave: no wait states, pready constant.",
+        "Invalid address returns zero read data and asserts pslverr only during transfer."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "1001cbec-3f24-4841-8d28-7a895275ab9e",
+        "usage": {
+          "prompt_tokens": 1465,
+          "completion_tokens": 10267,
+          "total_tokens": 11732,
+          "prompt_tokens_details": {
+            "cached_tokens": 1344
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7686
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:apb_register_bank_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:apb_register_bank_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_ACCESS_PHASE",
+          "O_ERROR_GATING",
+          "O_INVALID_ADDRESS",
+          "O_READBACK",
+          "O_READY",
+          "O_RESET",
+          "O_WRITE_DECODE",
+          "O_WRITE_READ_SEPARATION"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.1",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S4.1"
+    },
+    {
+      "source": "S3.2",
+      "target": "S4.1"
+    }
+  ],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "0ac419ad68ec34b4f2dce1682ab77f02ed02ec750fe0c9a8fb014cbf08a91dd6",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:reg0",
+            "def_use:reg1"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "rtl_traceability:SEQ_REG_UPDATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:COMB_PRDATA",
+            "shared_obligation_context:O_READBACK"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:COMB_PREADY",
+            "rtl_traceability:COMB_PSLAVERR",
+            "shared_obligation_context:O_ERROR_GATING",
+            "shared_obligation_context:O_READY"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:SEQ_REG_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:SEQ_REG_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:reg0",
+            "property_derivation:def_use:reg1",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:SEQ_REG_UPDATE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:reg0",
+            "def_use:reg1"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:reg0",
+            "property_derivation:def_use:reg1",
+            "shared_obligation_context:O_WRITE_DECODE",
+            "shared_obligation_context:O_WRITE_READ_SEPARATION"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:reg0",
+            "def_use:reg1"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:SEQ_REG_UPDATE",
+            "shared_obligation_context:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:COMB_PRDATA",
+            "shared_obligation_context:O_READBACK"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:COMB_PREADY",
+            "rtl_traceability:COMB_PSLAVERR",
+            "shared_obligation_context:O_ERROR_GATING",
+            "shared_obligation_context:O_READY"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:reg0",
+            "def_use:reg1"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S1.4"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.4"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S1.3",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S1.4",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_WRITE_READ_SEPARATION"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_READ_SEPARATION"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS",
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE",
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE",
+            "shared_obligation:O_WRITE_READ_SEPARATION"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACCESS_PHASE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_WRITE_DECODE"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_READBACK"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ERROR_GATING",
+            "shared_obligation:O_INVALID_ADDRESS"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 19,
+        "claimed_dependency_count": 27,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7368421052631579,
+        "gaps": {
+          "S4.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "1001cbec-3f24-4841-8d28-7a895275ab9e",
+      "usage": {
+        "prompt_tokens": 1465,
+        "completion_tokens": 10267,
+        "total_tokens": 11732,
+        "prompt_tokens_details": {
+          "cached_tokens": 1344
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7686
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "55359093-f6bc-46fa-ad77-1066676bf5ca",
+      "usage": {
+        "prompt_tokens": 4350,
+        "completion_tokens": 6739,
+        "total_tokens": 11089,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5011
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "S4.1 states that reg0 or reg1 changes only if the corresponding valid write occurs. The phrase \"changes only if\" is an explicit necessary-condition claim and is therefore interpreted literally under guideline v1.1 rather than being automatically restricted to the reset-disabled runtime domain. A synchronous reset can change a nonzero register to zero without any valid write, providing a legal counterexample. The normal write behavior and final RTL are otherwise correct, and trusted simulation and bounded formal verification pass all obligations."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/apb-002.json",
+    "source_gold_sha256": "68cb088a82c502d9b35afe54e34ff16b3f49d12b9f11f360caf3a54ca72aad3b",
+    "source_report": "runs/evaluator-v1.4/development/apb-002/report.json",
+    "source_report_sha256": "c85998e171dbedb3cbb1638693f9a8eb586eea1a2084441dfb7a55db7caaf931",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "0ac419ad68ec34b4f2dce1682ab77f02ed02ec750fe0c9a8fb014cbf08a91dd6",
+    "gold_labels_modified": false
+  }
+}

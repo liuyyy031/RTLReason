@@ -7,8 +7,46 @@ from pathlib import Path
 from typing import Any
 
 
+ANNOTATION_GUIDELINE_VERSION = "1.1"
+
+READJUDICATION_REQUIRED_CASES = frozenset(
+    {
+        "dev-candidate-apb-001",
+        "dev-candidate-apb-002",
+        "dev-candidate-apb-003",
+        "dev-candidate-arbiter-001",
+        "dev-candidate-arbiter-002",
+        "dev-candidate-arbiter-003",
+        "dev-candidate-counter-001",
+        "dev-candidate-debounce-001",
+        "dev-candidate-grant-hold-001",
+        "dev-candidate-grant-hold-002",
+        "dev-candidate-pulse-001",
+        "dev-candidate-pulse-002",
+        "dev-candidate-rising-edge-001",
+        "dev-candidate-rising-edge-002",
+        "dev-candidate-shift-002",
+    }
+)
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _candidate_origin_from_generation(generation: dict[str, Any]) -> str:
+    embedded = generation.get("embedded_generation", {})
+    if not isinstance(embedded, dict):
+        embedded = {}
+    generated_model = str(generation.get("model") or embedded.get("model") or "")
+    declared_origin = str(generation.get("origin") or "")
+    if declared_origin == "controlled_mutation":
+        return "controlled_mutation"
+    if declared_origin == "real_model_output" or (
+        generated_model and generated_model.lower() != "hy3"
+    ):
+        return "real_model_output"
+    return "real_hy3"
 
 
 def build_adjudication_candidate(
@@ -37,16 +75,15 @@ def build_adjudication_candidate(
     except ValueError:
         source_run = run.as_posix()
     prediction = _prediction_from_report(report)
+    generation = report.get("candidate_generation", {})
+    if not isinstance(generation, dict):
+        generation = {}
+    candidate_origin = _candidate_origin_from_generation(generation)
     return {
         "schema_version": "1.0",
         "case_id": case_id,
         "task_id": task_id,
-        "candidate_origin": (
-            "controlled_mutation"
-            if report.get("candidate_generation", {}).get("origin")
-            == "controlled_mutation"
-            else "real_hy3"
-        ),
+        "candidate_origin": candidate_origin,
         "source_run": source_run,
         "source_hashes": {
             "process_sha256": _sha256(process_path),
@@ -64,7 +101,7 @@ def build_adjudication_candidate(
             "status": "pending_human",
             "independent_gold_required": True,
             "gold_fields_present": False,
-            "guideline_version": "1.0",
+            "guideline_version": ANNOTATION_GUIDELINE_VERSION,
         },
     }
 
@@ -115,11 +152,15 @@ def _sensitive_paths(value: object, prefix: str = "$") -> list[str]:
 
 
 def audit_review_pool(
-    candidate_dir: str | Path, review_packet_dir: str | Path
+    candidate_dir: str | Path,
+    review_packet_dir: str | Path,
+    *,
+    project_root: str | Path | None = None,
 ) -> dict[str, object]:
-    """Check candidate/packet parity and reviewer-packet information hygiene."""
+    """Check source/candidate/packet parity and reviewer information hygiene."""
     candidates_root = Path(candidate_dir)
     packets_root = Path(review_packet_dir)
+    source_root = Path(project_root).resolve() if project_root is not None else None
     candidates = {
         path.stem: path for path in sorted(candidates_root.glob("*.json"))
     }
@@ -145,6 +186,18 @@ def audit_review_pool(
                 issues.append({"case_id": case_id, "issue": "case_id_mismatch"})
             if packet.get("task_id") != candidate.get("task_id"):
                 issues.append({"case_id": case_id, "issue": "task_id_mismatch"})
+            expected_packet = build_blinded_review_packet(candidate)
+            for field, expected_value in expected_packet.items():
+                if packet.get(field) != expected_value:
+                    issues.append(
+                        {
+                            "case_id": case_id,
+                            "issue": "stale_review_packet",
+                            "path": f"$.{field}",
+                        }
+                    )
+            if source_root is not None:
+                _audit_candidate_source(case_id, candidate, source_root, issues)
             protocol = packet.get("review_protocol", {})
             if not isinstance(protocol, dict) or protocol.get(
                 "blinded_to_evaluator_prediction"
@@ -176,6 +229,76 @@ def audit_review_pool(
         "paired_count": len(candidates.keys() & packets.keys()),
         "issues": issues,
     }
+
+
+def _audit_candidate_source(
+    case_id: str,
+    candidate: dict[str, Any],
+    project_root: Path,
+    issues: list[dict[str, str]],
+) -> None:
+    source_run = candidate.get("source_run")
+    if not isinstance(source_run, str) or not source_run.strip():
+        issues.append({"case_id": case_id, "issue": "missing_source_run"})
+        return
+    run_dir = (project_root / source_run).resolve()
+    try:
+        run_dir.relative_to(project_root)
+    except ValueError:
+        issues.append({"case_id": case_id, "issue": "source_run_outside_project"})
+        return
+
+    source_hashes = candidate.get("source_hashes", {})
+    if not isinstance(source_hashes, dict):
+        issues.append({"case_id": case_id, "issue": "invalid_source_hashes"})
+        return
+    source_files = {
+        "process": run_dir / "process.json",
+        "evidence": run_dir / "evidence.json",
+        "report": run_dir / "report.json",
+    }
+    loaded: dict[str, Any] = {}
+    for name, path in source_files.items():
+        if not path.is_file():
+            issues.append(
+                {"case_id": case_id, "issue": "missing_source_file", "path": str(path)}
+            )
+            continue
+        expected_hash = source_hashes.get(f"{name}_sha256")
+        if expected_hash != _sha256(path):
+            issues.append(
+                {
+                    "case_id": case_id,
+                    "issue": "source_hash_mismatch",
+                    "path": f"$.source_hashes.{name}_sha256",
+                }
+            )
+        loaded[name] = _read_json(path)
+
+    if loaded.get("process") != candidate.get("candidate_process"):
+        issues.append(
+            {"case_id": case_id, "issue": "candidate_process_source_mismatch"}
+        )
+    if loaded.get("evidence") != candidate.get("trusted_evidence"):
+        issues.append(
+            {"case_id": case_id, "issue": "trusted_evidence_source_mismatch"}
+        )
+    report = loaded.get("report")
+    if not isinstance(report, dict):
+        return
+    generation = report.get("candidate_generation", {})
+    if not isinstance(generation, dict):
+        generation = {}
+    provenance = candidate.get("api_provenance", {})
+    if not isinstance(provenance, dict) or provenance.get(
+        "candidate_generation"
+    ) != generation:
+        issues.append(
+            {"case_id": case_id, "issue": "generation_provenance_source_mismatch"}
+        )
+    expected_origin = _candidate_origin_from_generation(generation)
+    if candidate.get("candidate_origin") != expected_origin:
+        issues.append({"case_id": case_id, "issue": "candidate_origin_mismatch"})
 
 
 def _nonempty_string(value: object, field: str) -> str:
@@ -268,7 +391,7 @@ def build_blinded_review_packet(
             "use_trusted_task_assets": True,
             "annotation_schema": "human_annotation.schema.json",
             "guideline_version": candidate["adjudication"].get(
-                "guideline_version", "1.0"
+                "guideline_version", ANNOTATION_GUIDELINE_VERSION
             ),
         },
     }
@@ -404,6 +527,14 @@ def promote_adjudicated_case(
     guideline_version = _nonempty_string(
         annotation.get("guideline_version"), "annotation.guideline_version"
     )
+    if (
+        candidate.get("case_id") in READJUDICATION_REQUIRED_CASES
+        and guideline_version != ANNOTATION_GUIDELINE_VERSION
+    ):
+        raise ValueError(
+            f"{candidate.get('case_id')} requires annotation guideline "
+            f"{ANNOTATION_GUIDELINE_VERSION} re-adjudication"
+        )
     gold_rtl_correct = _boolean(
         annotation.get("gold_rtl_correct"), "annotation.gold_rtl_correct"
     )

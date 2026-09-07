@@ -1,0 +1,224 @@
+{
+  "task_id": "apb_register_bank_v1",
+  "architecture_summary": "Two 32-bit registers at addresses 0x0 and 0x4 with combinational address decoding for prdata and pslverr, synchronous high reset, and write-only on access-phase transfer.",
+  "stages": [
+    {
+      "id": "S1",
+      "title": "Specification Understanding",
+      "items": [
+        {
+          "id": "S1.1",
+          "claim": "The module has two 32-bit registers at byte addresses 0x0 and 0x4, reset to 0 on synchronous high reset.",
+          "maps_to": ["O_RESET"],
+          "claimed_dependencies": [],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.2",
+          "claim": "Writes only occur when psel and penable are high (access phase) and pwrite is high and address is valid.",
+          "maps_to": ["O_ACCESS_PHASE", "O_WRITE_DECODE"],
+          "claimed_dependencies": ["S1.1"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.3",
+          "claim": "prdata is combinational: it outputs the value of the addressed register if address is valid, else 0. Reads have no side effect.",
+          "maps_to": ["O_READBACK"],
+          "claimed_dependencies": ["S1.1"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.4",
+          "claim": "pslverr is high only during an access-phase transfer (psel && penable) to an invalid address; otherwise low.",
+          "maps_to": ["O_INVALID_ADDRESS", "O_ERROR_GATING"],
+          "claimed_dependencies": ["S1.2"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S1.5",
+          "claim": "pready is constantly high, so every access-phase transfer completes in one cycle.",
+          "maps_to": ["O_READY"],
+          "claimed_dependencies": [],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Architecture / State Modeling",
+      "items": [
+        {
+          "id": "S2.1",
+          "claim": "Architecture: Two 32-bit registers (reg0, reg1) with combinational address decoder for prdata and pslverr, and sequential write logic under clock and reset.",
+          "maps_to": ["O_WRITE_DECODE", "O_READBACK"],
+          "claimed_dependencies": ["S1.1", "S1.2", "S1.3", "S1.4", "S1.5"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S2.2",
+          "claim": "Registers are represented as logic [31:0] reg0, reg1; reset to 0, updated on posedge clk when appropriate.",
+          "maps_to": ["O_RESET"],
+          "claimed_dependencies": ["S2.1"],
+          "reads": ["reg0", "reg1"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["sequential_register_bank"]
+        },
+        {
+          "id": "S2.3",
+          "claim": "Combinational decoder: valid_addr = (paddr == 4'b0000 || paddr == 4'b0100); prdata = (paddr == 4'b0000) ? reg0 : ((paddr == 4'b0100) ? reg1 : 32'd0); pslverr = (psel && penable && !valid_addr);",
+          "maps_to": ["O_READBACK", "O_INVALID_ADDRESS", "O_ERROR_GATING"],
+          "claimed_dependencies": ["S2.1", "S2.2"],
+          "reads": ["reg0", "reg1", "psel", "penable", "paddr"],
+          "writes": [],
+          "rtl_blocks": ["combinational_decode"]
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Transition & Temporal Rules",
+      "items": [
+        {
+          "id": "S3.1",
+          "claim": "On posedge clk, if rst is high, both registers set to 0 synchronously.",
+          "maps_to": ["O_RESET"],
+          "claimed_dependencies": ["S2.2"],
+          "reads": ["rst"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["sequential_register_bank"]
+        },
+        {
+          "id": "S3.2",
+          "claim": "On posedge clk, if not rst and a valid write transfer (psel && penable && pwrite && valid_addr), update the addressed register with pwdata.",
+          "maps_to": ["O_ACCESS_PHASE", "O_WRITE_DECODE", "O_WRITE_READ_SEPARATION"],
+          "claimed_dependencies": ["S2.2", "S3.1"],
+          "reads": ["psel", "penable", "pwrite", "paddr", "pwdata"],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["sequential_register_bank"]
+        },
+        {
+          "id": "S3.3",
+          "claim": "All other cycles (setup, invalid, read) cause no register state change.",
+          "maps_to": ["O_ACCESS_PHASE", "O_READBACK", "O_INVALID_ADDRESS"],
+          "claimed_dependencies": ["S3.2"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Candidate Properties",
+      "items": [
+        {
+          "id": "S4.1",
+          "claim": "After reset, reg0 == 0 and reg1 == 0.",
+          "maps_to": ["O_RESET"],
+          "claimed_dependencies": ["S3.1"],
+          "reads": ["reg0", "reg1"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.2",
+          "claim": "If a valid write occurs to address 0x0, then after the next clock edge reg0 == pwdata, and reg1 unchanged.",
+          "maps_to": ["O_WRITE_DECODE", "O_WRITE_READ_SEPARATION"],
+          "claimed_dependencies": ["S3.2"],
+          "reads": ["reg0", "reg1", "pwdata"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.3",
+          "claim": "If a valid write occurs to address 0x4, then after the next clock edge reg1 == pwdata, and reg0 unchanged.",
+          "maps_to": ["O_WRITE_DECODE", "O_WRITE_READ_SEPARATION"],
+          "claimed_dependencies": ["S3.2"],
+          "reads": ["reg0", "reg1", "pwdata"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.4",
+          "claim": "If paddr is 0x0, prdata == reg0; if paddr is 0x4, prdata == reg1; else prdata == 0.",
+          "maps_to": ["O_READBACK"],
+          "claimed_dependencies": ["S2.3"],
+          "reads": ["reg0", "reg1", "paddr"],
+          "writes": [],
+          "rtl_blocks": []
+        },
+        {
+          "id": "S4.5",
+          "claim": "pslverr is high only when psel && penable && paddr not 0x0 and not 0x4.",
+          "maps_to": ["O_INVALID_ADDRESS", "O_ERROR_GATING"],
+          "claimed_dependencies": ["S2.3"],
+          "reads": ["psel", "penable", "paddr"],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "RTL Implementation",
+      "items": [
+        {
+          "id": "S5.1",
+          "claim": "Module apb_register_bank with port list: clk, rst, psel, penable, pwrite, paddr, pwdata, pready, prdata, pslverr.",
+          "maps_to": ["O_READY", "O_READBACK", "O_INVALID_ADDRESS"],
+          "claimed_dependencies": ["S1.5", "S2.3"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": ["module_declaration"]
+        },
+        {
+          "id": "S5.2",
+          "claim": "Sequential always block for registers: reset logic and write logic with localparam for valid address detection.",
+          "maps_to": ["O_RESET", "O_WRITE_DECODE"],
+          "claimed_dependencies": ["S3.1", "S3.2"],
+          "reads": [],
+          "writes": ["reg0", "reg1"],
+          "rtl_blocks": ["sequential_register_bank"]
+        },
+        {
+          "id": "S5.3",
+          "claim": "Combinational always block for prdata and pslverr (or assign statements).",
+          "maps_to": ["O_READBACK", "O_INVALID_ADDRESS", "O_ERROR_GATING"],
+          "claimed_dependencies": ["S2.3"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": ["combinational_decode"]
+        },
+        {
+          "id": "S5.4",
+          "claim": "pready assigned to constant 1'b1.",
+          "maps_to": ["O_READY"],
+          "claimed_dependencies": ["S1.5"],
+          "reads": [],
+          "writes": [],
+          "rtl_blocks": []
+        }
+      ]
+    }
+  ],
+  "rtl": {
+    "language": "systemverilog",
+    "module_name": "apb_register_bank",
+    "code": "module apb_register_bank (\n    input  logic        clk,\n    input  logic        rst,\n    input  logic        psel,\n    input  logic        penable,\n    input  logic        pwrite,\n    input  logic [3:0]  paddr,\n    input  logic [31:0] pwdata,\n    output logic        pready,\n    output logic [31:0] prdata,\n    output logic        pslverr\n);\n\n    // Registers\n    logic [31:0] reg0, reg1;\n\n    // Address valid check\n    wire valid_addr = (paddr == 4'h0) || (paddr == 4'h4);\n\n    // pready: constant high\n    assign pready = 1'b1;\n\n    // prdata: combinational read\n    always_comb begin\n        case (paddr)\n            4'h0: prdata = reg0;\n            4'h4: prdata = reg1;\n            default: prdata = 32'd0;\n        endcase\n    end\n\n    // pslverr: asserted only during access-phase transfer to invalid address\n    assign pslverr = psel & penable & ~valid_addr;\n\n    // Sequential logic: reset and write\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            reg0 <= 32'd0;\n            reg1 <= 32'd0;\n        end else begin\n            // Write only during access phase with valid address and pwrite\n            if (psel & penable & pwrite & valid_addr) begin\n                if (paddr == 4'h0)\n                    reg0 <= pwdata;\n                else // paddr == 4'h4\n                    reg1 <= pwdata;\n            end\n        end\n    end\n\nendmodule"
+  },
+  "metadata": {
+    "notes": []
+  }
+}

@@ -1,0 +1,509 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-token-bucket-001",
+  "task_id": "token_bucket_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/token-bucket-001",
+  "source_hashes": {
+    "process_sha256": "b89e16fffad62db3585cb6aa1efd8073eec83a9770e652b052bc6a2bff237dcf",
+    "evidence_sha256": "cd75df94983d905f832ab6ec11f811de5d3165152309c8e0a12dd84ef9e5c41c",
+    "report_sha256": "86cda62475ff5149961cda016ff138a8851f6b25be8a4ff558b8da8ce7dce196"
+  },
+  "candidate_process": {
+    "task_id": "token_bucket_v1",
+    "architecture_summary": "Single saturating up/down counter with registered grant; combinational consume and replenish signals derived from pre-edge tokens drive next-state and grant register.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high reset clears tokens and grant to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Each non-reset rising edge adds at most one token if below CAPACITY and removes one if req and count>0.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Grant pulses only when req and pre-edge count>0; empty request rejected even though same edge replenishes.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Token count is registered, width $clog2(CAPACITY+1), and stays within 0..CAPACITY.",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses registers tokens (TOKEN_WIDTH) and grant (1) as primary state.",
+            "maps_to": [
+              "O_RESET",
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "token_reg",
+              "grant_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational consume = req && (tokens > 0) captures pre-edge acceptance without lookahead.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "req",
+              "tokens"
+            ],
+            "writes": [
+              "consume"
+            ],
+            "rtl_blocks": [
+              "consume_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational replenish = (tokens < CAPACITY) indicates auto-add eligibility.",
+            "maps_to": [
+              "O_REPLENISH"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "tokens"
+            ],
+            "writes": [
+              "replenish"
+            ],
+            "rtl_blocks": [
+              "replenish_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Next-state next_tokens = tokens + replenish - consume; net zero at middle, decrement at full, increment at empty.",
+            "maps_to": [
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_CONSUME",
+              "O_REPLENISH"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "tokens",
+              "replenish",
+              "consume"
+            ],
+            "writes": [
+              "next_tokens"
+            ],
+            "rtl_blocks": [
+              "next_token_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk, synchronous rst has highest priority and forces tokens<=0, grant<=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "reset_sync"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "When rst low, tokens <= next_tokens and grant <= consume, so grant reflects pre-edge acceptance.",
+            "maps_to": [
+              "O_GRANT_PULSE",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.4"
+            ],
+            "reads": [
+              "next_tokens",
+              "consume",
+              "rst"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "edge_update"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Empty case: tokens=0 => consume=0, replenish=1 => next_tokens=1, grant=0 (no lookahead).",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "empty_case"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Full case: tokens=CAPACITY => replenish=0, consume=1 => next_tokens=CAPACITY-1, grant=1.",
+            "maps_to": [
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "full_case"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: always tokens >= 0 && tokens <= CAPACITY (range safety).",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "tokens"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_range"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: grant == $past(consume) when not reset (pulse from pre-edge).",
+            "maps_to": [
+              "O_GRANT_PULSE",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "grant",
+              "consume"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_grant"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: if past tokens==0 && req, then next tokens==1 && grant==0.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_empty"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: if 0<past tokens<CAPACITY && req, tokens holds and grant==1.",
+            "maps_to": [
+              "O_MIDDLE_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "prop_middle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declaration with CAPACITY and derived TOKEN_WIDTH parameters and ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Combinational block computes consume, replenish, next_tokens as modeled.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "CAPACITY"
+            ],
+            "writes": [
+              "consume",
+              "replenish",
+              "next_tokens"
+            ],
+            "rtl_blocks": [
+              "comb_calc"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Sequential always_ff with sync reset assigns tokens<=next_tokens and grant<=consume.",
+            "maps_to": [
+              "O_RESET",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "next_tokens",
+              "consume"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "token_bucket",
+      "code": "module token_bucket #(\n    parameter int CAPACITY = 3,\n    parameter int TOKEN_WIDTH = $clog2(CAPACITY+1)\n)(\n    input  logic clk,\n    input  logic rst,\n    input  logic req,\n    output logic grant,\n    output logic [TOKEN_WIDTH-1:0] tokens\n);\n\n    logic consume;\n    logic replenish;\n    logic [TOKEN_WIDTH-1:0] next_tokens;\n\n    always_comb begin\n        consume    = req && (tokens > 0);\n        replenish  = (tokens < CAPACITY);\n        next_tokens = tokens + replenish - consume;\n    end\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            tokens <= '0;\n            grant  <= 1'b0;\n        end else begin\n            tokens <= next_tokens;\n            grant  <= consume;\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "6f5d259d-6e7c-4643-9be5-628181a4a4d6",
+        "usage": {
+          "prompt_tokens": 1487,
+          "completion_tokens": 10020,
+          "total_tokens": 11507,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7626
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:token_bucket_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:token_bucket_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_CURRENT_ACCEPT",
+          "O_EMPTY_NO_LOOKAHEAD",
+          "O_FULL_CONSUME",
+          "O_GRANT_PULSE",
+          "O_MIDDLE_SIMULTANEOUS",
+          "O_RANGE",
+          "O_REPLENISH",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}

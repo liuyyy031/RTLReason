@@ -1,0 +1,563 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-dual-port-ram-001",
+  "task_id": "dual_port_ram_sync_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/dual-port-ram-001",
+  "source_hashes": {
+    "process_sha256": "7d4df975e90afd299314df0dc0503880e9b6d623b7fd9aee602148a16bc0e76c",
+    "evidence_sha256": "be6e6eeb02fbe4cfba6544141b1dead783cc232bd9232efa79f1a875ad4e8446",
+    "report_sha256": "2d697934afe402aa14d5f47c35b83fb63255fe8fe0e5af330ab933c548ec5501"
+  },
+  "candidate_process": {
+    "task_id": "dual_port_ram_sync_v1",
+    "architecture_summary": "Reg-array memory with single always_ff; synchronous reset clears all words and read register; non-blocking assignments deliver read-first semantics.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module has synchronous active-high reset that clears rd_data and all memory words and blocks ops.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Write port updates only addressed word when wr_en and not rst.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Read port registers pre-edge memory value with one-cycle latency and holds when disabled.",
+            "maps_to": [
+              "O_READ",
+              "O_READ_LATENCY",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Same-edge read/write to same address yields old value on read and stores new value; different addresses both complete.",
+            "maps_to": [
+              "O_READ_FIRST",
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a reg array 'mem' of depth DEPTH and width DATA_WIDTH as storage.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "mem_array"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Architecture uses a registered output 'rd_data_reg' driven only by sequential logic, with no combinational path from rd_addr.",
+            "maps_to": [
+              "O_READ_LATENCY"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "rd_data_reg"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Single always_ff at posedge clk implements synchronous reset, write, and read-first read via non-blocking assignments.",
+            "maps_to": [
+              "O_RESET",
+              "O_WRITE",
+              "O_READ",
+              "O_READ_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S1.4"
+            ],
+            "reads": [
+              "mem",
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rd_en",
+              "rd_addr",
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "main_always_ff"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Reset clears all mem words and rd_data_reg using a loop and constant zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk with rst=1, mem and rd_data_reg are set to zero; wr_en/rd_en ignored.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "On posedge clk with rst=0 and wr_en=1, mem[wr_addr] gets wr_data after edge.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rst"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "write_branch"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "On posedge clk with rst=0 and rd_en=1, rd_data_reg gets mem[rd_addr] value from before edge.",
+            "maps_to": [
+              "O_READ",
+              "O_READ_LATENCY"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rd_en",
+              "rd_addr",
+              "mem",
+              "rst"
+            ],
+            "writes": [
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "read_branch"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "When rd_en=0 and rst=0, rd_data_reg keeps previous value (no assignment).",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rd_en",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "hold_branch"
+            ]
+          },
+          {
+            "id": "S3.5",
+            "stage": "S3",
+            "claim": "If wr_en=1 and rd_en=1 same edge, writes and read use pre-edge mem; same addr read gets old value, different addr both complete.",
+            "maps_to": [
+              "O_READ_FIRST",
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "mem",
+              "wr_addr",
+              "rd_addr",
+              "wr_en",
+              "rd_en",
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "concurrent_branch"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: reset always drives rd_data to 0 and mem to 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "rd_data_reg",
+              "mem"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: after write, mem[wr_addr]==wr_data and other words unchanged.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "mem",
+              "wr_addr",
+              "wr_data"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: after accepted read, rd_data==mem[rd_addr] pre-edge.",
+            "maps_to": [
+              "O_READ"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "rd_data_reg",
+              "mem",
+              "rd_addr"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: same-edge collision yields rd_data old and mem new.",
+            "maps_to": [
+              "O_READ_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.5"
+            ],
+            "reads": [
+              "rd_data_reg",
+              "mem",
+              "wr_addr",
+              "rd_addr"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement memory array and rd_data_reg declarations.",
+            "maps_to": [
+              "O_WRITE",
+              "O_READ_LATENCY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "mem_array",
+              "rd_data_reg"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement sequential always_ff with synchronous reset clearing all state.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S2.4"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "main_always_ff",
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement write and read-first read via non-blocking assignments in else branch.",
+            "maps_to": [
+              "O_WRITE",
+              "O_READ",
+              "O_READ_FIRST",
+              "O_HOLD",
+              "O_INDEPENDENT_PORTS"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S3.5"
+            ],
+            "reads": [
+              "wr_en",
+              "wr_addr",
+              "wr_data",
+              "rd_en",
+              "rd_addr",
+              "mem"
+            ],
+            "writes": [
+              "mem",
+              "rd_data_reg"
+            ],
+            "rtl_blocks": [
+              "write_branch",
+              "read_branch",
+              "hold_branch",
+              "concurrent_branch"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Assign output rd_data = rd_data_reg (combinational alias only).",
+            "maps_to": [
+              "O_READ_LATENCY"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rd_data_reg"
+            ],
+            "writes": [
+              "rd_data"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "dual_port_ram_sync",
+      "code": "module dual_port_ram_sync #(parameter DATA_WIDTH=8, ADDR_WIDTH=2) (\n  input logic clk,\n  input logic rst,\n  input logic wr_en,\n  input logic [ADDR_WIDTH-1:0] wr_addr,\n  input logic [DATA_WIDTH-1:0] wr_data,\n  input logic rd_en,\n  input logic [ADDR_WIDTH-1:0] rd_addr,\n  output logic [DATA_WIDTH-1:0] rd_data\n);\n  localparam DEPTH = 2**ADDR_WIDTH;\n  logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];\n  logic [DATA_WIDTH-1:0] rd_data_reg;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      rd_data_reg <= '0;\n      for (int i=0; i<DEPTH; i++) mem[i] <= '0;\n    end else begin\n      if (wr_en) mem[wr_addr] <= wr_data;\n      if (rd_en) rd_data_reg <= mem[rd_addr];\n    end\n  end\n\n  assign rd_data = rd_data_reg;\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Read-first achieved via non-blocking RHS evaluation in same edge."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "e3d0359b-2ae0-4285-9fd8-f05301d1614b",
+        "usage": {
+          "prompt_tokens": 1559,
+          "completion_tokens": 7470,
+          "total_tokens": 9029,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 4832
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:dual_port_ram_sync_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INDEPENDENT_PORTS",
+        "O_READ",
+        "O_READ_FIRST",
+        "O_READ_LATENCY",
+        "O_RESET",
+        "O_WRITE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:dual_port_ram_sync_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_HOLD",
+        "O_INDEPENDENT_PORTS",
+        "O_READ",
+        "O_READ_FIRST",
+        "O_READ_LATENCY",
+        "O_RESET",
+        "O_WRITE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 18).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 18,
+        "configured_obligations": [
+          "O_HOLD",
+          "O_INDEPENDENT_PORTS",
+          "O_READ",
+          "O_READ_FIRST",
+          "O_READ_LATENCY",
+          "O_RESET",
+          "O_WRITE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}

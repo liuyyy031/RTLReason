@@ -1,0 +1,31 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S3",
+  "gold_root_error": "S3.2",
+  "gold_error_type_l1": "Transition Logic",
+  "gold_error_type_l2": "Guard Condition Omission",
+  "gold_parent_dependency": [
+    {
+      "source": "S1.2",
+      "target": "S3.2"
+    },
+    {
+      "source": "S2.4",
+      "target": "S3.2"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_FULL_REPLACE",
+    "O_ORDERING",
+    "O_READY_VALID"
+  ],
+
+  "notes": "S3.2 incorrectly removes the full-queue output-transfer term from the input-ready condition. The trusted semantics require in_ready to be high when occupancy is below two or when a current output transfer will occur, so a full queue with out_ready high can consume the old head and accept a replacement input on the same edge. S1.2 and S2.4 had already represented this behavior correctly. S3.4 later restates full replacement, but it does not erase the earlier transition-level error. The final RTL implements in_ready as count < 2, reproducing the error, and trusted simulation fails O_FULL_REPLACE, O_ORDERING, and O_READY_VALID while bounded formal verification also finds a counterexample."
+}

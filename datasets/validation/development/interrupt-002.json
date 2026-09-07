@@ -1,0 +1,1326 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-interrupt-002",
+  "split": "development",
+  "task_id": "interrupt_pending_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/calibration/interrupt-002",
+  "source_hashes": {
+    "process_sha256": "e6417630ebb7bc85eb512fc15812fae729adea997ec5f682c9800d358213dd5f",
+    "evidence_sha256": "03491b5656fcecb18ab530773c5dd53edbfaab1c7def93015e84dfe3d0e7a1b6",
+    "report_sha256": "6eed6a0f6a6b82f878065eb4273852c17d7827aba06772d56e0203e6cd079fdc"
+  },
+  "candidate_process": {
+    "task_id": "interrupt_pending_v1",
+    "architecture_summary": "Four-bit pending register with combinational priority encoder and acknowledge logic. Set-dominant capture via next-pending equation: (pending & ~ack_onehot) | (irq & ~mask).",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "A synchronous high reset clears all four pending bits to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Every unmasked irq bit (irq & ~mask) is ORed into the pending register on the active clock edge, regardless of ack.",
+            "maps_to": [
+              "O_CAPTURE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Mask bits only affect capture of new irq samples; existing pending bits are never cleared by mask changes.",
+            "maps_to": [
+              "O_MASK"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "The valid output is the OR of all pending bits; index is the lowest-numbered set bit (or zero if none).",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "State is held in a four-bit register named pending (p).",
+            "maps_to": [
+              "O_RESET",
+              "O_CAPTURE",
+              "O_ACK"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "pending"
+            ],
+            "rtl_blocks": [
+              "pending_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational logic produces valid and index from pending using a priority encoder (lowest set bit).",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.4"
+            ],
+            "reads": [
+              "pending"
+            ],
+            "writes": [
+              "valid",
+              "index"
+            ],
+            "rtl_blocks": [
+              "priority_encoder",
+              "valid_comb"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational logic generates a one-hot acknowledge mask (ack_onehot) based on ack, valid, and index.",
+            "maps_to": [
+              "O_ACK"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "ack",
+              "valid",
+              "index"
+            ],
+            "writes": [
+              "ack_onehot"
+            ],
+            "rtl_blocks": [
+              "ack_onehot_comb"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Next pending value is computed as (pending & ~ack_onehot) | (irq & ~mask). This implements set-dominant and accumulation.",
+            "maps_to": [
+              "O_SET_DOMINANT",
+              "O_ACCUMULATE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3",
+              "S1.2"
+            ],
+            "reads": [
+              "pending",
+              "ack_onehot",
+              "irq",
+              "mask"
+            ],
+            "writes": [
+              "next_pending"
+            ],
+            "rtl_blocks": [
+              "next_pending_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On every positive clock edge, if rst is high, pending is set to zero; otherwise pending updates to next_pending.",
+            "maps_to": [
+              "O_RESET",
+              "O_CAPTURE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.4"
+            ],
+            "reads": [
+              "rst",
+              "clk",
+              "next_pending"
+            ],
+            "writes": [
+              "pending"
+            ],
+            "rtl_blocks": [
+              "pending_reg"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Acknowledge uses the current pending state (before update) to clear the lowest source; simultaneous unmasked irq for that source keeps it set.",
+            "maps_to": [
+              "O_ACK",
+              "O_SET_DOMINANT"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "pending",
+              "ack",
+              "irq",
+              "mask"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "ack_onehot_comb",
+              "next_pending_comb"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Mask changes only affect the capture term (irq & ~mask); they never zero bits already pending.",
+            "maps_to": [
+              "O_MASK"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S1.3"
+            ],
+            "reads": [
+              "mask",
+              "irq"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "next_pending_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "After reset, pending == 0, valid == 0, index == 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S2.2"
+            ],
+            "reads": [
+              "pending"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "pending_reg",
+              "priority_encoder",
+              "valid_comb"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "If ack is asserted and valid is true, the lowest pending bit is cleared unless a new unmasked irq for that bit is also asserted.",
+            "maps_to": [
+              "O_ACK",
+              "O_SET_DOMINANT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.2"
+            ],
+            "reads": [
+              "pending",
+              "ack",
+              "irq",
+              "mask"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "next_pending_comb",
+              "ack_onehot_comb"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Unmasked irq bits always get set in pending regardless of ack or existing state.",
+            "maps_to": [
+              "O_CAPTURE"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "irq",
+              "mask",
+              "pending"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "next_pending_comb"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Mask changes do not affect already-pending bits; valid/index reflect only pending bits.",
+            "maps_to": [
+              "O_MASK",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S2.2"
+            ],
+            "reads": [
+              "pending",
+              "mask"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "priority_encoder",
+              "valid_comb",
+              "next_pending_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module instantiation with ports: clk, rst, irq, mask, ack, pending, valid, index.",
+            "maps_to": [
+              "O_RESET",
+              "O_CAPTURE",
+              "O_ACK",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "interrupt_pending_module"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Sequential logic: always_ff @(posedge clk) with synchronous reset; pending <= rst ? 0 : next_pending.",
+            "maps_to": [
+              "O_RESET",
+              "O_CAPTURE"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "clk",
+              "next_pending"
+            ],
+            "writes": [
+              "pending"
+            ],
+            "rtl_blocks": [
+              "pending_reg"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Combinational logic: valid = |pending; index = priority encoder (lowest set bit); ack_onehot = one-hot of index if ack & valid; next_pending = (pending & ~ack_onehot) | (irq & ~mask).",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_ACK",
+              "O_SET_DOMINANT",
+              "O_ACCUMULATE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "pending",
+              "ack",
+              "irq",
+              "mask",
+              "valid",
+              "index"
+            ],
+            "writes": [
+              "valid",
+              "index",
+              "ack_onehot",
+              "next_pending"
+            ],
+            "rtl_blocks": [
+              "priority_encoder",
+              "valid_comb",
+              "ack_onehot_comb",
+              "next_pending_comb"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "interrupt_pending",
+      "code": "module interrupt_pending (\n  input clk,\n  input rst,\n  input [3:0] irq,\n  input [3:0] mask,\n  input ack,\n  output logic [3:0] pending,\n  output logic valid,\n  output logic [1:0] index\n);\n\n  logic [3:0] next_pending;\n  logic [3:0] ack_onehot;\n  logic [3:0] unmasked_irq;\n\n  assign unmasked_irq = irq & ~mask;\n\n  // priority encoder: lowest set bit\n  always_comb begin\n    valid = |pending;\n    index = 2'b00;\n    if (valid) begin\n      if (pending[0]) index = 2'b00;\n      else if (pending[1]) index = 2'b01;\n      else if (pending[2]) index = 2'b10;\n      else if (pending[3]) index = 2'b11;\n    end\n  end\n\n  // ack one-hot based on current pending\n  always_comb begin\n    ack_onehot = 4'b0;\n    if (ack && valid) begin\n      case (index)\n        2'b00: ack_onehot = 4'b0001;\n        2'b01: ack_onehot = 4'b0010;\n        2'b10: ack_onehot = 4'b0100;\n        2'b11: ack_onehot = 4'b1000;\n      endcase\n    end\n  end\n\n  // next pending\n  assign next_pending = (pending & ~ack_onehot) | unmasked_irq;\n\n  // sequential logic\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      pending <= 4'b0;\n    end else begin\n      pending <= next_pending;\n    end\n  end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "The architecture uses a single pending register and combinational logic for outputs and next state.",
+        "Set-dominant behavior is achieved by ORing the unmasked irq after the clear term.",
+        "All outputs are combinational from the pending register as per interface semantics."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "deepseek-v4-flash",
+        "request_id": "21ed86a5-451b-4614-95ec-d1dd08e861d0",
+        "usage": {
+          "prompt_tokens": 1332,
+          "completion_tokens": 4206,
+          "total_tokens": 5538,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 1481
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:interrupt_pending_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_ACK",
+        "O_CAPTURE",
+        "O_MASK",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SET_DOMINANT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:interrupt_pending_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCUMULATE",
+        "O_ACK",
+        "O_CAPTURE",
+        "O_MASK",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_SET_DOMINANT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_ACCUMULATE",
+          "O_ACK",
+          "O_CAPTURE",
+          "O_MASK",
+          "O_PRIORITY",
+          "O_RESET",
+          "O_SET_DOMINANT"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.3",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S4.3"
+    },
+    {
+      "source": "S2.4",
+      "target": "S4.3"
+    }
+  ],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": false,
+  "predicted_first_error_stage": "S4",
+  "predicted_root_error": "S4.3",
+  "predicted_error_type_l1": "Specification",
+  "predicted_error_type_l2": "Boundary Case Misread",
+  "predicted_parent_dependency": [
+    {
+      "source": "S2.4",
+      "target": "S4.3"
+    }
+  ],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.3"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.3",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.3",
+        "status": "incorrect",
+        "error_type_l1": "Specification",
+        "error_type_l2": "Boundary Case Misread",
+        "explanation": "The claim states unmasked irq bits 'always get set in pending', but during reset they are overwritten to zero. The property is unqualified and fails on reset cycles. A correct property must exclude reset or specify 'when not in reset'.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "bb280c8bd06c51e4a2eb0b06acb5374acc9e2afc451564f2dbabbb3a76e0dd4d",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:pending"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:pending"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:pending_reg",
+            "shared_obligation_context:O_CAPTURE",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:index",
+            "def_use:valid"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:rtl_traceability:priority_encoder",
+            "property_derivation:rtl_traceability:valid_comb"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:rtl_traceability:priority_encoder",
+            "property_derivation:rtl_traceability:valid_comb",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:index",
+            "def_use:valid",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:ack_onehot"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:ack_onehot_comb",
+            "shared_obligation_context:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:next_pending"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:next_pending_comb",
+            "shared_obligation_context:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:rtl_traceability:next_pending_comb"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:next_pending"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:pending"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:pending",
+            "property_derivation:rtl_traceability:pending_reg",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:next_pending_comb"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:rtl_traceability:ack_onehot_comb",
+            "property_derivation:rtl_traceability:next_pending_comb",
+            "shared_obligation_context:O_ACK",
+            "shared_obligation_context:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:rtl_traceability:next_pending_comb",
+            "shared_obligation_context:O_MASK"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:pending_reg",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:ack_onehot_comb",
+            "shared_obligation_context:O_ACK",
+            "shared_obligation_context:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:next_pending_comb",
+            "rtl_traceability:priority_encoder",
+            "rtl_traceability:valid_comb",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:pending"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.3",
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.4"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.4"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.4",
+            "S4.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S4.2",
+            "S4.4",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S2.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_MASK"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MASK"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACK",
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACCUMULATE",
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_ACK",
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACK",
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MASK"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ACK"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACK",
+            "shared_obligation:O_SET_DOMINANT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CAPTURE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CAPTURE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ACK",
+            "shared_obligation:O_PRIORITY"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 27,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_model_output",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "21ed86a5-451b-4614-95ec-d1dd08e861d0",
+      "usage": {
+        "prompt_tokens": 1332,
+        "completion_tokens": 4206,
+        "total_tokens": 5538,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1481
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "e8f70044-42bb-416d-9309-9201f2583133",
+      "usage": {
+        "prompt_tokens": 3965,
+        "completion_tokens": 5885,
+        "total_tokens": 9850,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4394
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "S4.3 states that unmasked irq bits always become pending regardless of acknowledgement or existing state. Because this standalone candidate property uses the unqualified global term \"always\", guideline v1.1 requires literal all-cycle evaluation rather than an implicit reset-disabled interpretation. A sampled high reset has highest priority and clears pending even when an unmasked irq is asserted, providing a legal counterexample. The ordinary non-reset capture, acknowledgement, masking, set-dominant behavior, and final RTL are otherwise correct, and trusted simulation and bounded formal verification pass."
+  }
+}

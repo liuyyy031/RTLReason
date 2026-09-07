@@ -1,0 +1,1151 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-width-adapter-002",
+  "task_id": "stream_width_adapter_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/calibration/width-adapter-002",
+  "source_hashes": {
+    "process_sha256": "6495849684846090f3d75775943f99447e10b86cbf204effcc80f803b5408cea",
+    "evidence_sha256": "408066ae87c5fa65d79b28f78a50cf09ac8732e5b98f15c56af4d53c67274ba1",
+    "report_sha256": "b5d1abd28bb46708d732f7cece52b528ea3c7a21557a665e2352a5d0fb8efd3f"
+  },
+  "candidate_process": {
+    "task_id": "stream_width_adapter_v1",
+    "architecture_summary": "Two-state FSM (EMPTY, PARTIAL, FULL) with a low-byte register; packs two bytes into a 16-bit output word.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "in_ready is always 0 when out_valid is high; no same-edge input acceptance.",
+            "maps_to": [
+              "O_READY",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "out_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "First accepted byte stored as low byte; second byte forms high byte; output valid only after second byte.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER",
+              "O_OUTPUT_TRANSFER",
+              "O_BACKPRESSURE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Synchronous reset clears partial state (low_byte, out_valid, out_data).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Two-bit state register (EMPTY, PARTIAL, FULL) and 8-bit low_byte register.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "state",
+              "low_byte"
+            ],
+            "rtl_blocks": [
+              "state_register",
+              "low_byte_register"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "16-bit out_data register and 1-bit out_valid register.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER",
+              "O_BACKPRESSURE"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [
+              "out_data",
+              "out_valid"
+            ],
+            "rtl_blocks": [
+              "out_data_register",
+              "out_valid_register"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational in_ready = (state != FULL).",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1"
+            ],
+            "reads": [
+              "state"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": [
+              "ready_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On reset: state <= EMPTY, low_byte <= 0, out_valid <= 0, out_data <= 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "state",
+              "low_byte",
+              "out_valid",
+              "out_data"
+            ],
+            "rtl_blocks": [
+              "state_register",
+              "low_byte_register",
+              "out_valid_register",
+              "out_data_register"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "State EMPTY: if in_valid & in_ready, store in_data into low_byte, state <= PARTIAL.",
+            "maps_to": [
+              "O_FIRST_BYTE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "state"
+            ],
+            "writes": [
+              "low_byte",
+              "state"
+            ],
+            "rtl_blocks": [
+              "state_register",
+              "low_byte_register"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "State PARTIAL: if in_valid & in_ready, form out_data = {in_data, low_byte}, set out_valid <= 1, state <= FULL.",
+            "maps_to": [
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "state",
+              "low_byte",
+              "in_data"
+            ],
+            "writes": [
+              "out_data",
+              "out_valid",
+              "state"
+            ],
+            "rtl_blocks": [
+              "out_data_register",
+              "out_valid_register",
+              "state_register"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "State FULL: if out_ready, clear out_valid, state <= EMPTY; else hold all.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER",
+              "O_BACKPRESSURE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "out_ready",
+              "state"
+            ],
+            "writes": [
+              "out_valid",
+              "state"
+            ],
+            "rtl_blocks": [
+              "out_valid_register",
+              "state_register"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "in_ready is always 0 when out_valid is high.",
+            "maps_to": [
+              "O_READY",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "state",
+              "out_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "After a second byte is accepted, out_valid becomes high on the next cycle.",
+            "maps_to": [
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "out_data[7:0] is the first accepted byte, out_data[15:8] is the second.",
+            "maps_to": [
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "After out_valid goes high, it stays high until out_ready is high.",
+            "maps_to": [
+              "O_BACKPRESSURE",
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Reset clears state and out_valid.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "FSM implemented with three states and associated registers.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER",
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "out_ready",
+              "in_data",
+              "low_byte",
+              "state"
+            ],
+            "writes": [
+              "state",
+              "low_byte",
+              "out_valid",
+              "out_data",
+              "in_ready"
+            ],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Synchronous reset applied to all registers.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "in_ready is combinational from state (state != FULL).",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Complete RTL provided in rtl.code.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2",
+              "S5.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "stream_width_adapter",
+      "code": "module stream_width_adapter (\n    input  logic       clk,\n    input  logic       rst,\n    input  logic       in_valid,\n    output logic       in_ready,\n    input  logic [7:0]  in_data,\n    output logic       out_valid,\n    input  logic       out_ready,\n    output logic [15:0] out_data\n);\n\n    typedef enum logic [1:0] { EMPTY=2'b00, PARTIAL=2'b01, FULL=2'b10 } state_t;\n    state_t state, next_state;\n    logic [7:0] low_byte;\n    logic [15:0] next_out_data;\n    logic next_out_valid;\n\n    always_comb begin\n        in_ready = (state != FULL);\n        next_state = state;\n        next_out_valid = out_valid;\n        next_out_data = out_data;\n        case (state)\n            EMPTY: begin\n                if (in_valid && in_ready) begin\n                    next_state = PARTIAL;\n                end\n            end\n            PARTIAL: begin\n                if (in_valid && in_ready) begin\n                    next_state = FULL;\n                    next_out_valid = 1'b1;\n                    next_out_data = {in_data, low_byte};\n                end\n            end\n            FULL: begin\n                if (out_ready) begin\n                    next_state = EMPTY;\n                    next_out_valid = 1'b0;\n                end\n            end\n        endcase\n    end\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            state <= EMPTY;\n            low_byte <= 8'b0;\n            out_valid <= 1'b0;\n            out_data <= 16'b0;\n        end else begin\n            state <= next_state;\n            out_valid <= next_out_valid;\n            out_data <= next_out_data;\n            if (state == EMPTY && in_valid && in_ready) begin\n                low_byte <= in_data;\n            end\n        end\n    end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "deepseek-v4-flash",
+        "request_id": "d9be10cd-49dc-41d9-a29f-5949a2d0e007",
+        "usage": {
+          "prompt_tokens": 1421,
+          "completion_tokens": 5792,
+          "total_tokens": 7213,
+          "prompt_tokens_details": {
+            "cached_tokens": 1280
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 3161
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:stream_width_adapter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:stream_width_adapter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_BACKPRESSURE",
+          "O_FIRST_BYTE",
+          "O_NO_REPLACEMENT",
+          "O_OUTPUT_TRANSFER",
+          "O_PACK_ORDER",
+          "O_READY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "1271ef4969b36da2d34e1d2f094cf9918c33f44b55ca3d0ff95d5173509b34e2",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:state"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:low_byte_register",
+            "rtl_traceability:state_register"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:out_data_register",
+            "rtl_traceability:out_valid_register"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:in_ready"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:in_ready"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:in_ready"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:state",
+            "rtl_traceability:low_byte_register",
+            "rtl_traceability:state_register"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:out_data_register",
+            "rtl_traceability:out_valid_register"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:low_byte",
+            "def_use:state",
+            "rtl_traceability:state_register"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:low_byte",
+            "shared_obligation_context:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:state",
+            "rtl_traceability:out_valid_register",
+            "rtl_traceability:state_register"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:out_valid",
+            "def_use:state"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:state",
+            "shared_obligation_context:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:stream_width_adapter"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:stream_width_adapter"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "rtl_traceability:stream_width_adapter"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.2",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2",
+            "S3.3"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [
+            "S5.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S5.1",
+            "S5.2"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_NO_REPLACEMENT",
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_OUTPUT_TRANSFER",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE",
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FIRST_BYTE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_BACKPRESSURE",
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_READY"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACK_ORDER"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OUTPUT_TRANSFER"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 19,
+        "claimed_dependency_count": 28,
+        "items_with_structural_traceability": 13,
+        "structural_traceability_coverage": 0.6842105263157895,
+        "gaps": {
+          "S4.2": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S4.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S4.4": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S4.5": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_model_output",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "d9be10cd-49dc-41d9-a29f-5949a2d0e007",
+      "usage": {
+        "prompt_tokens": 1421,
+        "completion_tokens": 5792,
+        "total_tokens": 7213,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3161
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "deepseek-v4-flash",
+      "request_id": "d582c162-0755-4600-a630-7e8a84e86e1b",
+      "usage": {
+        "prompt_tokens": 3959,
+        "completion_tokens": 6152,
+        "total_tokens": 10111,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4289
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.1",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.0"
+  }
+}

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from rtlreason.dataset import load_task
 from rtlreason.evaluator.schema import SchemaIssue
+from rtlreason.evaluator.schema import validate_process
 from rtlreason.evaluator.semantic import (
     apply_deterministic_schema_issues,
     normalize_assessments,
@@ -35,6 +36,12 @@ class DatasetAndSemanticTests(unittest.TestCase):
             "grant_hold_arbiter_v1",
             "debounce_filter_v1",
             "token_bucket_v1",
+            "saturating_counter_v1",
+            "serial_parity_v1",
+            "programmable_timer_v1",
+            "interrupt_pending_v1",
+            "stream_width_adapter_v1",
+            "apb_register_bank_v1",
         )
         for task_id in task_ids:
             with self.subTest(task_id=task_id):
@@ -72,6 +79,19 @@ class DatasetAndSemanticTests(unittest.TestCase):
         self.assertEqual(effective[0].error_type_l1, "Format/Traceability")
         self.assertEqual(len(overrides), 1)
         self.assertFalse(global_error)
+
+    def test_real_interface_semantics_trace_is_not_unknown_obligation(self) -> None:
+        task = load_task("ready_valid_slice_v1", project_root=PROJECT_ROOT)
+        process_path = (
+            PROJECT_ROOT / "runs" / "calibration" / "ready-valid-002" / "process.json"
+        )
+        from rtlreason.models import ProcessArtifact
+
+        process = ProcessArtifact.from_json(process_path.read_text(encoding="utf-8"))
+        issues = validate_process(process, task)
+        self.assertFalse(
+            any(issue.code == "UNKNOWN_OBLIGATION" for issue in issues)
+        )
 
 
 if __name__ == "__main__":

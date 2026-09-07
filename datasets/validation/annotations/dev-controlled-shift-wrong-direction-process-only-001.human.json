@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S3",
+  "gold_root_error": "S3.2",
+  "gold_error_type_l1": "Transition Logic",
+  "gold_error_type_l2": "Incorrect State Update",
+  "gold_parent_dependency": [
+    {
+      "source": "S1.3",
+      "target": "S3.2"
+    },
+    {
+      "source": "S2.1",
+      "target": "S3.2"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "S3.2 reverses the required shift direction. The trusted transition is q_next = {previous q[WIDTH-2:0], serial_in}, which moves existing bits toward larger bit indices and inserts serial_in at q[0]. S1.3 had already stated this correctly, but S3.2 instead proposes {serial_in, q_reg[WIDTH-1:1]}, moving bits toward smaller indices and inserting serial_in at the MSB. S4.2 later returns to the correct transition and the final RTL implements the correct shift, so the process is incorrect while the RTL remains correct. Trusted simulation and bounded formal verification pass all obligations."
+}

@@ -1,0 +1,1330 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-arbiter-001",
+  "split": "development",
+  "task_id": "round_robin_arbiter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/arbiter-001",
+  "source_hashes": {
+    "process_sha256": "a29115c582c90c628c477c6ab067ff8b3a5e418a0528608f9b37ef980c4536fa",
+    "evidence_sha256": "0f596a421d0f0d389d83013e7fa90dd87f7b7ade78dad790b9ea2cf84f188e9a",
+    "report_sha256": "5706e2d3151df2056064224bfc77a08df35bb28469c505806758f8a9d50d76ba"
+  },
+  "candidate_process": {
+    "task_id": "round_robin_arbiter_v1",
+    "architecture_summary": "Rotated request vector with combinational leading-one detector and a 2-bit round-robin pointer register; registered grant and pointer updated synchronously.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module must have synchronous active-high reset that clears grant and sets scan index to 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Grant is registered one-hot or zero and corresponds to sampled req.",
+            "maps_to": [
+              "O_ONEHOT",
+              "O_REQUESTED"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Arbiter scans req from current pointer with wrap, grants first asserted, else zero and holds pointer.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "req",
+              "ptr"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a 2-bit register ptr storing next scan start index (0..3).",
+            "maps_to": [
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "ptr"
+            ],
+            "rtl_blocks": [
+              "ptr_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational rotator produces req_rot where bit i = req[(ptr+i)%4] to start scan at ptr.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "req",
+              "ptr"
+            ],
+            "writes": [
+              "req_rot"
+            ],
+            "rtl_blocks": [
+              "rotate"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational leading-one detector finds first set bit in req_rot, outputting found and first_idx.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "req_rot"
+            ],
+            "writes": [
+              "found",
+              "first_idx"
+            ],
+            "rtl_blocks": [
+              "lead_one"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Next-state logic computes grant_next (one-hot of winner) and ptr_next (winner+1 mod4 or hold).",
+            "maps_to": [
+              "O_ONEHOT",
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "ptr",
+              "found",
+              "first_idx"
+            ],
+            "writes": [
+              "grant_next",
+              "ptr_next"
+            ],
+            "rtl_blocks": [
+              "next_state"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge clk with rst high, grant and ptr take reset values synchronously.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "grant",
+              "ptr"
+            ],
+            "rtl_blocks": [
+              "always_ff_reset"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "When found true, grant updates to one-hot of (ptr+first_idx)%4 and ptr becomes (winner+1)%4.",
+            "maps_to": [
+              "O_PRIORITY",
+              "O_ROTATE"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "found",
+              "ptr",
+              "first_idx"
+            ],
+            "writes": [
+              "grant",
+              "ptr"
+            ],
+            "rtl_blocks": [
+              "grant_update"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "When found false, grant becomes zero and ptr holds previous value.",
+            "maps_to": [
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "found",
+              "ptr"
+            ],
+            "writes": [
+              "grant",
+              "ptr"
+            ],
+            "rtl_blocks": [
+              "idle_hold"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "All updates use req sampled immediately before active edge, respecting input sampling.",
+            "maps_to": [
+              "O_REQUESTED"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "req"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "sample"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: grant is always 4'b0000 or exactly one bit set.",
+            "maps_to": [
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: if grant nonzero, corresponding req was high at previous cycle.",
+            "maps_to": [
+              "O_REQUESTED"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "grant",
+              "req"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: ptr equals (last winner +1) mod4 when last grant nonzero, else unchanged.",
+            "maps_to": [
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "ptr",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: no unconditional liveness; eventual grant only under persistent request assumption.",
+            "maps_to": [
+              "O_LIVENESS_BOUNDARY"
+            ],
+            "claimed_dependencies": [
+              "S4.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement ptr and grant as flops with synchronous reset in always_ff.",
+            "maps_to": [
+              "O_RESET",
+              "O_ONEHOT"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "ptr",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "always_ff"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement rotator and leading-one detector as combinational always_comb blocks.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "req",
+              "ptr"
+            ],
+            "writes": [
+              "req_rot",
+              "found",
+              "first_idx"
+            ],
+            "rtl_blocks": [
+              "always_comb_rot",
+              "always_comb_lead"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement next-state mux for grant_next and ptr_next and assign to flops.",
+            "maps_to": [
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "ptr",
+              "found",
+              "first_idx"
+            ],
+            "writes": [
+              "grant_next",
+              "ptr_next",
+              "grant",
+              "ptr"
+            ],
+            "rtl_blocks": [
+              "next_state",
+              "always_ff"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Full module compiles per frozen interface with 4-bit req/grant and correct port names.",
+            "maps_to": [
+              "O_RESET",
+              "O_ONEHOT",
+              "O_REQUESTED",
+              "O_PRIORITY",
+              "O_ROTATE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2",
+              "S5.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "req"
+            ],
+            "writes": [
+              "grant"
+            ],
+            "rtl_blocks": [
+              "module"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "round_robin_arbiter",
+      "code": "module round_robin_arbiter (\n    input  logic        clk,\n    input  logic        rst,\n    input  logic [3:0]  req,\n    output logic [3:0]  grant\n);\n\n    logic [1:0] ptr;\n    logic [1:0] ptr_next;\n    logic [3:0] grant_next;\n    logic [3:0] req_rot;\n    logic [1:0] first_idx;\n    logic       found;\n\n    // Rotate req by ptr so scan starts at ptr\n    always_comb begin\n        req_rot = 4'b0;\n        for (int i=0; i<4; i++) begin\n            req_rot[i] = req[(ptr + i) % 4];\n        end\n    end\n\n    // Find first asserted in req_rot\n    always_comb begin\n        found = 1'b0;\n        first_idx = 2'd0;\n        for (int i=0; i<4; i++) begin\n            if (!found && req_rot[i]) begin\n                found = 1'b1;\n                first_idx = 2'(i);\n            end\n        end\n    end\n\n    // Next grant and ptr\n    always_comb begin\n        grant_next = 4'b0;\n        ptr_next = ptr;\n        if (found) begin\n            logic [1:0] winner;\n            winner = (ptr + first_idx) % 4;\n            grant_next = 4'b1 << winner;\n            ptr_next = (winner + 1) % 4;\n        end else begin\n            grant_next = 4'b0;\n            ptr_next = ptr;\n        end\n    end\n\n    // Synchronous reset and register update\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            grant <= 4'b0;\n            ptr <= 2'd0;\n        end else begin\n            grant <= grant_next;\n            ptr <= ptr_next;\n        end\n    end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "728d402c-984d-4c32-9bcc-2a0a688117e2",
+        "usage": {
+          "prompt_tokens": 1313,
+          "completion_tokens": 10092,
+          "total_tokens": 11405,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7555
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:round_robin_arbiter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_IDLE",
+        "O_LIVENESS_BOUNDARY",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_REQUESTED",
+        "O_RESET",
+        "O_ROTATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:round_robin_arbiter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_IDLE",
+        "O_ONEHOT",
+        "O_PRIORITY",
+        "O_REQUESTED",
+        "O_RESET",
+        "O_ROTATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "358826a7472f7e32e32c324058343d4cb579265564ae437ac241ca0e8afe327c",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:ptr"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:ptr",
+            "shared_obligation_context:O_IDLE",
+            "shared_obligation_context:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:req_rot",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:first_idx",
+            "def_use:found"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:first_idx",
+            "def_use:found",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:found"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:next_state",
+            "shared_obligation_context:O_IDLE",
+            "shared_obligation_context:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:ptr"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:ptr"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:ptr",
+            "shared_obligation_context:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:grant"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:grant",
+            "shared_obligation_context:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:grant"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:ptr"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:ptr",
+            "rtl_traceability:always_ff"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:first_idx",
+            "def_use:found"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S4.1"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.1",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S5.1",
+            "S5.2",
+            "S5.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT",
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ONEHOT",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_REQUESTED"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_ONEHOT",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_ROTATE"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 19,
+        "claimed_dependency_count": 27,
+        "items_with_structural_traceability": 17,
+        "structural_traceability_coverage": 0.8947368421052632,
+        "gaps": {
+          "S4.4": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "728d402c-984d-4c32-9bcc-2a0a688117e2",
+      "usage": {
+        "prompt_tokens": 1313,
+        "completion_tokens": 10092,
+        "total_tokens": 11405,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7555
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "e227699f-96fc-4c15-a159-6c3a47e0ea09",
+      "usage": {
+        "prompt_tokens": 3537,
+        "completion_tokens": 5835,
+        "total_tokens": 9372,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4143
+        }
+      },
+      "finish_reason": "stop",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "Under guideline v1.1, S4.3 is an ordinary runtime rotation/idle property and is interpreted in the reset-disabled operating domain, so omission of an explicit reset guard is not an error. The global one-hot-or-zero property remains literally true during reset. S4.2 is consistent with the trusted registered-grant semantics: a nonzero grant corresponds to the request sampled on the active edge that produced that registered grant, and it does not improperly carry stale request history across a reset epoch. S1-S5 correctly model priority scanning, pointer rotation, idle hold, reset, and registered grant behavior. Trusted simulation and bounded formal verification pass."
+  }
+}

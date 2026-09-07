@@ -1,0 +1,27 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.2",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.1",
+      "target": "S4.2"
+    },
+    {
+      "source": "S3.3",
+      "target": "S4.2"
+    }
+  ],
+  "gold_affected_obligation": [],
+
+  "notes": "S4.2 states that the setup phase never changes the registers. Because this standalone candidate property uses the unqualified global term \"never\", guideline v1.1 requires literal evaluation rather than an implicit reset-disabled interpretation. A setup-phase edge can coincide with synchronous reset, in which case a previously nonzero register is cleared and therefore changes. The trusted requirement only states that setup phase never performs a write; reset remains an independent state-changing cause. S1-S3 and the final RTL otherwise implement the trusted APB behavior correctly, and trusted simulation and bounded formal verification pass."
+}

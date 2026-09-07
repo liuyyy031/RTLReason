@@ -1,0 +1,1186 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-rising-edge-001",
+  "split": "development",
+  "task_id": "rising_edge_detector_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/rising-edge-001",
+  "source_hashes": {
+    "process_sha256": "2c908cb3f2ca5052d8c09ec4e297e9bfb9ca489ce8942fa47c0d1184d6c86517",
+    "evidence_sha256": "27a58799526c24564d5d67fd7d0dd92a2f97d59acc265f6313f4faea95207764",
+    "report_sha256": "99b72b3449aeb140db54478089bd86754e3143d441cc1f30b0187cf1a286be8e"
+  },
+  "candidate_process": {
+    "task_id": "rising_edge_detector_v1",
+    "architecture_summary": "Two registers (prev_sample and pulse) with synchronous high reset and combinational pulse-next logic signal_in & ~prev_sample.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst has highest priority and clears pulse and previous sample to 0 without sampling signal_in.",
+            "maps_to": [
+              "O_RESET",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "On non-reset posedge, new sample is compared to remembered sample; pulse equals (sample=1 and prev=0).",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Remembered sample is replaced by current sample on every non-reset edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses a 1-bit register prev_sample to store the accepted sample from the previous non-reset edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "prev_sample_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Architecture uses a 1-bit output register pulse driven by next expression signal_in & ~prev_sample.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S2.1"
+            ],
+            "reads": [
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "pulse_reg",
+              "pulse_next_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Both registers share synchronous high reset to 0; reset does not update prev_sample from signal_in.",
+            "maps_to": [
+              "O_RESET",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "reset_sync"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk, if rst is high, prev_sample and pulse are set to 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_reset"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "At posedge clk when rst is low, prev_sample takes the value of signal_in sampled before the edge.",
+            "maps_to": [
+              "O_HISTORY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in"
+            ],
+            "writes": [
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "always_ff_sample"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "At same edge, pulse becomes signal_in & ~prev_sample using values before the edge.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.2"
+            ],
+            "reads": [
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_pulse"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Because prev_sample is 0 after reset, first non-reset high signal_in yields pulse=1 and updates prev_sample to 1, preventing repeat while held high.",
+            "maps_to": [
+              "O_FIRST_AFTER_RESET",
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in"
+            ],
+            "writes": [
+              "pulse",
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "first_edge_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Reset property: rst high at posedge implies next pulse==0 and prev_sample==0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "pulse",
+              "prev_sample"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Rise property: if prev_sample==0 and signal_in==1 at edge, then pulse==1 after edge.",
+            "maps_to": [
+              "O_RISE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "No-repeat property: if prev_sample==1 and signal_in==1, then pulse==0.",
+            "maps_to": [
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Fall property: if prev_sample==1 and signal_in==0, then pulse==0.",
+            "maps_to": [
+              "O_FALL"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "prev_sample",
+              "signal_in",
+              "pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement module rising_edge_detector with declared ports clk, rst, signal_in, pulse.",
+            "maps_to": [
+              "O_HISTORY",
+              "O_RISE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in"
+            ],
+            "writes": [
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "module_ports"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement sequential block: always_ff @(posedge clk) with synchronous reset assigning pulse<=0, prev_sample<=0 when rst, else prev_sample<=signal_in, pulse<=signal_in & ~prev_sample.",
+            "maps_to": [
+              "O_RESET",
+              "O_HISTORY",
+              "O_RISE",
+              "O_NO_REPEAT",
+              "O_FALL",
+              "O_FIRST_AFTER_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "signal_in",
+              "prev_sample"
+            ],
+            "writes": [
+              "prev_sample",
+              "pulse"
+            ],
+            "rtl_blocks": [
+              "always_ff_main"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Declare pulse as output reg/logic and prev_sample as internal reg, making pulse registered and stable between edges.",
+            "maps_to": [
+              "O_RISE",
+              "O_NO_REPEAT"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "pulse",
+              "prev_sample"
+            ],
+            "rtl_blocks": [
+              "declarations"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "rising_edge_detector",
+      "code": "module rising_edge_detector (\n    input  logic clk,\n    input  logic rst,\n    input  logic signal_in,\n    output logic pulse\n);\n\n    logic prev_sample;\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            pulse       <= 1'b0;\n            prev_sample <= 1'b0;\n        end else begin\n            prev_sample <= signal_in;\n            pulse       <= signal_in & ~prev_sample;\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Reset does not sample signal_in, so first high after reset pulses."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "526fd07a-710f-4736-8212-b65f3c700716",
+        "usage": {
+          "prompt_tokens": 1260,
+          "completion_tokens": 9051,
+          "total_tokens": 10311,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 6921
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:rising_edge_detector_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_FALL",
+        "O_FIRST_AFTER_RESET",
+        "O_HISTORY",
+        "O_NO_REPEAT",
+        "O_RESET",
+        "O_RISE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:rising_edge_detector_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_FALL",
+        "O_FIRST_AFTER_RESET",
+        "O_HISTORY",
+        "O_NO_REPEAT",
+        "O_RESET",
+        "O_RISE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 16).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 16,
+        "configured_obligations": [
+          "O_FALL",
+          "O_FIRST_AFTER_RESET",
+          "O_HISTORY",
+          "O_NO_REPEAT",
+          "O_RESET",
+          "O_RISE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "72f8f8709ecae6ef416d892aeecc15a8a03100c8645a753162f5e1132fc9379c",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:prev_sample"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:prev_sample",
+            "property_derivation:def_use:pulse",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:prev_sample"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:prev_sample"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:pulse",
+            "shared_obligation_context:O_RISE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:pulse",
+            "shared_obligation_context:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:pulse",
+            "shared_obligation_context:O_FALL"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:prev_sample",
+            "shared_obligation_context:O_FIRST_AFTER_RESET",
+            "shared_obligation_context:O_NO_REPEAT"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FALL"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FALL"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FALL"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FALL",
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FIRST_AFTER_RESET",
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FALL"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HISTORY",
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RISE"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NO_REPEAT",
+            "shared_obligation:O_RISE"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 17,
+        "claimed_dependency_count": 24,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.8235294117647058,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "526fd07a-710f-4736-8212-b65f3c700716",
+      "usage": {
+        "prompt_tokens": 1260,
+        "completion_tokens": 9051,
+        "total_tokens": 10311,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6921
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "0cd8e337-083c-4d9f-926c-5f7a596d0323",
+      "usage": {
+        "prompt_tokens": 3756,
+        "completion_tokens": 7942,
+        "total_tokens": 11698,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6478
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": ""
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/rising-edge-001.json",
+    "source_gold_sha256": "f67773ac99e2cba23d6bbd6a050a91805c732fe2f9e3b68488aff446944a18cc",
+    "source_report": "runs/evaluator-v1.4/development/rising-edge-001/report.json",
+    "source_report_sha256": "7eab4ef3e295539d05e760df451178376a6bfa68c0a7c1522c84e6d5ee274388",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "72f8f8709ecae6ef416d892aeecc15a8a03100c8645a753162f5e1132fc9379c",
+    "gold_labels_modified": false
+  }
+}

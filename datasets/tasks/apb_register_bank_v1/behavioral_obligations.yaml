@@ -1,0 +1,11 @@
+schema_version: "1.0"
+task_id: apb_register_bank_v1
+obligations:
+  - {id: O_RESET, category: reset, statement: A sampled high rst synchronously clears both registers.}
+  - {id: O_ACCESS_PHASE, category: protocol, statement: Register side effects occur only on psel and penable access-phase edges; setup phase never writes.}
+  - {id: O_WRITE_DECODE, category: datapath, statement: A valid write updates exactly the addressed register with pwdata.}
+  - {id: O_READBACK, category: datapath, statement: prdata combinationally returns the current selected valid register and reads have no side effect.}
+  - {id: O_INVALID_ADDRESS, category: boundary, statement: An invalid access asserts pslverr, returns zero, and causes no state change.}
+  - {id: O_ERROR_GATING, category: protocol, statement: pslverr is low outside an access-phase transfer even when paddr is invalid.}
+  - {id: O_READY, category: protocol, statement: pready is constantly high, so every access phase completes without wait states.}
+  - {id: O_WRITE_READ_SEPARATION, category: control, statement: Only pwrite accesses modify state and a write to one register preserves the other.}

@@ -1,0 +1,540 @@
+{
+  "schema_version": "1.0",
+  "task_id": "apb_register_bank_v1",
+  "created_at": "2026-09-03T02:37:53.533244+00:00",
+  "trusted_asset_version": "1.0.0",
+  "schema_issues": [],
+  "dependency_graph": {
+    "construction": "static_before_eda",
+    "digest": "e8a39d900378db82b4fb67b9ec12b7d36cfaa14e13148ffb8eb95b76a82640eb",
+    "nodes": [
+      "S1.1",
+      "S1.2",
+      "S1.3",
+      "S2.1",
+      "S2.2",
+      "S2.3",
+      "S3.1",
+      "S3.2",
+      "S3.3",
+      "S3.4",
+      "S4.1",
+      "S4.2",
+      "S4.3",
+      "S4.4",
+      "S5.1",
+      "S5.2"
+    ],
+    "edges": [
+      {
+        "source": "S2.1",
+        "target": "S2.2",
+        "reasons": [
+          "def_use:reg0",
+          "def_use:reg1"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S3.1",
+        "reasons": [
+          "rtl_traceability:reg_update",
+          "shared_obligation_context:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S5.2",
+        "reasons": [
+          "rtl_traceability:addr_decode",
+          "shared_obligation_context:O_INVALID_ADDRESS",
+          "shared_obligation_context:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S5.2",
+        "reasons": [
+          "rtl_traceability:pready_assign",
+          "shared_obligation_context:O_READY"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S3.2",
+        "reasons": [
+          "rtl_traceability:reg_update"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.1",
+        "reasons": [
+          "property_derivation:def_use:reg0",
+          "property_derivation:def_use:reg1",
+          "shared_obligation_context:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.2",
+        "reasons": [
+          "def_use:reg0",
+          "def_use:reg1"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S5.1",
+        "reasons": [
+          "rtl_traceability:reg_update",
+          "shared_obligation_context:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S3.4",
+        "target": "S4.3",
+        "reasons": [
+          "property_derivation:def_use:pslverr",
+          "shared_obligation_context:O_ERROR_GATING"
+        ]
+      },
+      {
+        "source": "S3.4",
+        "target": "S5.2",
+        "reasons": [
+          "rtl_traceability:err_logic",
+          "shared_obligation_context:O_ERROR_GATING",
+          "shared_obligation_context:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S5.1",
+        "target": "S5.2",
+        "reasons": [
+          "def_use:reg0",
+          "def_use:reg1"
+        ]
+      }
+    ],
+    "claimed_dependency_comparison": {
+      "S2.1": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.2"
+        ]
+      },
+      "S2.2": {
+        "confirmed_claimed_edges": [
+          "S2.1"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.3"
+        ]
+      },
+      "S2.3": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.3"
+        ]
+      },
+      "S3.1": {
+        "confirmed_claimed_edges": [
+          "S2.1"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S3.2": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [
+          "S3.1"
+        ],
+        "unverified_claimed_edges": [
+          "S1.1",
+          "S2.1"
+        ]
+      },
+      "S3.3": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.1"
+        ]
+      },
+      "S3.4": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.1",
+          "S2.2"
+        ]
+      },
+      "S4.1": {
+        "confirmed_claimed_edges": [
+          "S3.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S4.2": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [
+          "S3.2"
+        ],
+        "unverified_claimed_edges": [
+          "S2.2"
+        ]
+      },
+      "S4.3": {
+        "confirmed_claimed_edges": [
+          "S3.4"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S4.4": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S2.3"
+        ]
+      },
+      "S5.1": {
+        "confirmed_claimed_edges": [
+          "S3.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S3.1"
+        ]
+      },
+      "S5.2": {
+        "confirmed_claimed_edges": [
+          "S2.2",
+          "S2.3",
+          "S3.4"
+        ],
+        "missing_claimed_edges": [
+          "S5.1"
+        ],
+        "unverified_claimed_edges": []
+      }
+    },
+    "obligation_associations": [
+      {
+        "source": "S1.1",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_ACCESS_PHASE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S2.1",
+        "reasons": [
+          "shared_obligation:O_RESET",
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S3.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S3.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_RESET",
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S2.2",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S2.3",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S3.4",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S4.2",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK",
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S3.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S3.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_RESET",
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S3.4",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S4.2",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.1",
+        "reasons": [
+          "shared_obligation:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S3.4",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING"
+        ]
+      },
+      {
+        "source": "S3.4",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S4.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S4.3",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING"
+        ]
+      },
+      {
+        "source": "S4.4",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      }
+    ],
+    "evidence_summary": {
+      "status": "structurally_annotated",
+      "item_count": 16,
+      "claimed_dependency_count": 19,
+      "items_with_structural_traceability": 13,
+      "structural_traceability_coverage": 0.8125,
+      "gaps": {}
+    }
+  },
+  "verification": {
+    "final_rtl_correct": true,
+    "formal_required": true,
+    "simulation_available": true,
+    "formal_available": true
+  },
+  "evidence": [
+    {
+      "id": "simulation:apb_register_bank_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:apb_register_bank_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_ACCESS_PHASE",
+          "O_ERROR_GATING",
+          "O_INVALID_ADDRESS",
+          "O_READBACK",
+          "O_READY",
+          "O_RESET",
+          "O_WRITE_DECODE",
+          "O_WRITE_READ_SEPARATION"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "candidate_generation": {
+    "origin": "real_hy3",
+    "provider": "Tencent Cloud TokenHub",
+    "model": "hy3",
+    "request_id": "b2e1f3f6-8b7d-4cf9-8f1c-c78bf9cc4c51",
+    "usage": {
+      "prompt_tokens": 1465,
+      "completion_tokens": 8542,
+      "total_tokens": 10007,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 6311
+      }
+    },
+    "finish_reason": "stop"
+  },
+  "semantic_evaluator": {
+    "status": "not_run",
+    "reason": "independent_collection_verify_only",
+    "gold_labels_required_for_validation": true
+  },
+  "semantic_assessments": [],
+  "assessments": [],
+  "assessment_issues": [],
+  "deterministic_overrides": [],
+  "attribution": {
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "graph_digest": "e8a39d900378db82b4fb67b9ec12b7d36cfaa14e13148ffb8eb95b76a82640eb",
+    "status": "not_run"
+  }
+}

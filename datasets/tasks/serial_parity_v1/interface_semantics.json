@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "task_id": "serial_parity_v1",
+  "module_name": "serial_parity",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "outputs_after_reset": {"busy": 0, "parity": 0, "done": 0}
+  },
+  "ports": {
+    "start": {"direction": "input", "width": 1},
+    "bit_valid": {"direction": "input", "width": 1},
+    "bit_in": {"direction": "input", "width": 1},
+    "finish": {"direction": "input", "width": 1},
+    "busy": {"direction": "output", "width": 1},
+    "parity": {"direction": "output", "width": 1},
+    "done": {"direction": "output", "width": 1}
+  },
+  "acceptance": {
+    "start": "start && !busy",
+    "bit": "bit_valid && (busy || accepted_start)",
+    "finish": "finish && busy",
+    "start_while_busy": "ignored",
+    "finish_while_idle": "ignored"
+  },
+  "transition": {
+    "start": "clear the working parity, enter busy, then include bit_in if bit_valid",
+    "active_bit": "XOR bit_in into the working parity when bit_valid",
+    "finish": "publish working parity including any same-edge valid bit, clear busy, pulse done",
+    "idle": "parity holds and done is zero"
+  },
+  "output_timing": {
+    "parity": "registered result updated only by reset or accepted finish",
+    "done": "registered one-cycle pulse after accepted finish"
+  }
+}

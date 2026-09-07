@@ -1,0 +1,1150 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-timer-002",
+  "split": "development",
+  "task_id": "programmable_timer_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/timer-002",
+  "source_hashes": {
+    "process_sha256": "e61349da4ed9d4bfed619978e02cffb9ef39113c2c9e5b810e1e3c4719f6efb7",
+    "evidence_sha256": "40987281d5f6bae0ff68868537d31bf9fea72c515241b1c107877a187a15bb0f",
+    "report_sha256": "9d4eab0be6dee4bb4dfc1e5157e41445d30a6b29d8985fdfca2a7036260b1ff2"
+  },
+  "candidate_process": {
+    "task_id": "programmable_timer_v1",
+    "architecture_summary": "Single synchronous always_ff with private stored_period register and registered outputs via continuous assign; priority enforced by if-else chain.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst forces stored period and remaining to 1 and clears tick, highest priority.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Load stores clamped nonzero effective period into private period register and remaining, clears tick, and has priority over enable/expiry.",
+            "maps_to": [
+              "O_LOAD",
+              "O_PRIORITY",
+              "O_ZERO_CLAMP"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "When enabled, timer decrements remaining if >1, or pulses tick and reloads stored period if ==1; when disabled it holds with tick=0.",
+            "maps_to": [
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Chosen architecture: one synchronous always_ff block on posedge clk implements all prioritized transitions with non-blocking updates; outputs assigned from registers.",
+            "maps_to": [
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "load",
+              "period",
+              "enable"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "State model: stored_period_reg (WIDTH) holds effective period; remaining_reg (WIDTH) is live count; tick_reg is pulse; all updated only in always_ff.",
+            "maps_to": [
+              "O_LOAD",
+              "O_COUNTDOWN",
+              "O_EXPIRY"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output observation: continuous assign of remaining and tick from regs meets registered output timing.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [
+              "remaining",
+              "tick"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset transition: at posedge clk if rst, stored_period_reg<=1, remaining_reg<=1, tick_reg<=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Load transition: else if load, eff_period = (period==0)?1:period; stored_period_reg<=eff_period; remaining_reg<=eff_period; tick_reg<=0.",
+            "maps_to": [
+              "O_LOAD",
+              "O_ZERO_CLAMP",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "load",
+              "period"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Enable transition: else if enable, if remaining_reg==1 then tick_reg<=1, remaining_reg<=stored_period_reg; else remaining_reg<=remaining_reg-1, tick_reg<=0.",
+            "maps_to": [
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "enable",
+              "remaining_reg",
+              "stored_period_reg"
+            ],
+            "writes": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Disable transition: else tick_reg<=0 and remaining_reg holds (no assignment).",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "enable"
+            ],
+            "writes": [
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: tick_reg is never high for two consecutive cycles unless period==1 and enable held.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "tick_reg",
+              "enable"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: one cycle after load with period p>0, remaining_reg equals p.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "remaining_reg",
+              "period"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: loading period 0 yields remaining_reg==1 and stored_period_reg==1.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "period",
+              "remaining_reg",
+              "stored_period_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: if rst and load/enable coincide, next remaining_reg==1 and tick_reg==0.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL declares WIDTH parameter, ports, and internal registers stored_period_reg, remaining_reg, tick_reg, and eff_period.",
+            "maps_to": [
+              "O_LOAD",
+              "O_COUNTDOWN"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg",
+              "eff_period"
+            ],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL always_ff implements reset/load/enable/hold priority exactly as specified, with clamping via eff_period.",
+            "maps_to": [
+              "O_RESET",
+              "O_LOAD",
+              "O_PRIORITY",
+              "O_COUNTDOWN",
+              "O_EXPIRY",
+              "O_HOLD",
+              "O_ZERO_CLAMP"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "load",
+              "period",
+              "enable",
+              "remaining_reg",
+              "stored_period_reg",
+              "eff_period"
+            ],
+            "writes": [
+              "stored_period_reg",
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "rtl_blocks": [
+              "always_ff_timer"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "RTL drives outputs via assign remaining = remaining_reg; assign tick = tick_reg;.",
+            "maps_to": [
+              "O_HOLD",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "remaining_reg",
+              "tick_reg"
+            ],
+            "writes": [
+              "remaining",
+              "tick"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "programmable_timer",
+      "code": "module programmable_timer #(parameter int WIDTH = 8) (\n  input  logic             clk,\n  input  logic             rst,\n  input  logic             load,\n  input  logic [WIDTH-1:0] period,\n  input  logic             enable,\n  output logic [WIDTH-1:0] remaining,\n  output logic             tick\n);\n\n  logic [WIDTH-1:0] stored_period_reg;\n  logic [WIDTH-1:0] remaining_reg;\n  logic             tick_reg;\n  logic [WIDTH-1:0] eff_period;\n\n  assign eff_period = (period == {WIDTH{1'b0}}) ? WIDTH'(1) : period;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      stored_period_reg <= WIDTH'(1);\n      remaining_reg     <= WIDTH'(1);\n      tick_reg          <= 1'b0;\n    end else if (load) begin\n      stored_period_reg <= eff_period;\n      remaining_reg     <= eff_period;\n      tick_reg          <= 1'b0;\n    end else if (enable) begin\n      if (remaining_reg == WIDTH'(1)) begin\n        tick_reg     <= 1'b1;\n        remaining_reg <= stored_period_reg;\n      end else begin\n        remaining_reg <= remaining_reg - WIDTH'(1);\n        tick_reg      <= 1'b0;\n      end\n    end else begin\n      tick_reg <= 1'b0;\n    end\n  end\n\n  assign remaining = remaining_reg;\n  assign tick = tick_reg;\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Single always_ff with combinational clamping; priority via if-else ordering."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "3eb59648-3d39-4185-b2c3-26fa1a359986",
+        "usage": {
+          "prompt_tokens": 1341,
+          "completion_tokens": 15447,
+          "total_tokens": 16788,
+          "prompt_tokens_details": {
+            "cached_tokens": 1216
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 13059
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:programmable_timer_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_COUNTDOWN",
+        "O_EXPIRY",
+        "O_HOLD",
+        "O_LOAD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_ZERO_CLAMP"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:programmable_timer_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_COUNTDOWN",
+        "O_EXPIRY",
+        "O_HOLD",
+        "O_LOAD",
+        "O_PRIORITY",
+        "O_RESET",
+        "O_ZERO_CLAMP"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_COUNTDOWN",
+          "O_EXPIRY",
+          "O_HOLD",
+          "O_LOAD",
+          "O_PRIORITY",
+          "O_RESET",
+          "O_ZERO_CLAMP"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.1",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Consequent",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S4.1"
+    },
+    {
+      "source": "S3.3",
+      "target": "S4.1"
+    }
+  ],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": false,
+  "predicted_first_error_stage": "S4",
+  "predicted_root_error": "S4.1",
+  "predicted_error_type_l1": "Property",
+  "predicted_error_type_l2": "Incorrect Antecedent",
+  "predicted_parent_dependency": [
+    {
+      "source": "S3.3",
+      "target": "S4.1"
+    }
+  ],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.1",
+      "S5.1"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.1",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.1",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Antecedent",
+        "explanation": "Property uses 'period==1' (input port) but clamping makes period=0 behave identically (stored_period_reg=1). With period=0 and enable held, tick_reg is high consecutively, violating the 'unless period==1' condition. Legal counterexample exists.",
+        "confidence": 0.95
+      },
+      {
+        "item_id": "S5.1",
+        "status": "incorrect",
+        "error_type_l1": "Implementation",
+        "error_type_l2": "RTL Syntax or Elaboration",
+        "explanation": "RTL declares WIDTH, ports, and signals stored_period_reg, remaining_reg, tick_reg, eff_period. However, eff_period is a combinational signal (continuous assign), not a register. Claim erroneously lists it as an internal register.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "d7eb2d7d6d667f8999deb26710491041eb4731e2de2cfea8271e56e39540c997",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "rtl_traceability:always_ff_timer"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:remaining_reg",
+            "def_use:tick_reg"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:always_ff_timer"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:output_assign",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:always_ff_timer"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:remaining_reg",
+            "property_derivation:def_use:tick_reg"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:remaining_reg",
+            "def_use:stored_period_reg",
+            "rtl_traceability:always_ff_timer",
+            "shared_obligation_context:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:remaining_reg"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:remaining_reg",
+            "property_derivation:def_use:stored_period_reg"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:always_ff_timer"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:tick_reg"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:always_ff_timer",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:eff_period",
+            "def_use:remaining_reg",
+            "def_use:stored_period_reg",
+            "shared_obligation_context:O_COUNTDOWN",
+            "shared_obligation_context:O_LOAD"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:remaining_reg",
+            "def_use:tick_reg",
+            "shared_obligation_context:O_HOLD",
+            "shared_obligation_context:O_RESET"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": []
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_LOAD",
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ZERO_CLAMP"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOAD",
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ZERO_CLAMP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY",
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY",
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOAD",
+            "shared_obligation:O_PRIORITY",
+            "shared_obligation:O_ZERO_CLAMP"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_EXPIRY",
+            "shared_obligation:O_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_COUNTDOWN",
+            "shared_obligation:O_LOAD"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_HOLD",
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 17,
+        "claimed_dependency_count": 22,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.8235294117647058,
+        "gaps": {
+          "S1.2": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "3eb59648-3d39-4185-b2c3-26fa1a359986",
+      "usage": {
+        "prompt_tokens": 1341,
+        "completion_tokens": 15447,
+        "total_tokens": 16788,
+        "prompt_tokens_details": {
+          "cached_tokens": 1216
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 13059
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "921b07f6-391a-4d7e-93c4-dc765f6c398d",
+      "usage": {
+        "prompt_tokens": 4082,
+        "completion_tokens": 7962,
+        "total_tokens": 12044,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6381
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.4",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "S4.1 incorrectly uses the current period input as a necessary condition for consecutive tick pulses. The timer reloads from stored_period_reg, and the external period input may change freely after a load without affecting the active stored period. For example, load period=1, then deassert load, change period to 5, and hold enable high; stored_period_reg remains one and tick can be high on consecutive expiry cycles even though the current period input is not one. The correct condition concerns the stored period, not the live period input. Final RTL implements the trusted behavior and passes trusted simulation and bounded formal verification."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/development/timer-002.json",
+    "source_gold_sha256": "063cf1509bbe9c1fba884ca01f8e8519eaad0006872371947be092d039668caa",
+    "source_report": "runs/evaluator-v1.4/development/timer-002/report.json",
+    "source_report_sha256": "9cb08d99a0d2a7e7c4fbb1a5c0db99fb8dbc63b4e80d5722dafbb75d1f5aa449",
+    "semantic_prompt_version": "1.4",
+    "dependency_graph_digest": "d7eb2d7d6d667f8999deb26710491041eb4731e2de2cfea8271e56e39540c997",
+    "gold_labels_modified": false
+  }
+}

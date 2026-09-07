@@ -1,0 +1,1136 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-token-bucket-001",
+  "split": "development",
+  "task_id": "token_bucket_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/calibration/token-bucket-001",
+  "source_hashes": {
+    "process_sha256": "29ef01133302049a3f59cc10802a50b4a39a69aeb0f4e2618735afda6749516e",
+    "evidence_sha256": "65d4031036878aa9523aa4dca6c57e2581cfe40bac859325689dd31b35d9894f",
+    "report_sha256": "ccff919f44f537bbd6061e1361e6b11911697941354bff3e81f2acebdc31aa1e"
+  },
+  "candidate_process": {
+    "task_id": "token_bucket_v1",
+    "architecture_summary": "Saturating up/down counter with combinational increment/decrement enables and registered grant pulse.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high reset clears tokens and grant to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Token count auto-increments each non-reset edge up to CAPACITY and never below zero; output width is $clog2(CAPACITY+1).",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Grant registers high only when req is sampled high and pre-edge tokens > 0; empty request rejected despite same-edge replenish.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Middle occupancy holds count under simultaneous replenish and consume; full occupancy blocks replenish so consume decrements.",
+            "maps_to": [
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: single saturating up/down counter register `tokens` plus `grant` register; no FSM.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [
+              "tokens"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "token_reg",
+              "grant_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational `replenish` = (tokens < CAPACITY) selects automatic token addition.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.2",
+              "S2.1"
+            ],
+            "reads": [
+              "tokens",
+              "CAPACITY"
+            ],
+            "writes": [
+              "replenish"
+            ],
+            "rtl_blocks": [
+              "replenish_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational `accept` = req && (tokens > 0) selects consumption and grant.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.1"
+            ],
+            "reads": [
+              "req",
+              "tokens"
+            ],
+            "writes": [
+              "accept"
+            ],
+            "rtl_blocks": [
+              "accept_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Next count `tokens_next` = tokens + replenish - accept drives the counter.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S1.4"
+            ],
+            "reads": [
+              "tokens",
+              "replenish",
+              "accept"
+            ],
+            "writes": [
+              "tokens_next"
+            ],
+            "rtl_blocks": [
+              "next_count_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Highest priority: on posedge clk if rst high, tokens and grant synchronously cleared.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S2.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Non-reset edge registers tokens_next and accept into tokens and grant.",
+            "maps_to": [
+              "O_REPLENISH",
+              "O_CURRENT_ACCEPT",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "replenish",
+              "accept",
+              "tokens_next"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "clocked_update"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Empty case: replenish=1, accept=0 yields tokens+1 and grant=0.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.3"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "accept",
+              "replenish"
+            ],
+            "writes": [
+              "tokens"
+            ],
+            "rtl_blocks": [
+              "empty_case"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Full case: replenish=0, accept=1 yields tokens-1 and grant=1.",
+            "maps_to": [
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S1.4",
+              "S2.2"
+            ],
+            "reads": [
+              "tokens",
+              "accept",
+              "replenish"
+            ],
+            "writes": [
+              "tokens"
+            ],
+            "rtl_blocks": [
+              "full_case"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: always tokens >= 0 && tokens <= CAPACITY.",
+            "maps_to": [
+              "O_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.2"
+            ],
+            "reads": [
+              "tokens"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: grant == (req && past tokens > 0) on non-reset edges.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_GRANT_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.2"
+            ],
+            "reads": [
+              "grant",
+              "req",
+              "tokens"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: tokens==0 && req -> next tokens==1 && grant==0.",
+            "maps_to": [
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: 0<tokens<CAPACITY && req -> next tokens==tokens && grant==1.",
+            "maps_to": [
+              "O_MIDDLE_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Candidate: tokens==CAPACITY && req -> next tokens==CAPACITY-1 && grant==1.",
+            "maps_to": [
+              "O_FULL_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "grant"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Declare parameters CAPACITY, TOKEN_WIDTH and registers tokens, grant.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "declarations"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement always_comb for replenish and accept.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "tokens",
+              "req",
+              "CAPACITY"
+            ],
+            "writes": [
+              "replenish",
+              "accept"
+            ],
+            "rtl_blocks": [
+              "replenish_logic",
+              "accept_logic"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement tokens_next arithmetic.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "tokens",
+              "replenish",
+              "accept"
+            ],
+            "writes": [
+              "tokens_next"
+            ],
+            "rtl_blocks": [
+              "next_count_logic"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Implement always_ff with sync reset and registered update.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "tokens_next",
+              "accept"
+            ],
+            "writes": [
+              "tokens",
+              "grant"
+            ],
+            "rtl_blocks": [
+              "clocked_update"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "token_bucket",
+      "code": "module token_bucket #(parameter int CAPACITY = 3, parameter int TOKEN_WIDTH = $clog2(CAPACITY+1)) (\n  input  logic clk,\n  input  logic rst,\n  input  logic req,\n  output logic grant,\n  output logic [TOKEN_WIDTH-1:0] tokens\n);\n  logic replenish;\n  logic accept;\n  logic [TOKEN_WIDTH-1:0] tokens_next;\n\n  always_comb begin\n    replenish = (tokens < CAPACITY);\n    accept = req && (tokens > 0);\n    tokens_next = tokens + replenish - accept;\n  end\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      tokens <= '0;\n      grant <= 1'b0;\n    end else begin\n      tokens <= tokens_next;\n      grant <= accept;\n    end\n  end\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "TOKEN_WIDTH derived as $clog2(CAPACITY+1)."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "3e9cb8df-15be-4c12-b3fd-15a6289cfa1f",
+        "usage": {
+          "prompt_tokens": 1487,
+          "completion_tokens": 12783,
+          "total_tokens": 14270,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 10296
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:token_bucket_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:token_bucket_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FULL_CONSUME",
+        "O_GRANT_PULSE",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RANGE",
+        "O_REPLENISH",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "1ea42dbe0ef3bca41609f00bda2cab806eaf737e3d5225b759c8bd7b981e54d1",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:replenish"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:replenish"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:replenish"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:replenish"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:replenish_logic"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:accept"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:accept"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:accept"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:accept"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:accept_logic"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:tokens_next"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:next_count_logic"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:grant",
+            "shared_obligation_context:O_CURRENT_ACCEPT",
+            "shared_obligation_context:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:grant"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:grant"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.5",
+          "reasons": [
+            "def_use:grant"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.4",
+          "reasons": [
+            "rtl_traceability:clocked_update"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "def_use:tokens",
+            "shared_obligation_context:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:tokens"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:accept",
+            "def_use:replenish"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:accept"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:tokens_next"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3",
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S2.2",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.3",
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S3.2"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2",
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.1",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S5.2",
+            "S5.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_REPLENISH"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RANGE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_GRANT_PULSE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_FULL_CONSUME"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 21,
+        "claimed_dependency_count": 31,
+        "items_with_structural_traceability": 17,
+        "structural_traceability_coverage": 0.8095238095238095,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "3e9cb8df-15be-4c12-b3fd-15a6289cfa1f",
+      "usage": {
+        "prompt_tokens": 1487,
+        "completion_tokens": 12783,
+        "total_tokens": 14270,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 10296
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "4d7c9c87-4c8d-4c5f-b320-ec801857cf0c",
+      "usage": {
+        "prompt_tokens": 3599,
+        "completion_tokens": 6055,
+        "total_tokens": 9654,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4544
+        }
+      },
+      "finish_reason": "stop",
+      "same_model_family_as_candidate": true,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "single_annotated",
+    "annotator_id": "LT001",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "The process correctly models automatic replenishment, pre-edge current-state consumption acceptance, empty-bucket no-lookahead behavior, simultaneous replenish and consume at middle occupancy, full-bucket consumption, range safety, synchronous reset, and registered grant timing. S4.2 correctly relates the registered grant to the request sampled on the producing edge and the pre-edge token count, without introducing an invalid cross-reset history dependency. No reproducible failure exists within the frozen legal parameter domain, and trusted simulation and bounded formal verification pass all obligations."
+  }
+}

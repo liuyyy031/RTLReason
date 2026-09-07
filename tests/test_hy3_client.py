@@ -43,9 +43,19 @@ class Hy3ClientTests(unittest.TestCase):
         self.assertEqual(selected["task_id"], "t")
 
     def test_judge_prompt_requires_property_priority_checks(self) -> None:
-        self.assertEqual(JUDGE_PROMPT_VERSION, "1.1")
+        self.assertEqual(JUDGE_PROMPT_VERSION, "1.5")
         self.assertIn("reset", JUDGE_SYSTEM_PROMPT)
         self.assertIn("priority", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("implicitly disabled", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("reset epoch", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("many-to-many traceability", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("always_comb", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("Multi-cycle", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("may not add a missing antecedent", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("only if", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("all registers", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("S1--S3", JUDGE_SYSTEM_PROMPT)
+        self.assertIn("block-label syntax", JUDGE_SYSTEM_PROMPT)
         self.assertIn("correct RTL", JUDGE_SYSTEM_PROMPT)
 
 

@@ -1,0 +1,1317 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout-candidate-request-ack-001",
+  "task_id": "request_ack_timeout_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out/request-ack-001",
+  "source_hashes": {
+    "process_sha256": "2963e91d13008083cf98e53e11ca522ffc79b279d19c6cdeef3605e49fb276ae",
+    "evidence_sha256": "702a85ca419e4dcd93a7e666395a972031fad65ec7fc1effefe6eba46213f5b2",
+    "report_sha256": "5c7d3c7ca59b5886af145091209d6af1b536c14cab1b4cfd97b915edf4a1ea5f"
+  },
+  "candidate_process": {
+    "task_id": "request_ack_timeout_v1",
+    "architecture_summary": "Two-state Moore FSM (IDLE/BUSY) with a down-counter loaded to TIMEOUT_CYCLES on request acceptance and registered outputs; ack has priority over timeout on final service edge.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst clears busy, done, timeout and forces idle.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Request accepted only when busy is low; after acceptance busy is high.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_BUSY_REQUEST_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "ack sampled on same edge as request acceptance is ignored because no outstanding transaction existed before edge.",
+            "maps_to": [
+              "O_INITIAL_ACK_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Exactly TIMEOUT_CYCLES service edges follow acceptance; ack on final edge yields done, otherwise timeout after final edge.",
+            "maps_to": [
+              "O_TIMEOUT_EXACT",
+              "O_ACK_PRIORITY",
+              "O_ACK_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.5",
+            "stage": "S1",
+            "claim": "done and timeout are mutually exclusive single-cycle pulses, never both high.",
+            "maps_to": [
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture is a 2-state Moore-style FSM (IDLE, BUSY) with registered outputs.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.5"
+            ],
+            "reads": [],
+            "writes": [
+              "state"
+            ],
+            "rtl_blocks": [
+              "state_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "A down-counter cnt initialized to TIMEOUT_CYCLES on entry to BUSY tracks remaining service edges.",
+            "maps_to": [
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.4"
+            ],
+            "reads": [
+              "state"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "cnt_reg"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output registers busy, done, timeout are driven from next-state/next-output combinational logic.",
+            "maps_to": [
+              "O_RESET",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "state",
+              "cnt"
+            ],
+            "writes": [
+              "busy",
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": [
+              "output_reg"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "In IDLE, synchronous reset forces IDLE and zero outputs; else if req, next_state=BUSY, cnt=TIMEOUT_CYCLES, busy=1, ignoring ack.",
+            "maps_to": [
+              "O_RESET",
+              "O_REQUEST_ACCEPT",
+              "O_INITIAL_ACK_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "req",
+              "ack"
+            ],
+            "writes": [
+              "state",
+              "cnt",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "fsm_idle"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "In BUSY, if ack sampled, next_state=IDLE, done=1, busy=0, timeout=0 (ack priority).",
+            "maps_to": [
+              "O_ACK_COMPLETE",
+              "O_ACK_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "ack",
+              "rst",
+              "state"
+            ],
+            "writes": [
+              "state",
+              "done",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "fsm_busy_ack"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "In BUSY, if no ack and cnt==1, next_state=IDLE, timeout=1, busy=0 (exact final edge).",
+            "maps_to": [
+              "O_TIMEOUT_EXACT",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "cnt",
+              "ack",
+              "rst",
+              "state"
+            ],
+            "writes": [
+              "state",
+              "timeout",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "fsm_busy_timeout"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "In BUSY, if no ack and cnt>1, remain BUSY, cnt<=cnt-1, outputs zero; req ignored.",
+            "maps_to": [
+              "O_BUSY_REQUEST_IGNORED",
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "cnt",
+              "ack",
+              "req",
+              "state"
+            ],
+            "writes": [
+              "cnt",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "fsm_busy_wait"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Property: done and timeout are never asserted simultaneously (mutual exclusion).",
+            "maps_to": [
+              "O_PULSES"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "done",
+              "timeout"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Property: a req when !busy leads to busy in the following cycle unless reset.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "req",
+              "busy"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Property: if no ack, timeout asserts exactly TIMEOUT_CYCLES cycles after busy assertion.",
+            "maps_to": [
+              "O_TIMEOUT_EXACT"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "cnt",
+              "busy",
+              "timeout"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Property: ack on the cycle where cnt==1 yields done and suppresses timeout.",
+            "maps_to": [
+              "O_ACK_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "ack",
+              "cnt",
+              "done",
+              "timeout"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Property: req sampled while busy does not alter state or cnt.",
+            "maps_to": [
+              "O_BUSY_REQUEST_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "req",
+              "busy",
+              "state",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module declared with parameter TIMEOUT_CYCLES and required ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_decl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Combinational FSM and down-counter compute next state, cnt, and next outputs with synchronous reset in always_ff.",
+            "maps_to": [
+              "O_REQUEST_ACCEPT",
+              "O_ACK_COMPLETE",
+              "O_TIMEOUT_EXACT",
+              "O_INITIAL_ACK_IGNORED"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "req",
+              "ack"
+            ],
+            "writes": [
+              "state",
+              "cnt",
+              "busy",
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": [
+              "rtl.code"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Outputs are registered and default zero except on specific transitions, guaranteeing one-cycle pulses.",
+            "maps_to": [
+              "O_PULSES",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S5.2"
+            ],
+            "reads": [
+              "state",
+              "cnt"
+            ],
+            "writes": [
+              "busy",
+              "done",
+              "timeout"
+            ],
+            "rtl_blocks": [
+              "rtl.code"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "request_ack_timeout",
+      "code": "module request_ack_timeout #(\n    parameter int TIMEOUT_CYCLES = 4\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic req,\n    input  logic ack,\n    output logic busy,\n    output logic done,\n    output logic timeout\n);\n\n    typedef enum logic {IDLE, BUSY} state_t;\n    state_t state, next_state;\n    logic [31:0] cnt, next_cnt;\n    logic next_busy, next_done, next_timeout;\n\n    always_comb begin\n        next_state = state;\n        next_cnt = cnt;\n        next_busy = 1'b0;\n        next_done = 1'b0;\n        next_timeout = 1'b0;\n        case (state)\n            IDLE: begin\n                next_busy = 1'b0;\n                if (req) begin\n                    next_state = BUSY;\n                    next_cnt = TIMEOUT_CYCLES;\n                    next_busy = 1'b1;\n                end\n            end\n            BUSY: begin\n                next_busy = 1'b1;\n                if (ack) begin\n                    next_state = IDLE;\n                    next_busy = 1'b0;\n                    next_done = 1'b1;\n                end else if (cnt == 32'd1) begin\n                    next_state = IDLE;\n                    next_busy = 1'b0;\n                    next_timeout = 1'b1;\n                end else begin\n                    next_cnt = cnt - 32'd1;\n                end\n            end\n        endcase\n    end\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            state <= IDLE;\n            cnt <= 32'd0;\n            busy <= 1'b0;\n            done <= 1'b0;\n            timeout <= 1'b0;\n        end else begin\n            state <= next_state;\n            cnt <= next_cnt;\n            busy <= next_busy;\n            done <= next_done;\n            timeout <= next_timeout;\n        end\n    end\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Counter width fixed 32 bits for simplicity; synthesis will optimize. Ack priority encoded by checking ack before cnt==1. Request while busy ignored by only acting on req in IDLE state."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "c16d7def-3ea4-45b8-8414-a3a09c31d4d9",
+        "usage": {
+          "prompt_tokens": 1603,
+          "completion_tokens": 12426,
+          "total_tokens": 14029,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 9664
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:request_ack_timeout_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_COMPLETE",
+        "O_ACK_PRIORITY",
+        "O_BUSY_REQUEST_IGNORED",
+        "O_INITIAL_ACK_IGNORED",
+        "O_PULSES",
+        "O_REQUEST_ACCEPT",
+        "O_RESET",
+        "O_TIMEOUT_EXACT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:request_ack_timeout_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_COMPLETE",
+        "O_ACK_PRIORITY",
+        "O_BUSY_REQUEST_IGNORED",
+        "O_INITIAL_ACK_IGNORED",
+        "O_PULSES",
+        "O_REQUEST_ACCEPT",
+        "O_RESET",
+        "O_TIMEOUT_EXACT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_ACK_COMPLETE",
+          "O_ACK_PRIORITY",
+          "O_BUSY_REQUEST_IGNORED",
+          "O_INITIAL_ACK_IGNORED",
+          "O_PULSES",
+          "O_REQUEST_ACCEPT",
+          "O_RESET",
+          "O_TIMEOUT_EXACT"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "3b7300ac3e400bbc4624277f349d31689f25363b665ec5804d6a307d98c44bdb",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S1.5",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:state"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:state",
+            "shared_obligation_context:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:state"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "shared_obligation_context:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:state"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:done"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:done",
+            "shared_obligation_context:O_ACK_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:state",
+            "shared_obligation_context:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:timeout",
+            "shared_obligation_context:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:timeout",
+            "shared_obligation_context:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:timeout"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_BUSY_REQUEST_IGNORED"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:cnt",
+            "def_use:state",
+            "rtl_traceability:rtl.code"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S1.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S1.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S1.5": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.5"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3",
+            "S3.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S5.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_REQUEST_IGNORED"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_BUSY_REQUEST_IGNORED"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_INITIAL_ACK_IGNORED"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_INITIAL_ACK_IGNORED"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_ACK_COMPLETE",
+            "shared_obligation:O_ACK_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_ACK_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_COMPLETE",
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S1.5",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_INITIAL_ACK_IGNORED",
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_ACK_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_COMPLETE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_BUSY_REQUEST_IGNORED"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_PULSES"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_ACCEPT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_TIMEOUT_EXACT"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 20,
+        "claimed_dependency_count": 29,
+        "items_with_structural_traceability": 15,
+        "structural_traceability_coverage": 0.75,
+        "gaps": {
+          "S1.2": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.4": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S1.5": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "c16d7def-3ea4-45b8-8414-a3a09c31d4d9",
+      "usage": {
+        "prompt_tokens": 1603,
+        "completion_tokens": 12426,
+        "total_tokens": 14029,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9664
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "adjudication": {
+    "status": "pending_human",
+    "independent_gold_required": true,
+    "gold_fields_present": false,
+    "guideline_version": "1.1"
+  }
+}

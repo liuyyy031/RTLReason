@@ -1,0 +1,274 @@
+{
+  "case_count": 47,
+  "overall": {
+    "eda_only": {
+      "final_rtl_accuracy": 1.0,
+      "process_correctness_accuracy": 0.7021276595744681,
+      "process_correctness_macro_f1": 0.5554054054054054,
+      "stage_first_error_localization_accuracy": 0.0,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 0.0,
+      "error_type_l1_macro_f1": 0.0,
+      "root_error_accuracy": 0.0,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 47,
+        "predicted_rtl": 47,
+        "predicted_process": 47,
+        "gold_process_errors": 17,
+        "correct_rtl_wrong_process": 14
+      }
+    },
+    "semantic_only": {
+      "final_rtl_accuracy": 1.0,
+      "process_correctness_accuracy": 0.8297872340425532,
+      "process_correctness_macro_f1": 0.8156862745098039,
+      "stage_first_error_localization_accuracy": 0.7647058823529411,
+      "process_false_positive_rate": 0.13333333333333333,
+      "correct_rtl_wrong_process_recall": 0.7857142857142857,
+      "error_type_l1_macro_f1": 0.7532467532467532,
+      "root_error_accuracy": 0.7647058823529411,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 47,
+        "predicted_rtl": 47,
+        "predicted_process": 47,
+        "gold_process_errors": 17,
+        "correct_rtl_wrong_process": 14
+      }
+    },
+    "full": {
+      "final_rtl_accuracy": 1.0,
+      "process_correctness_accuracy": 0.851063829787234,
+      "process_correctness_macro_f1": 0.840677966101695,
+      "stage_first_error_localization_accuracy": 0.7647058823529411,
+      "process_false_positive_rate": 0.13333333333333333,
+      "correct_rtl_wrong_process_recall": 0.7857142857142857,
+      "error_type_l1_macro_f1": 0.7532467532467532,
+      "root_error_accuracy": 0.7647058823529411,
+      "critical_dependency_exact_accuracy": 0.13333333333333333,
+      "critical_dependency_micro_precision": 0.5882352941176471,
+      "critical_dependency_micro_recall": 0.3448275862068966,
+      "critical_dependency_micro_f1": 0.4347826086956522,
+      "coverage": {
+        "total": 47,
+        "predicted_rtl": 47,
+        "predicted_process": 47,
+        "gold_process_errors": 17,
+        "correct_rtl_wrong_process": 14
+      }
+    }
+  },
+  "by_layer": {
+    "basic": {
+      "case_count": 13,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.38461538461538464,
+          "process_correctness_macro_f1": 0.35,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 13,
+            "predicted_rtl": 13,
+            "predicted_process": 13,
+            "gold_process_errors": 9,
+            "correct_rtl_wrong_process": 8
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.7692307692307693,
+          "process_correctness_macro_f1": 0.7636363636363637,
+          "stage_first_error_localization_accuracy": 0.6666666666666666,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.75,
+          "error_type_l1_macro_f1": 0.5714285714285714,
+          "root_error_accuracy": 0.6666666666666666,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 13,
+            "predicted_rtl": 13,
+            "predicted_process": 13,
+            "gold_process_errors": 9,
+            "correct_rtl_wrong_process": 8
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8461538461538461,
+          "process_correctness_macro_f1": 0.8375,
+          "stage_first_error_localization_accuracy": 0.6666666666666666,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.75,
+          "error_type_l1_macro_f1": 0.5714285714285714,
+          "root_error_accuracy": 0.6666666666666666,
+          "critical_dependency_exact_accuracy": 0.125,
+          "critical_dependency_micro_precision": 0.625,
+          "critical_dependency_micro_recall": 0.3333333333333333,
+          "critical_dependency_micro_f1": 0.43478260869565216,
+          "coverage": {
+            "total": 13,
+            "predicted_rtl": 13,
+            "predicted_process": 13,
+            "gold_process_errors": 9,
+            "correct_rtl_wrong_process": 8
+          }
+        }
+      }
+    },
+    "intermediate": {
+      "case_count": 19,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8947368421052632,
+          "process_correctness_macro_f1": 0.4722222222222222,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 19,
+            "predicted_rtl": 19,
+            "predicted_process": 19,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 2
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8421052631578947,
+          "process_correctness_macro_f1": 0.7373271889400921,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.17647058823529413,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 1.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 19,
+            "predicted_rtl": 19,
+            "predicted_process": 19,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 2
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8421052631578947,
+          "process_correctness_macro_f1": 0.7373271889400921,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.17647058823529413,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 1.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.5,
+          "critical_dependency_micro_precision": 1.0,
+          "critical_dependency_micro_recall": 0.75,
+          "critical_dependency_micro_f1": 0.8571428571428571,
+          "coverage": {
+            "total": 19,
+            "predicted_rtl": 19,
+            "predicted_process": 19,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 2
+          }
+        }
+      }
+    },
+    "hard": {
+      "case_count": 15,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.7333333333333333,
+          "process_correctness_macro_f1": 0.6590909090909092,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 15,
+            "predicted_rtl": 15,
+            "predicted_process": 15,
+            "gold_process_errors": 6,
+            "correct_rtl_wrong_process": 4
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8666666666666667,
+          "process_correctness_macro_f1": 0.8611111111111112,
+          "stage_first_error_localization_accuracy": 0.8333333333333334,
+          "process_false_positive_rate": 0.1111111111111111,
+          "correct_rtl_wrong_process_recall": 0.75,
+          "error_type_l1_macro_f1": 0.9166666666666666,
+          "root_error_accuracy": 0.8333333333333334,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 15,
+            "predicted_rtl": 15,
+            "predicted_process": 15,
+            "gold_process_errors": 6,
+            "correct_rtl_wrong_process": 4
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8666666666666667,
+          "process_correctness_macro_f1": 0.8611111111111112,
+          "stage_first_error_localization_accuracy": 0.8333333333333334,
+          "process_false_positive_rate": 0.1111111111111111,
+          "correct_rtl_wrong_process_recall": 0.75,
+          "error_type_l1_macro_f1": 0.9166666666666666,
+          "root_error_accuracy": 0.8333333333333334,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": 0.3333333333333333,
+          "critical_dependency_micro_recall": 0.2,
+          "critical_dependency_micro_f1": 0.25,
+          "coverage": {
+            "total": 15,
+            "predicted_rtl": 15,
+            "predicted_process": 15,
+            "gold_process_errors": 6,
+            "correct_rtl_wrong_process": 4
+          }
+        }
+      }
+    }
+  }
+}

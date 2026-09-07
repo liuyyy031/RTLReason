@@ -1160,6 +1160,6 @@
     "status": "pending_human",
     "independent_gold_required": true,
     "gold_fields_present": false,
-    "guideline_version": "1.0"
+    "guideline_version": "1.1"
   }
 }

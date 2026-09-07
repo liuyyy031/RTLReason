@@ -1,0 +1,18 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the specification understanding, state model, transfer rules, candidate properties, and final RTL were checked sequentially against the frozen ready/valid FIFO obligations; the candidate correctly models empty no-bypass behavior, occupancy-based out_valid, full-queue replacement, FIFO ordering, and simultaneous transfers. In the second review, the design was independently stress-checked across occupancy 0, 1, and 2 boundary cases. At occupancy 1, simultaneous input/output correctly replaces the consumed head and keeps occupancy at one, while backpressure preserves the current head without incorrectly freezing unrelated legal input acceptance. At occupancy 2, in_ready becomes high only when the current output can transfer, and simultaneous consume-and-replace correctly promotes the previous second word and stores the new tail. No process contradiction or observable RTL violation was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

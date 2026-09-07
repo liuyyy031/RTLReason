@@ -1,0 +1,16 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. The process correctly captures the frozen APB-like register-bank semantics, including synchronous reset, access-phase transfer gating, valid write decode, register preservation, combinational readback, invalid-address error gating, and constant-ready behavior. S3.4 is consistent with the normal-operation transition context established by the preceding reset rule, and S4.3 explicitly accounts for reset and per-register write enables. The global pready property is literally true. Final RTL passes trusted simulation and bounded formal verification for all configured obligations."
+}

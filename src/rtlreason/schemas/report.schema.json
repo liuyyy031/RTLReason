@@ -26,7 +26,10 @@
     },
     "semantic_evaluator": {
       "type": "object",
-      "required": ["provider", "model", "request_id", "usage", "finish_reason"]
+      "anyOf": [
+        {"required": ["provider", "model", "request_id", "usage", "finish_reason"]},
+        {"required": ["status", "reason"]}
+      ]
     },
     "attribution": {
       "type": "object",

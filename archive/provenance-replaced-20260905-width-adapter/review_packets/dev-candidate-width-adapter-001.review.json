@@ -1,0 +1,497 @@
+{
+  "schema_version": "1.0",
+  "case_id": "dev-candidate-width-adapter-001",
+  "task_id": "stream_width_adapter_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/calibration/width-adapter-001",
+  "source_hashes": {
+    "process_sha256": "e3e0f19e19485c482f2128aacc75465477cd649410a91bfb056ce374708a8e84",
+    "evidence_sha256": "408066ae87c5fa65d79b28f78a50cf09ac8732e5b98f15c56af4d53c67274ba1",
+    "report_sha256": "506304f01e1378b2e76cbbac6080a511a06e86d7a0211ec3055da17be68de704"
+  },
+  "candidate_process": {
+    "task_id": "stream_width_adapter_v1",
+    "architecture_summary": "Two-register architecture with has_low and out_valid_r flags; low_byte stores first byte, out_data_r holds full word; combinational in_ready = !out_valid_r.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module accepts two 8-bit inputs and outputs one 16-bit word; first byte is low byte [7:0], second byte is high byte [15:8].",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "in_data"
+            ],
+            "writes": [
+              "out_data"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "in_ready is combinational inverse of out_valid; no input accepted when out_valid is high.",
+            "maps_to": [
+              "O_READY",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "out_valid_r"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Output remains stable under backpressure; cleared on acceptance after the edge.",
+            "maps_to": [
+              "O_BACKPRESSURE",
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Synchronous reset clears all state (has_low, low_byte, out_valid_r, out_data_r).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses two registers: low_byte (8-bit) for stored first byte, out_data_r (16-bit) for full output word. State is encoded by a has_low flag and out_valid_r register. No explicit state machine; combinational logic drives in_ready and transitions.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Input acceptance: on first byte (in_ready && in_valid && !has_low), store in_data into low_byte and set has_low; on second byte (in_ready && in_valid && has_low), combine low_byte with in_data into out_data_r, set out_valid_r, clear has_low.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "in_valid",
+              "in_data",
+              "has_low",
+              "low_byte"
+            ],
+            "writes": [
+              "low_byte",
+              "has_low",
+              "out_data_r",
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "input_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output acceptance: when out_valid_r && out_ready, clear out_valid_r; out_data_r persists unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "output_acceptance_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset (synchronous high) takes priority: on posedge clk if rst=1, all registers cleared (has_low=0, low_byte=0, out_valid_r=0, out_data_r=0).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "rst",
+              "clk"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "rtl_blocks": [
+              "reset_block"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "On non-reset edge, if out_valid_r && out_ready, then out_valid_r <= 0; out_data_r unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "output_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "On non-reset edge, if in_ready && in_valid, then: if !has_low, store low byte; else publish full word.",
+            "maps_to": [
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "in_valid",
+              "in_data",
+              "has_low",
+              "low_byte"
+            ],
+            "writes": [
+              "low_byte",
+              "has_low",
+              "out_data_r",
+              "out_valid_r"
+            ],
+            "rtl_blocks": [
+              "input_acceptance_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "No simultaneous input and output acceptance because in_ready is low when out_valid_r is high; thus input acceptance only occurs when out_valid_r is low.",
+            "maps_to": [
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "in_ready",
+              "out_valid_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "in_ready === !out_valid_r at all times (combinational).",
+            "maps_to": [
+              "O_READY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.4"
+            ],
+            "reads": [
+              "out_valid_r"
+            ],
+            "writes": [
+              "in_ready"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "After reset, out_valid_r == 0, has_low == 0, low_byte == 0, out_data_r == 0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "If in_valid && in_ready && !has_low, then next cycle has_low == 1 and low_byte == in_data.",
+            "maps_to": [
+              "O_FIRST_BYTE"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "has_low",
+              "in_data"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "If in_valid && in_ready && has_low, then next cycle out_valid_r == 1, out_data_r == {in_data, low_byte}, has_low == 0.",
+            "maps_to": [
+              "O_PACK_ORDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "in_valid",
+              "in_ready",
+              "has_low",
+              "in_data",
+              "low_byte"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "If out_valid_r && out_ready, then next cycle out_valid_r == 0, out_data_r unchanged.",
+            "maps_to": [
+              "O_OUTPUT_TRANSFER"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "out_valid_r",
+              "out_ready"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "The RTL code implements the module with registers (has_low, low_byte, out_valid_r, out_data_r), combinational in_ready, and sequential logic for transitions as specified.",
+            "maps_to": [
+              "O_RESET",
+              "O_READY",
+              "O_FIRST_BYTE",
+              "O_PACK_ORDER",
+              "O_BACKPRESSURE",
+              "O_OUTPUT_TRANSFER",
+              "O_NO_REPLACEMENT"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3",
+              "S1.4",
+              "S2.1",
+              "S2.2",
+              "S2.3",
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "in_valid",
+              "in_data",
+              "out_ready",
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r"
+            ],
+            "writes": [
+              "has_low",
+              "low_byte",
+              "out_valid_r",
+              "out_data_r",
+              "in_ready",
+              "out_valid",
+              "out_data"
+            ],
+            "rtl_blocks": [
+              "stream_width_adapter"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "stream_width_adapter",
+      "code": "module stream_width_adapter (\n  input  logic        clk,\n  input  logic        rst,\n  input  logic        in_valid,\n  output logic        in_ready,\n  input  logic [7:0]  in_data,\n  output logic        out_valid,\n  input  logic        out_ready,\n  output logic [15:0] out_data\n);\n\n  // Registers\n  logic        has_low;\n  logic [7:0]  low_byte;\n  logic        out_valid_r;\n  logic [15:0] out_data_r;\n\n  // Combinational\n  assign in_ready = !out_valid_r;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      has_low     <= 1'b0;\n      low_byte    <= 8'b0;\n      out_valid_r <= 1'b0;\n      out_data_r  <= 16'b0;\n    end else begin\n      // Output acceptance\n      if (out_valid_r && out_ready) begin\n        out_valid_r <= 1'b0;\n        // out_data_r retains value\n      end\n\n      // Input acceptance\n      if (in_ready && in_valid) begin\n        if (!has_low) begin\n          // First byte\n          has_low  <= 1'b1;\n          low_byte <= in_data;\n        end else begin\n          // Second byte\n          out_data_r  <= {in_data, low_byte}; // high byte is in_data, low byte is low_byte\n          out_valid_r <= 1'b1;\n          has_low     <= 1'b0;\n        end\n      end\n    end\n  end\n\n  // Output ports\n  assign out_valid = out_valid_r;\n  assign out_data  = out_data_r;\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "deepseek-v4-flash",
+        "request_id": "30bbb70e-a38f-4d17-bc23-faa23c462860",
+        "usage": {
+          "prompt_tokens": 1421,
+          "completion_tokens": 7136,
+          "total_tokens": 8557,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 4336
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:stream_width_adapter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:stream_width_adapter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BACKPRESSURE",
+        "O_FIRST_BYTE",
+        "O_NO_REPLACEMENT",
+        "O_OUTPUT_TRANSFER",
+        "O_PACK_ORDER",
+        "O_READY",
+        "O_RESET"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_BACKPRESSURE",
+          "O_FIRST_BYTE",
+          "O_NO_REPLACEMENT",
+          "O_OUTPUT_TRANSFER",
+          "O_PACK_ORDER",
+          "O_READY",
+          "O_RESET"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.0"
+  }
+}

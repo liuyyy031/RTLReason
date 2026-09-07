@@ -1,0 +1,1153 @@
+{
+  "schema_version": "1.0",
+  "task_id": "apb_register_bank_v1",
+  "created_at": "2026-09-03T01:38:43.775890+00:00",
+  "trusted_asset_version": "1.0.0",
+  "schema_issues": [],
+  "dependency_graph": {
+    "construction": "static_before_eda",
+    "digest": "c13e65492f95f5242206309e3442da396696f2d230999ec1ef5dc98fd0ee784f",
+    "nodes": [
+      "S1.1",
+      "S1.2",
+      "S1.3",
+      "S1.4",
+      "S1.5",
+      "S2.1",
+      "S2.2",
+      "S2.3",
+      "S3.1",
+      "S3.2",
+      "S3.3",
+      "S4.1",
+      "S4.2",
+      "S4.3",
+      "S4.4",
+      "S4.5",
+      "S5.1",
+      "S5.2",
+      "S5.3",
+      "S5.4"
+    ],
+    "edges": [
+      {
+        "source": "S2.2",
+        "target": "S2.3",
+        "reasons": [
+          "def_use:reg0",
+          "def_use:reg1"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S3.1",
+        "reasons": [
+          "rtl_traceability:sequential_register_bank",
+          "shared_obligation_context:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S5.3",
+        "reasons": [
+          "rtl_traceability:combinational_decode",
+          "shared_obligation_context:O_ERROR_GATING",
+          "shared_obligation_context:O_INVALID_ADDRESS",
+          "shared_obligation_context:O_READBACK"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S3.2",
+        "reasons": [
+          "rtl_traceability:sequential_register_bank"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S4.1",
+        "reasons": [
+          "property_derivation:def_use:reg0",
+          "property_derivation:def_use:reg1",
+          "shared_obligation_context:O_RESET"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.2",
+        "reasons": [
+          "property_derivation:def_use:reg0",
+          "property_derivation:def_use:reg1",
+          "shared_obligation_context:O_WRITE_DECODE",
+          "shared_obligation_context:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.3",
+        "reasons": [
+          "property_derivation:def_use:reg0",
+          "property_derivation:def_use:reg1",
+          "shared_obligation_context:O_WRITE_DECODE",
+          "shared_obligation_context:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.4",
+        "reasons": [
+          "def_use:reg0",
+          "def_use:reg1"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S5.2",
+        "reasons": [
+          "rtl_traceability:sequential_register_bank",
+          "shared_obligation_context:O_WRITE_DECODE"
+        ]
+      }
+    ],
+    "claimed_dependency_comparison": {
+      "S1.2": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.1"
+        ]
+      },
+      "S1.3": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.1"
+        ]
+      },
+      "S1.4": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.2"
+        ]
+      },
+      "S2.1": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.1",
+          "S1.2",
+          "S1.3",
+          "S1.4",
+          "S1.5"
+        ]
+      },
+      "S2.2": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S2.1"
+        ]
+      },
+      "S2.3": {
+        "confirmed_claimed_edges": [
+          "S2.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S2.1"
+        ]
+      },
+      "S3.1": {
+        "confirmed_claimed_edges": [
+          "S2.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S3.2": {
+        "confirmed_claimed_edges": [
+          "S3.1"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S2.2"
+        ]
+      },
+      "S3.3": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S3.2"
+        ]
+      },
+      "S4.1": {
+        "confirmed_claimed_edges": [
+          "S3.1"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S4.2": {
+        "confirmed_claimed_edges": [
+          "S3.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S4.3": {
+        "confirmed_claimed_edges": [
+          "S3.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S4.4": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [
+          "S3.2"
+        ],
+        "unverified_claimed_edges": [
+          "S2.3"
+        ]
+      },
+      "S4.5": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S2.3"
+        ]
+      },
+      "S5.1": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.5",
+          "S2.3"
+        ]
+      },
+      "S5.2": {
+        "confirmed_claimed_edges": [
+          "S3.2"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S3.1"
+        ]
+      },
+      "S5.3": {
+        "confirmed_claimed_edges": [
+          "S2.3"
+        ],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": []
+      },
+      "S5.4": {
+        "confirmed_claimed_edges": [],
+        "missing_claimed_edges": [],
+        "unverified_claimed_edges": [
+          "S1.5"
+        ]
+      }
+    },
+    "obligation_associations": [
+      {
+        "source": "S1.1",
+        "target": "S2.2",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S1.1",
+        "target": "S3.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S1.1",
+        "target": "S4.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S1.1",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S2.1",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S3.2",
+        "reasons": [
+          "shared_obligation:O_ACCESS_PHASE",
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_ACCESS_PHASE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S4.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S2.1",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S2.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.3",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S1.4",
+        "target": "S2.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.4",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.4",
+        "target": "S4.5",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.4",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.4",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S1.5",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S1.5",
+        "target": "S5.4",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S2.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S3.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S4.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S2.1",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S3.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S4.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S4.5",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S2.3",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S4.1",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S3.1",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S3.3",
+        "reasons": [
+          "shared_obligation:O_ACCESS_PHASE"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE",
+          "shared_obligation:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE",
+          "shared_obligation:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S3.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S3.3",
+        "target": "S4.4",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S3.3",
+        "target": "S4.5",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S3.3",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S3.3",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S4.1",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_RESET"
+        ]
+      },
+      {
+        "source": "S4.2",
+        "target": "S4.3",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE",
+          "shared_obligation:O_WRITE_READ_SEPARATION"
+        ]
+      },
+      {
+        "source": "S4.2",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S4.3",
+        "target": "S5.2",
+        "reasons": [
+          "shared_obligation:O_WRITE_DECODE"
+        ]
+      },
+      {
+        "source": "S4.4",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S4.4",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S4.5",
+        "target": "S5.1",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S4.5",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_ERROR_GATING",
+          "shared_obligation:O_INVALID_ADDRESS"
+        ]
+      },
+      {
+        "source": "S5.1",
+        "target": "S5.3",
+        "reasons": [
+          "shared_obligation:O_INVALID_ADDRESS",
+          "shared_obligation:O_READBACK"
+        ]
+      },
+      {
+        "source": "S5.1",
+        "target": "S5.4",
+        "reasons": [
+          "shared_obligation:O_READY"
+        ]
+      }
+    ],
+    "evidence_summary": {
+      "status": "insufficient_evidence",
+      "item_count": 20,
+      "claimed_dependency_count": 26,
+      "items_with_structural_traceability": 12,
+      "structural_traceability_coverage": 0.6,
+      "gaps": {
+        "S1.2": [
+          "claimed_dependency_has_no_structural_traceability"
+        ],
+        "S1.3": [
+          "claimed_dependency_has_no_structural_traceability"
+        ],
+        "S1.4": [
+          "claimed_dependency_has_no_structural_traceability"
+        ],
+        "S2.1": [
+          "claimed_dependency_has_no_structural_traceability"
+        ],
+        "S3.3": [
+          "claimed_dependency_has_no_structural_traceability"
+        ],
+        "S5.4": [
+          "claimed_dependency_has_no_structural_traceability"
+        ]
+      }
+    }
+  },
+  "verification": {
+    "final_rtl_correct": true,
+    "formal_required": true,
+    "simulation_available": true,
+    "formal_available": true
+  },
+  "evidence": [
+    {
+      "id": "simulation:apb_register_bank_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:apb_register_bank_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCESS_PHASE",
+        "O_ERROR_GATING",
+        "O_INVALID_ADDRESS",
+        "O_READBACK",
+        "O_READY",
+        "O_RESET",
+        "O_WRITE_DECODE",
+        "O_WRITE_READ_SEPARATION"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 28).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 28,
+        "configured_obligations": [
+          "O_ACCESS_PHASE",
+          "O_ERROR_GATING",
+          "O_INVALID_ADDRESS",
+          "O_READBACK",
+          "O_READY",
+          "O_RESET",
+          "O_WRITE_DECODE",
+          "O_WRITE_READ_SEPARATION"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "candidate_generation": {
+    "origin": "real_model_output",
+    "provider": "Tencent Cloud TokenHub",
+    "model": "deepseek-v4-flash",
+    "request_id": "e2f6a013-499e-48fa-a903-371684a87b51",
+    "usage": {
+      "prompt_tokens": 1498,
+      "completion_tokens": 3702,
+      "total_tokens": 5200,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 871
+      }
+    },
+    "finish_reason": "stop"
+  },
+  "semantic_evaluator": {
+    "provider": "Tencent Cloud TokenHub",
+    "model": "deepseek-v4-flash",
+    "request_id": "a757d45a-bcba-4d0f-9f68-3f71bbe5ae44",
+    "usage": {
+      "prompt_tokens": 4201,
+      "completion_tokens": 6119,
+      "total_tokens": 10320,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 4437
+      }
+    },
+    "finish_reason": "stop",
+    "prompt_version": "1.1",
+    "same_model_family_as_candidate": true,
+    "gold_labels_required_for_validation": true
+  },
+  "semantic_assessments": [
+    {
+      "item_id": "S1.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states two 32-bit registers at 0x0 and 0x4, reset to 0 on synchronous high reset, matching the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes write condition: access phase (psel && penable) with pwrite high and valid address, matching the interface semantics.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states combinational prdata: valid address returns register value, else 0, and no side effect on reads, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pslverr asserted only during access-phase transfer to invalid address, and low otherwise, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.5",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pready is constantly high, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The architecture description matches the RTL: two registers, combinational decoder, sequential write logic.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes registers as logic [31:0] reg0, reg1, reset on posedge clk, matching the RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The combinational decoder claim exactly matches the RTL: valid_addr, prdata case, and pslverr assignment.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states synchronous reset on posedge clk with rst high, clearing both registers, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes the write condition (not rst, psel, penable, pwrite, valid_addr) and update of addressed register, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim that no state change occurs in setup, invalid, or read cycles is correct; the RTL only updates under the exact write condition.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "After reset (synchronous high), registers are 0, matching the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that a valid write to 0x0 updates reg0 with pwdata and leaves reg1 unchanged after the next clock edge, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that a valid write to 0x4 updates reg1 with pwdata and leaves reg0 unchanged after the next clock edge, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states combinational prdata behavior: valid address returns register value, else 0, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.5",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that pslverr is high only when psel && penable && invalid address, matching the necessary condition from the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The module declaration claim matches the RTL port list exactly.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.2",
+      "status": "incorrect",
+      "error_type_l1": "Implementation",
+      "error_type_l2": "RTL Syntax or Elaboration",
+      "explanation": "The claim states the sequential block uses a localparam for valid address detection, but the RTL uses a wire assignment (valid_addr). This is a factual mismatch in the RTL description.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes the combinational block for prdata and pslverr using always_comb and assign statements, matching the RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pready is assigned to constant 1'b1, matching the RTL.",
+      "confidence": 1.0
+    }
+  ],
+  "assessments": [
+    {
+      "item_id": "S1.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states two 32-bit registers at 0x0 and 0x4, reset to 0 on synchronous high reset, matching the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes write condition: access phase (psel && penable) with pwrite high and valid address, matching the interface semantics.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states combinational prdata: valid address returns register value, else 0, and no side effect on reads, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pslverr asserted only during access-phase transfer to invalid address, and low otherwise, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S1.5",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pready is constantly high, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The architecture description matches the RTL: two registers, combinational decoder, sequential write logic.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes registers as logic [31:0] reg0, reg1, reset on posedge clk, matching the RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S2.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The combinational decoder claim exactly matches the RTL: valid_addr, prdata case, and pslverr assignment.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states synchronous reset on posedge clk with rst high, clearing both registers, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes the write condition (not rst, psel, penable, pwrite, valid_addr) and update of addressed register, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S3.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim that no state change occurs in setup, invalid, or read cycles is correct; the RTL only updates under the exact write condition.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "After reset (synchronous high), registers are 0, matching the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.2",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that a valid write to 0x0 updates reg0 with pwdata and leaves reg1 unchanged after the next clock edge, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that a valid write to 0x4 updates reg1 with pwdata and leaves reg0 unchanged after the next clock edge, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states combinational prdata behavior: valid address returns register value, else 0, matching the RTL and specification.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S4.5",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The property correctly states that pslverr is high only when psel && penable && invalid address, matching the necessary condition from the specification and RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.1",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The module declaration claim matches the RTL port list exactly.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.2",
+      "status": "incorrect",
+      "error_type_l1": "Implementation",
+      "error_type_l2": "RTL Syntax or Elaboration",
+      "explanation": "The claim states the sequential block uses a localparam for valid address detection, but the RTL uses a wire assignment (valid_addr). This is a factual mismatch in the RTL description.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.3",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly describes the combinational block for prdata and pslverr using always_comb and assign statements, matching the RTL.",
+      "confidence": 1.0
+    },
+    {
+      "item_id": "S5.4",
+      "status": "correct",
+      "error_type_l1": null,
+      "error_type_l2": null,
+      "explanation": "The claim correctly states pready is assigned to constant 1'b1, matching the RTL.",
+      "confidence": 1.0
+    }
+  ],
+  "assessment_issues": [],
+  "deterministic_overrides": [],
+  "attribution": {
+    "process_correct": false,
+    "root_errors": [
+      "S5.2"
+    ],
+    "earliest_error_stage": "S5",
+    "primary_error_item": "S5.2",
+    "violated_obligations": [],
+    "graph_digest": "c13e65492f95f5242206309e3442da396696f2d230999ec1ef5dc98fd0ee784f"
+  }
+}

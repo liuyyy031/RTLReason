@@ -1,0 +1,6 @@
+{
+  "level": "basic",
+  "concepts": ["exact timing", "reload", "zero clamp", "control priority"],
+  "formal_core": true,
+  "expected_process_items": "14-22"
+}
