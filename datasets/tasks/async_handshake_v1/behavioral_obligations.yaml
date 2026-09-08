@@ -1,0 +1,27 @@
+schema_version: "1.0"
+task_id: async_handshake_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: Under the coordinated reset contract, source and destination reset edges clear their local toggle and synchronizer state, dst_pulse is low, and src_accept is suppressed by src_rst.
+  - id: O_SOURCE_ACCEPT
+    category: acceptance
+    statement: src_accept is high exactly when src_send is high, src_rst is low, and no earlier accepted event is outstanding.
+  - id: O_BUSY_GATING
+    category: boundary
+    statement: A source send while src_busy is high does not change the request toggle and does not create an additional destination event.
+  - id: O_REQUEST_SYNC
+    category: cdc_protocol
+    statement: Destination delivery is based only on the second destination synchronization stage of the request toggle.
+  - id: O_SINGLE_PULSE
+    category: output
+    statement: A detected request-toggle change produces one registered dst_pulse and the next destination edge clears dst_pulse unless another distinct request toggle is detected.
+  - id: O_ACK_RETURN
+    category: cdc_protocol
+    statement: The acknowledgement equals the delivered request toggle and src_busy clears only after that acknowledgement returns through two source synchronization stages.
+  - id: O_EXACTLY_ONCE
+    category: safety
+    statement: Under the reset contract and one-outstanding-event restriction, every accepted source event produces one destination pulse with no duplicate pulse.
+  - id: O_RESET_CONTRACT
+    category: environment
+    statement: Formal assumptions prohibit unilateral reset epochs and reset while an event is outstanding; these cases are outside the task contract.

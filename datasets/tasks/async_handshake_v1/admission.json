@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "task_id": "async_handshake_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {"status": "approved", "reviewer_id": "LT001", "reviewed_at": "2026-09-07", "decision": "pass_without_changes"},
+  "risk_gate": {
+    "name": "reproducible_multiclock_formal",
+    "status": "passed",
+    "schedule": "source clock toggles every formal microstep; destination clock toggles every second microstep",
+    "scope": "bounded digital protocol safety only; no metastability, MTBF, physical CDC timing, or silicon reliability claim"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "bounded_multiclock_safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "The proof covers acceptance, reset contract, busy gating, and no duplicate destination pulse under the stated deterministic digital clock schedule."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "multiclock_formal_reproducible": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": "not_applicable",
+    "parameter_boundary_verified": "not_applicable",
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/async-handshake/reference-sim.json",
+    "reference_formal": "runs/task-admission/async-handshake/reference-formal.json",
+    "known_bad": [
+      {"mutation_id": "async_handshake_no_busy_gating", "rtl": "tests/fixtures/task_faults/async_handshake_no_busy_gating.sv", "broken_semantics": "A busy source request is accepted and can toggle the request again before acknowledgement returns.", "expected_obligations": ["O_BUSY_GATING", "O_EXACTLY_ONCE"], "simulation": {"status": "fail", "evidence": "runs/task-admission/async-handshake/bad-no-busy-sim.json", "failure_phase": "property_check"}, "formal": {"status": "fail", "evidence": "runs/task-admission/async-handshake/bad-no-busy-formal.json", "failure_phase": "property_check", "obligation_mapping": "unresolved_counterexample"}},
+      {"mutation_id": "async_handshake_level_pulse", "rtl": "tests/fixtures/task_faults/async_handshake_level_pulse.sv", "broken_semantics": "Destination output follows the synchronized toggle as a level instead of emitting one pulse.", "expected_obligations": ["O_SINGLE_PULSE", "O_EXACTLY_ONCE"], "simulation": {"status": "fail", "evidence": "runs/task-admission/async-handshake/bad-level-sim.json", "failure_phase": "property_check"}, "formal": {"status": "fail", "evidence": "runs/task-admission/async-handshake/bad-level-formal.json", "failure_phase": "property_check", "obligation_mapping": "unresolved_counterexample"}}
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/async_handshake_v1/problem.md": "34f0c3b6d3e828960befeec321c72268827891473766db9e9c8c2757bfcbb089",
+      "datasets/tasks/async_handshake_v1/interface_semantics.json": "694178e5427c5767e33d0b50b7cd18dc88e713330d9abdf8d7d06403439aa9b4",
+      "datasets/tasks/async_handshake_v1/behavioral_obligations.yaml": "5e6b650e6707ae2bd90025c3a479086ebfd40a4ac999d15f9a73f39b86d9de47",
+      "datasets/tasks/async_handshake_v1/difficulty.json": "59c4fa7a843f5b9d60a50e136cdc5af1b1397606d2db42a674bc70f6746542db",
+      "datasets/tasks/async_handshake_v1/provenance.json": "a771c883ccb676960ccbb399eced59b6a45aaa45550f700c4557b923ab138d22",
+      "datasets/tasks/async_handshake_v1/verification.json": "8f57db2e09d0e0303fa6315a9013cde2cadd6aa7af08e1c3e035b8e7758f3d0e",
+      "datasets/tasks/async_handshake_v1/reference_rtl/async_handshake.sv": "80855725654028eba0417a02adf0d445fa979805749fe1c9f8688a7284ecec3c",
+      "datasets/tasks/async_handshake_v1/testbench/tb_async_handshake.sv": "f367e14d0184befb291ab31c24373f8efba355d44b5d2cfff69e7f43a351d272",
+      "datasets/tasks/async_handshake_v1/formal/async_handshake_formal.sv": "2130b1d433f7853ebaadfc5932df9928ff069a75e926e8ac5a96cf0abfa5ffa4",
+      "src/rtlreason/reference/async_handshake.py": "c720b94d2a1969266e119ac03e3faf0b0239c9f486e4dc2fe22b0e3bcb54c84a",
+      "tests/fixtures/task_faults/async_handshake_no_busy_gating.sv": "0e9b0c5c66a113f7a4fd329549da8c43bb3dc744c16eb389545c514951a1e798",
+      "tests/fixtures/task_faults/async_handshake_level_pulse.sv": "aa35ffca01b1d685c86870b9575d03a77657a5c6dbd11ea6c1038ed648e6532a"
+    }
+  }
+}

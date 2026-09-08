@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "task_id": "async_handshake_v1",
+  "module_name": "async_handshake",
+  "clock": {
+    "type": "multi_domain",
+    "domains": ["source", "destination"],
+    "detail_field": "clocks"
+  },
+  "clocks": {
+    "source": {"port": "src_clk", "active_edge": "posedge"},
+    "destination": {"port": "dst_clk", "active_edge": "posedge"},
+    "formal_schedule": "source clock toggles every formal microstep; destination clock toggles every second microstep; the safety proof is digital and bounded, not a metastability proof"
+  },
+  "reset": {
+    "source": {"port": "src_rst", "type": "synchronous", "active_level": "high", "priority": "highest"},
+    "destination": {"port": "dst_rst", "type": "synchronous", "active_level": "high", "priority": "highest"},
+    "contract": "A reset epoch is coordinated: both resets are asserted before later source acceptance, and neither reset may assert while src_busy is high.",
+    "outside_contract": "Unilateral reset and reset during an outstanding transaction are unspecified."
+  },
+  "ports": {
+    "src_clk": {"direction": "input", "width": 1},
+    "src_rst": {"direction": "input", "width": 1},
+    "src_send": {"direction": "input", "width": 1},
+    "src_accept": {"direction": "output", "width": 1, "timing": "combinational_source_current_state"},
+    "src_busy": {"direction": "output", "width": 1, "timing": "combinational_source_current_state"},
+    "dst_clk": {"direction": "input", "width": 1},
+    "dst_rst": {"direction": "input", "width": 1},
+    "dst_pulse": {"direction": "output", "width": 1, "timing": "registered_one_destination_cycle"}
+  },
+  "acceptance": {
+    "source_event": "!src_rst && src_send && !src_busy",
+    "outstanding": "request_toggle != synchronized_acknowledgement_in_source_domain",
+    "busy_send": "src_send while src_busy is ignored and does not alter the request toggle"
+  },
+  "delivery": {
+    "mechanism": "two_stage_request_synchronizer_then_toggle_change_detection",
+    "acknowledgement": "destination captures the observed request toggle and it returns through a two-stage source synchronizer",
+    "pulse": "Exactly one destination registered pulse per accepted source event under the reset contract."
+  }
+}

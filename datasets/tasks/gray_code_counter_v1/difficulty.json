@@ -1,0 +1,12 @@
+{
+  "level": "basic",
+  "concepts": [
+    "synchronous reset",
+    "abstract state encoding",
+    "reflected Gray code",
+    "cyclic boundary",
+    "one-cycle pulse"
+  ],
+  "formal_core": true,
+  "expected_process_items": "12-20"
+}

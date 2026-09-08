@@ -53,6 +53,91 @@ def _real_output_origin(model: str) -> str:
     return "real_hy3" if model.strip().lower() == "hy3" else "real_model_output"
 
 
+def assert_candidate_generation_allowed(
+    task: TaskAssets,
+    settings: Settings,
+    *,
+    max_tokens: int,
+    semantic_evaluation: bool,
+) -> None:
+    admission_path = task.root / "admission.json"
+    if not admission_path.is_file():
+        return
+    try:
+        admission = json.loads(admission_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"Could not validate candidate-generation gate for {task.task_id}: {exc}"
+        ) from exc
+    if not isinstance(admission, dict):
+        raise ValueError(
+            f"Candidate-generation gate for {task.task_id} must be a JSON object"
+        )
+    if admission.get("candidate_generation_allowed") is False:
+        blocker = admission.get("candidate_generation_blocker", "task_not_admitted")
+        raise ValueError(
+            f"Candidate generation is blocked for {task.task_id}: {blocker}"
+        )
+    plan_ref = admission.get("candidate_generation_plan")
+    if not plan_ref:
+        return
+    project_root = task.root.parents[2]
+    plan_path = project_root / str(plan_ref)
+    try:
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"Could not validate frozen generation plan for {task.task_id}: {exc}"
+        ) from exc
+    if plan.get("status") not in {
+        "generation_plan_frozen",
+        "generation_plan_amended",
+    }:
+        raise ValueError("Candidate generation plan is not frozen")
+    samples = plan.get("samples", [])
+    if sum(item.get("task_id") == task.task_id for item in samples) != 1:
+        raise ValueError(
+            f"Frozen generation plan must contain {task.task_id} exactly once"
+        )
+    config = {
+        **plan.get("generation_configuration", {}),
+        **plan.get("task_generation_overrides", {}).get(task.task_id, {}),
+    }
+    actual = {
+        "model": settings.model,
+        "base_url": settings.base_url,
+        "temperature": settings.temperature,
+        "reasoning_effort": settings.reasoning_effort,
+        "max_tokens": max_tokens,
+        "timeout_seconds": settings.timeout_seconds,
+        "total_timeout_seconds": settings.total_timeout_seconds,
+        "max_retries": settings.max_retries,
+    }
+    mismatches = {
+        key: {"expected": config.get(key), "actual": value}
+        for key, value in actual.items()
+        if config.get(key) != value
+    }
+    if mismatches:
+        raise ValueError(
+            "Runtime settings do not match frozen generation plan: "
+            + json.dumps(mismatches, ensure_ascii=False, sort_keys=True)
+        )
+    if semantic_evaluation and not plan["generation_policy"].get(
+        "semantic_judge_during_collection", False
+    ):
+        raise ValueError(
+            "Semantic Judge is frozen off during candidate collection; use --skip-judge"
+        )
+    for relative_path, expected in plan.get("frozen_inputs", {}).items():
+        source = project_root / relative_path
+        actual_digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        if actual_digest != expected:
+            raise ValueError(
+                f"Frozen generation input changed: {relative_path}"
+            )
+
+
 def _rtl_verdict(
     evidence: list[VerificationEvidence], *, formal_required: bool
 ) -> bool | None:
@@ -252,6 +337,12 @@ def run_experiment(
 ) -> ExperimentResult:
     """Run one auditable Hy3 generation-and-evaluation experiment."""
     task = load_task(task_id, project_root=project_root)
+    assert_candidate_generation_allowed(
+        task,
+        settings,
+        max_tokens=max_tokens,
+        semantic_evaluation=semantic_evaluation,
+    )
     destination = Path(run_dir).resolve()
     destination.mkdir(parents=True, exist_ok=True)
     api = client or Hy3Client(settings)

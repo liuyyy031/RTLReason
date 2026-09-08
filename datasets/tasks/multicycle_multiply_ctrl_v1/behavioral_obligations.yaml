@@ -1,0 +1,12 @@
+schema_version: "1.0"
+task_id: multicycle_multiply_ctrl_v1
+obligations:
+  - {id: O_RESET, category: reset, statement: A sampled high rst clears busy, done, result, and all transaction state.}
+  - {id: O_ACCEPT, category: acceptance, statement: An idle start captures both unsigned operands and raises busy without executing an iteration on the acceptance edge.}
+  - {id: O_BUSY_IGNORE, category: boundary, statement: While busy, start and external operand changes do not replace or restart the active transaction.}
+  - {id: O_ITERATION_COUNT, category: timing, statement: Exactly WIDTH shift-add iterations occur on the WIDTH rising edges following acceptance.}
+  - {id: O_RESULT_STABLE, category: stability, statement: result retains the previous completed value through acceptance and the first WIDTH-1 busy edges.}
+  - {id: O_ATOMIC_COMMIT, category: output, statement: On the WIDTH-th busy edge result atomically becomes the full unsigned product of the captured operands.}
+  - {id: O_DONE_PULSE, category: output, statement: done is high for exactly the completion cycle and is low on all other non-reset cycles.}
+  - {id: O_COMPLETION_STATE, category: transition, statement: The completion edge clears busy and leaves result stable afterward until reset or another completion.}
+  - {id: O_WIDTH_ONE, category: parameter, statement: WIDTH=1 still accepts first and completes on the single following busy edge.}

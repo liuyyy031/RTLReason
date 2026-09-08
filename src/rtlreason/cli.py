@@ -33,7 +33,11 @@ from rtlreason.evaluator.baselines import (
     compare_baselines_stratified,
     load_gold_records,
 )
-from rtlreason.experiment import run_artifact_experiment, run_experiment
+from rtlreason.experiment import (
+    assert_candidate_generation_allowed,
+    run_artifact_experiment,
+    run_experiment,
+)
 from rtlreason.hy3 import Hy3Client, extract_json_object
 from rtlreason.hy3.prompts import (
     JUDGE_PROMPT_VERSION,
@@ -101,9 +105,15 @@ def command_task_show(args: argparse.Namespace) -> int:
 
 def command_solve(args: argparse.Namespace) -> int:
     task = load_task(args.task_id, project_root=args.project_root)
+    settings = Settings.from_env(args.env_file)
+    assert_candidate_generation_allowed(
+        task,
+        settings,
+        max_tokens=args.max_tokens,
+        semantic_evaluation=False,
+    )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    settings = Settings.from_env(args.env_file)
     client = Hy3Client(settings)
     response = client.chat(
         build_solver_messages(task), thinking=True, max_tokens=args.max_tokens

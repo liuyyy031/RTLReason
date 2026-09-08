@@ -1,0 +1,1 @@
+{"schema_version":"1.0","simulation":{"testbench":"testbench/tb_spi_tx.sv","top":"tb_spi_tx","vcd":"spi_tx.vcd"},"formal":{"enabled":true,"harness":"formal/spi_tx_formal.sv","top":"spi_tx_formal","depth":40,"property_class":"bounded_safety","obligations":["O_RESET","O_START","O_BUSY_IGNORE","O_DIVIDER","O_MODE0_EDGES","O_MSB_FIRST","O_COMPLETE","O_DONE","O_IDLE"]}}

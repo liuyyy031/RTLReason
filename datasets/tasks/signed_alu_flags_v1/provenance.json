@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "created_by": "human-designed trusted asset",
+  "license": "MIT",
+  "reference_policy": "Problem, interface semantics, obligations, reference model, testbench, formal harness, and known-bad faults are independent trusted assets and must not be generated from an evaluated model response.",
+  "candidate_generation_status": "forbidden_until_trusted_frozen",
+  "task_expansion_batch": "task-expansion-batch-002"
+}

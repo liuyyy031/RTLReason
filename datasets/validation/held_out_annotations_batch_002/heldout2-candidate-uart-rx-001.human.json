@@ -1,0 +1,41 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S5",
+  "gold_root_error": "S5.1",
+  "gold_error_type_l1": "Implementation",
+  "gold_error_type_l2": "Width or Signedness",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.2",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.3",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.4",
+      "target": "S5.1"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_START_CENTER",
+    "O_DATA_TIMING",
+    "O_LSB_FIRST",
+    "O_STOP",
+    "O_VALID_PULSE",
+    "O_FRAMING_ERROR",
+    "O_BUSY"
+  ],
+  "notes": "Two independent review passes reached the same implementation-error conclusion. S1 through S4 correctly capture the UART start validation, data-bit spacing, LSB-first ordering, stop sampling, false-start behavior, output pulses, and busy semantics for representable timer values. The first substantive error appears in S5.1 and the delivered RTL, where the timing counter is hardwired to 16 bits even though the frozen CLKS_PER_BIT contract permits every even integer greater than or equal to two with no upper bound. A concrete legal counterexample is CLKS_PER_BIT=65538: HALF_CLKS=32769 is representable, but loading FULL=65538 into the 16-bit timer truncates it to 2, causing the first data sample to occur two clocks after start confirmation instead of 65538 clocks later. A still larger legal value such as CLKS_PER_BIT=131072 also exceeds the timer capacity for start-centre timing. The second review independently reconstructed the same parameter-boundary failure. The trusted configured simulation and bounded formal checks pass, but the packet does not establish coverage of these legal large parameter values, so they do not invalidate the concrete counterexample."
+}

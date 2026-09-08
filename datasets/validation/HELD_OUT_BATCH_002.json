@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "held-out-batch-002",
+  "frozen_at": "2026-09-07",
+  "status": "generation_plan_amended",
+  "amended_at": "2026-09-08",
+  "technical_addendum": "datasets/validation/HELD_OUT_BATCH_002_HY4_TIMEOUT_ADDENDUM.json",
+  "task_manifest_version": "2026-09-07.8",
+  "evaluator_frozen_version": "1.5",
+  "evaluator_freeze": "datasets/validation/EVALUATOR_V1_5_BATCH_002_FREEZE.json",
+  "partition_scope": "task_level_held_out_unseen_tasks",
+  "candidate_model": "hy3",
+  "candidate_origin": "real_hy3",
+  "generation_provider": "Tencent Cloud TokenHub",
+  "generation_configuration": {
+    "model": "hy3",
+    "base_url": "https://tokenhub.tencentmaas.com/v1",
+    "temperature": 0.2,
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 24000,
+    "timeout_seconds": 180.0,
+    "total_timeout_seconds": 600.0,
+    "max_retries": 4,
+    "stream": false,
+    "solver_prompt_sha256": "7b74e87167c515531b5fdf63906bb120086b095d5f9f7b0290c943fd70073194"
+  },
+  "task_generation_overrides": {
+    "spi_tx_v1": {
+      "model": "hy4-preview",
+      "timeout_seconds": 3000.0,
+      "total_timeout_seconds": 3000.0,
+      "candidate_origin": "real_model_output",
+      "reason": "User-authorized recovery after repeated non-response/499 failures with the original frozen Hy3 configuration."
+    },
+    "multicycle_multiply_ctrl_v1": {
+      "model": "hy4-preview",
+      "timeout_seconds": 3000.0,
+      "total_timeout_seconds": 3000.0,
+      "candidate_origin": "real_model_output",
+      "reason": "User-authorized recovery after repeated non-response/499 failures with the original frozen Hy3 configuration."
+    }
+  },
+  "generation_policy": {
+    "reuse_frozen_task_assets": true,
+    "reuse_solver_prompt_and_s1_s5_schema": true,
+    "one_independent_sample_per_task": true,
+    "semantic_judge_during_collection": false,
+    "trusted_simulation_required": true,
+    "trusted_formal_required": true,
+    "retain_first_valid_generation": true,
+    "resample_based_on_content_or_evidence": false,
+    "prior_candidate_or_gold_exposure": false,
+    "technical_retry_policy": "Retry only API, transport, truncation, or invalid-artifact failures; preserve every failed-attempt log and never retry because of RTL, process, simulation, or formal quality."
+  },
+  "review_policy": {
+    "blind_packet_required": true,
+    "evaluator_prediction_hidden": true,
+    "two_independent_reviews_required": true,
+    "promotion_split": "held_out",
+    "required_annotation_status": "adjudicated"
+  },
+  "frozen_inputs": {
+    "datasets/task_manifest.json": "2ce154f076411a2cea297b8c542d99fd4da8f6192a0152866b496de0422a7f18",
+    "src/rtlreason/hy3/prompts.py": "7b74e87167c515531b5fdf63906bb120086b095d5f9f7b0290c943fd70073194",
+    "src/rtlreason/config.py": "3297f8eccbe7041153084f34bfec6f20ec3c1a11275c396f37ea367065f0630e",
+    "src/rtlreason/hy3/client.py": "532bf3bb3bbad2e80dfdddfcc288c2db649c1c38eab3b63f86fa06b882c44b51"
+  },
+  "samples": [
+    {"task_id": "gray_code_counter_v1", "slug": "gray-code", "case_id": "heldout2-candidate-gray-code-001", "run_dir": "runs/held-out-batch-002/gray-code-001"},
+    {"task_id": "axi_stream_packet_counter_v1", "slug": "axi-stream-counter", "case_id": "heldout2-candidate-axi-stream-counter-001", "run_dir": "runs/held-out-batch-002/axi-stream-counter-001"},
+    {"task_id": "register_file_bypass_v1", "slug": "register-file-bypass", "case_id": "heldout2-candidate-register-file-bypass-001", "run_dir": "runs/held-out-batch-002/register-file-bypass-001"},
+    {"task_id": "signed_alu_flags_v1", "slug": "signed-alu", "case_id": "heldout2-candidate-signed-alu-001", "run_dir": "runs/held-out-batch-002/signed-alu-001"},
+    {"task_id": "spi_tx_v1", "slug": "spi-tx", "case_id": "heldout2-candidate-spi-tx-001", "run_dir": "runs/held-out-batch-002/spi-tx-001"},
+    {"task_id": "cache_tag_lookup_v1", "slug": "cache-tag", "case_id": "heldout2-candidate-cache-tag-001", "run_dir": "runs/held-out-batch-002/cache-tag-001"},
+    {"task_id": "credit_flow_control_v1", "slug": "credit-flow", "case_id": "heldout2-candidate-credit-flow-001", "run_dir": "runs/held-out-batch-002/credit-flow-001"},
+    {"task_id": "async_handshake_v1", "slug": "async-handshake", "case_id": "heldout2-candidate-async-handshake-001", "run_dir": "runs/held-out-batch-002/async-handshake-001"},
+    {"task_id": "uart_rx_v1", "slug": "uart-rx", "case_id": "heldout2-candidate-uart-rx-001", "run_dir": "runs/held-out-batch-002/uart-rx-001"},
+    {"task_id": "multicycle_multiply_ctrl_v1", "slug": "multiply-ctrl", "case_id": "heldout2-candidate-multiply-ctrl-001", "run_dir": "runs/held-out-batch-002/multiply-ctrl-001"}
+  ]
+}

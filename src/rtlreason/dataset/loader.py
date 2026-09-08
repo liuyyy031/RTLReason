@@ -69,7 +69,10 @@ def load_task(
     obligation_ids = [item.id for item in obligations]
     if len(obligation_ids) != len(set(obligation_ids)):
         raise DatasetError(f"Task {task_id} has duplicate obligation IDs")
-    required_interface_sections = {"clock", "reset", "ports", "acceptance"}
+    required_interface_sections = {"reset", "ports", "acceptance"}
+    has_clock_definition = "clock" in interface or "clocks" in interface
+    if not has_clock_definition:
+        required_interface_sections.add("clock")
     missing_sections = required_interface_sections - set(interface)
     if missing_sections:
         raise DatasetError(

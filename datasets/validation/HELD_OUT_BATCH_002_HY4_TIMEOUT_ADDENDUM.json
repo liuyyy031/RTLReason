@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "addendum_id": "held-out-batch-002-hy4-timeout-recovery",
+  "batch_id": "held-out-batch-002",
+  "authorized_at": "2026-09-08",
+  "authorization": "explicit_user_request",
+  "scope": [
+    "spi_tx_v1",
+    "multicycle_multiply_ctrl_v1"
+  ],
+  "trigger": {
+    "classification": "infrastructure_request_timeout",
+    "observed_gateway_status": 499,
+    "valid_model_response_received": false,
+    "original_model": "hy3",
+    "original_timeout_seconds": 180.0,
+    "original_total_timeout_seconds": 600.0
+  },
+  "replacement_configuration": {
+    "model": "hy4-preview",
+    "timeout_seconds": 3000.0,
+    "total_timeout_seconds": 3000.0,
+    "temperature": 0.2,
+    "thinking": true,
+    "reasoning_effort": "high",
+    "max_tokens": 24000,
+    "stream": false
+  },
+  "unchanged_controls": {
+    "task_assets": true,
+    "solver_prompt": true,
+    "s1_s5_schema": true,
+    "retain_first_valid_generation": true,
+    "content_or_evidence_based_resampling": false,
+    "semantic_judge_during_collection": false,
+    "trusted_simulation_and_formal": true,
+    "blind_review": true
+  },
+  "labeling_boundary": {
+    "candidate_origin": "real_model_output",
+    "must_not_be_labeled_real_hy3": true,
+    "cross_model_results_must_be_reported_separately": true
+  }
+}

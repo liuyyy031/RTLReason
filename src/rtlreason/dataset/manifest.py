@@ -9,6 +9,35 @@ from rtlreason.dataset.loader import DatasetError, find_project_root
 
 
 LAYERS = ("basic", "intermediate", "hard")
+STAGED_ADMISSION_STATUSES = {"planned", "assets_complete", "independently_reviewed"}
+
+
+def _admitted_asset_ids(task_root: Path) -> list[str]:
+    admitted: list[str] = []
+    for task_dir in task_root.iterdir():
+        if not task_dir.is_dir():
+            continue
+        admission_path = task_dir / "admission.json"
+        if not admission_path.is_file():
+            # Legacy trusted tasks predate explicit admission records.
+            admitted.append(task_dir.name)
+            continue
+        try:
+            admission = json.loads(admission_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise DatasetError(
+                f"Could not load task admission record {admission_path}: {exc}"
+            ) from exc
+        if not isinstance(admission, dict):
+            raise DatasetError(f"Task admission record must be an object: {admission_path}")
+        status = admission.get("status")
+        if status == "trusted_frozen":
+            admitted.append(task_dir.name)
+        elif status not in STAGED_ADMISSION_STATUSES:
+            raise DatasetError(
+                f"Task {task_dir.name} has invalid admission status: {status!r}"
+            )
+    return sorted(admitted)
 
 
 def load_task_manifest(
@@ -42,7 +71,7 @@ def load_task_manifest(
     if len(ids) != len(set(ids)):
         raise DatasetError("task manifest contains duplicate task IDs")
     task_root = root / "datasets" / "tasks"
-    asset_ids = sorted(item.name for item in task_root.iterdir() if item.is_dir())
+    asset_ids = _admitted_asset_ids(task_root)
     if sorted(ids) != asset_ids:
         missing = sorted(set(asset_ids) - set(ids))
         unknown = sorted(set(ids) - set(asset_ids))

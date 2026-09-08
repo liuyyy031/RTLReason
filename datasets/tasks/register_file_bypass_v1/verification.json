@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_register_file_bypass.sv",
+    "top": "tb_register_file_bypass",
+    "vcd": "register_file_bypass.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/register_file_bypass_formal.sv",
+    "top": "register_file_bypass_formal",
+    "depth": 20,
+    "property_class": "safety",
+    "obligations": [
+      "O_RESET",
+      "O_WRITE",
+      "O_STORAGE_HOLD",
+      "O_COMB_READ",
+      "O_BYPASS_A",
+      "O_BYPASS_B",
+      "O_DUAL_READ_COLLISION"
+    ]
+  }
+}

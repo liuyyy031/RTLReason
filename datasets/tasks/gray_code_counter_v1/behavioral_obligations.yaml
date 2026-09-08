@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: gray_code_counter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously sets gray and wrap to zero regardless of en.
+  - id: O_PRIORITY
+    category: control
+    statement: Reset has priority over an asserted enable.
+  - id: O_ENABLE_STEP
+    category: transition
+    statement: With rst low and en high, the abstract sequence index advances by exactly one modulo 2**WIDTH and gray becomes its reflected Gray encoding.
+  - id: O_GRAY_MAPPING
+    category: datapath
+    statement: At every observable cycle, gray equals index XOR (index shifted right by one) for the abstract sequence index established by reset and accepted enable edges.
+  - id: O_SINGLE_BIT
+    category: safety
+    statement: Every enabled non-reset transition changes exactly one gray output bit, including the cyclic wrap transition.
+  - id: O_HOLD
+    category: stability
+    statement: With rst and en low, gray holds its previous value and wrap is zero.
+  - id: O_WRAP
+    category: status
+    statement: wrap is a registered one-cycle pulse exactly on an enabled transition from abstract index 2**WIDTH-1 to zero and is zero otherwise.

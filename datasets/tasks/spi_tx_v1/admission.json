@@ -1,0 +1,30 @@
+{
+  "schema_version":"1.0","task_id":"spi_tx_v1","batch_id":"task-expansion-batch-002",
+  "status":"trusted_frozen","candidate_generation_allowed":true,
+  "candidate_generation_blocker":null,
+  "candidate_generation_plan":"datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review":{"status":"approved","reviewer_id":"LT001","reviewed_at":"2026-09-07","decision":"pass_after_requested_change","change_request":"Add an independent quiescent-idle output obligation.","change_status":"verified"},
+  "safety_liveness_boundary":{"formal_core":"bounded_safety","unconditional_liveness_claims":false,"note":"Completion is a fixed finite response to an accepted start; no future start is assumed."},
+  "checks":{"problem_interface_consistent":true,"observable_timing_frozen":true,"obligations_microarchitecture_independent":true,"reference_compiles":true,"reference_simulation_passes":true,"reference_formal_safety_passes":true,"core_obligations_traceable":true,"minimum_two_known_bad_detected":true,"reset_boundary_verified":true,"simultaneous_operation_verified":true,"parameter_boundary_verified":true,"independent_review_complete":true,"hy3_candidate_absent":true,"trusted_assets_finally_frozen":true},
+  "verification_evidence":{
+    "reference_simulation":"runs/task-admission/spi-tx/reference-sim.json","reference_formal":"runs/task-admission/spi-tx/reference-formal.json",
+    "known_bad":[
+      {"mutation_id":"spi_tx_lsb_first","rtl":"tests/fixtures/task_faults/spi_tx_lsb_first.sv","broken_semantics":"Serializes bit 0 through bit 7 instead of MSB first.","expected_obligations":["O_START","O_MSB_FIRST"],"simulation":{"status":"fail","evidence":"runs/task-admission/spi-tx/bad-lsb-sim.json","failure_phase":"property_check"},"formal":{"status":"fail","evidence":"runs/task-admission/spi-tx/bad-lsb-formal.json","failure_phase":"property_check","obligation_mapping":"unresolved_counterexample"}},
+      {"mutation_id":"spi_tx_restarts_when_busy","rtl":"tests/fixtures/task_faults/spi_tx_restarts_when_busy.sv","broken_semantics":"A busy-cycle start replaces the active word and restarts timing.","expected_obligations":["O_BUSY_IGNORE","O_MSB_FIRST"],"simulation":{"status":"fail","evidence":"runs/task-admission/spi-tx/bad-restart-sim.json","failure_phase":"property_check"},"formal":{"status":"fail","evidence":"runs/task-admission/spi-tx/bad-restart-formal.json","failure_phase":"property_check","obligation_mapping":"unresolved_counterexample"}}
+    ]
+  },
+  "asset_hashes":{"status":"frozen","algorithm":"sha256","files":{
+    "datasets/tasks/spi_tx_v1/problem.md":"253d4bda11562fc2dd899f662187a4b7dd146e70d2419376d902e5b8b70e9a7c",
+    "datasets/tasks/spi_tx_v1/interface_semantics.json":"7148b0cfc5cbf1465a09cc2fbc412774b3061399df4a0d1b20aa81fb6179eae0",
+    "datasets/tasks/spi_tx_v1/behavioral_obligations.yaml":"f12d4573d5dd4607caed4854d4c3b6953ffa095cbeed32078600a7ecc685d9e8",
+    "datasets/tasks/spi_tx_v1/difficulty.json":"6b1b68f36fbe09af5662600efe42e5ad627800c1e8312e0d88118f6f2a7fa100",
+    "datasets/tasks/spi_tx_v1/provenance.json":"a771c883ccb676960ccbb399eced59b6a45aaa45550f700c4557b923ab138d22",
+    "datasets/tasks/spi_tx_v1/verification.json":"e2e6a441e8847e00447b8cc9daf5c94455b2447d15fea5cc06b05ba83bb0c00e",
+    "datasets/tasks/spi_tx_v1/reference_rtl/spi_tx.sv":"d9dbaaa8310d4458a6ad888a574ccf22d04585dc19fc225e46749019ff00f893",
+    "datasets/tasks/spi_tx_v1/testbench/tb_spi_tx.sv":"e697fc26fca25ec7680b0bc7c9b1d504251da161e67d800b2ab54d8f35a84121",
+    "datasets/tasks/spi_tx_v1/formal/spi_tx_formal.sv":"b1196f61245b92ac0bd925a18f179c659e7b5f4598e88a2c9a579b6ed94b1281",
+    "src/rtlreason/reference/spi_tx.py":"3832d8ac9c1927d63c298db9e38570aabf65c2e595b3032846973ee09797bde0",
+    "tests/fixtures/task_faults/spi_tx_lsb_first.sv":"ba53a1ba6d9d9a97218a0da685ee918b68719e286b8c6ad2729f3347b65263d6",
+    "tests/fixtures/task_faults/spi_tx_restarts_when_busy.sv":"799328da3eec228535f747b793d83a1395fbce00623ace66e1f63a0497975c1b"
+  }}
+}

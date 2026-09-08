@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_gray_code_counter.sv",
+    "top": "tb_gray_code_counter",
+    "vcd": "gray_code_counter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/gray_code_counter_formal.sv",
+    "top": "gray_code_counter_formal",
+    "depth": 24,
+    "property_class": "safety",
+    "obligations": [
+      "O_RESET",
+      "O_PRIORITY",
+      "O_ENABLE_STEP",
+      "O_GRAY_MAPPING",
+      "O_SINGLE_BIT",
+      "O_HOLD",
+      "O_WRAP"
+    ]
+  }
+}

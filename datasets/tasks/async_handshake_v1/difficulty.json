@@ -1,0 +1,7 @@
+{
+  "level": "hard",
+  "concepts": ["dual-clock toggle protocol", "two-stage synchronizers", "one-outstanding-event flow control", "coordinated reset contract", "multiclock bounded safety"],
+  "formal_core": true,
+  "expected_process_items": "20-32",
+  "risk_gate": "admit_only_with_reproducible_multiclock_formal"
+}

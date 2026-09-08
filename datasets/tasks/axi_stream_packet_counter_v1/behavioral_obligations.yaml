@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: axi_stream_packet_counter_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears both counters regardless of clear or channel inputs.
+  - id: O_CLEAR
+    category: control
+    statement: With rst low and clear high, both counters become zero and a simultaneous transfer is not counted.
+  - id: O_TRANSFER_GATE
+    category: acceptance
+    statement: Counter state may reflect a channel beat only when tvalid and tready are both sampled high while rst and clear are low.
+  - id: O_BEAT_COUNT
+    category: transition
+    statement: Each accepted transfer increments beat_count by one unless it is already saturated.
+  - id: O_PACKET_COUNT
+    category: transition
+    statement: packet_count increments by one unless saturated exactly for an accepted transfer whose tlast is high.
+  - id: O_SATURATION
+    category: boundary
+    statement: Each counter holds at 2**COUNT_WIDTH-1 instead of wrapping and saturation of one counter does not block the other.
+  - id: O_HOLD
+    category: stability
+    statement: When no reset, clear, or accepted transfer occurs, both counters hold their previous values; tlast alone has no effect.

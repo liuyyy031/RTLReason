@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "task_id": "register_file_bypass_v1",
+  "module_name": "register_file_bypass",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "write controls and data are sampled immediately before the active edge",
+    "read_observation": "combinational and continuously observable"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "stored_words_after_reset_edge": 0,
+    "bypass_while_asserted": "disabled because a simultaneous write is not legal"
+  },
+  "parameters": {
+    "DATA_WIDTH": {"type": "positive_integer", "minimum": 1, "default": 8},
+    "ADDR_WIDTH": {"type": "positive_integer", "minimum": 1, "default": 2},
+    "DEPTH": "2**ADDR_WIDTH"
+  },
+  "ports": {
+    "we": {"direction": "input", "width": 1},
+    "waddr": {"direction": "input", "width": "ADDR_WIDTH"},
+    "wdata": {"direction": "input", "width": "DATA_WIDTH"},
+    "raddr_a": {"direction": "input", "width": "ADDR_WIDTH"},
+    "raddr_b": {"direction": "input", "width": "ADDR_WIDTH"},
+    "rdata_a": {"direction": "output", "width": "DATA_WIDTH"},
+    "rdata_b": {"direction": "output", "width": "DATA_WIDTH"}
+  },
+  "acceptance": {
+    "write": "we sampled high at a rising edge while rst is low",
+    "priority": ["reset", "write", "hold"]
+  },
+  "read_semantics": {
+    "latency": 0,
+    "normal": "rdata_a and rdata_b independently expose the currently stored words at their read addresses",
+    "same_cycle_bypass": "while rst is low and we is high, each matching read port immediately exposes wdata before and after the committing edge",
+    "both_ports_match": "both read ports expose wdata",
+    "nonmatching_port": "continues to expose its addressed stored word"
+  },
+  "transition": {
+    "reset": "all stored words become zero; simultaneous we is ignored",
+    "write": "only the word at waddr becomes wdata",
+    "idle": "all stored words hold"
+  },
+  "initial_state": "Stored words are unspecified until a reset edge. Trusted verification begins with reset.",
+  "liveness_boundary": "No future write or read-address progress is required. Formal Core contains only safety properties."
+}

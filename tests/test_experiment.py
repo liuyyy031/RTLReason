@@ -65,6 +65,25 @@ class DeepSeekFakeClient(FakeClient):
 
 
 class ExperimentTests(unittest.TestCase):
+    def test_batch_task_generation_gate_rejects_wrong_model_before_api_call(self) -> None:
+        directory = PROJECT_ROOT / "tests" / "work" / f"blocked-{uuid.uuid4().hex}"
+        client = FakeClient()
+        with self.assertRaisesRegex(
+            ValueError,
+            "Runtime settings do not match frozen generation plan",
+        ):
+            run_experiment(
+                "gray_code_counter_v1",
+                project_root=PROJECT_ROOT,
+                run_dir=directory,
+                settings=Settings(api_key="unused", model="deepseek-v4-flash"),
+                formal_required=False,
+                semantic_evaluation=False,
+                client=client,
+            )
+        self.assertEqual(client.calls, 0)
+        self.assertFalse(directory.exists())
+
     def test_non_hy3_generation_is_not_mislabeled(self) -> None:
         directory = PROJECT_ROOT / "tests" / "work" / f"deepseek-{uuid.uuid4().hex}"
         directory.mkdir(parents=True)

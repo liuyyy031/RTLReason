@@ -1,0 +1,695 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-spi-tx-001",
+  "task_id": "spi_tx_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/held-out-batch-002/spi-tx-001",
+  "source_hashes": {
+    "process_sha256": "0aabb72a1fb1f19d70972f2aac81efdf51babbe991e8c302492c1bf51e77fee9",
+    "evidence_sha256": "ac95271862291a744df8a10283ba8cfe3c08d6edd39de6baa6c58acdf5800c29",
+    "report_sha256": "c3ef54e97ba1d33370f7d35261a61163c8bc2e86910aa4be4502b026dd7db818"
+  },
+  "candidate_process": {
+    "task_id": "spi_tx_v1",
+    "architecture_summary": "Single always_ff registered design: a half-period divider toggles sclk, a 4-bit rising-edge counter tracks the eight samples, and an 8-bit left-shift register supplies MSB-first MOSI; reset, active-transfer, idle-start, and quiescent-idle priorities are explicit.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "A sampled high rst synchronously forces sclk, mosi, busy, and done to 0 and cancels any active transfer; reset has priority over all other behavior.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A start is accepted only when rst is low and busy is 0; the accepted start captures data_in, sets busy=1, holds sclk=0, and presents data_in[7] on mosi without creating an sclk sampling edge.",
+            "maps_to": [
+              "O_START",
+              "O_BUSY_IGNORE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "start",
+              "busy",
+              "rst",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "While busy, sclk toggles after exactly HALF_PERIOD_CYCLES rising clk edges per half-period; mosi is stable across each sclk rising edge and updates only on sclk falling edges, exposing captured bits 7 down to 0 in order.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "sclk",
+              "mosi"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Completion occurs on the falling sclk edge after the eighth rising edge: busy returns to 0, sclk and mosi return to 0, and done asserts for exactly one clk cycle; with no accepted start, quiescent idle holds busy, sclk, mosi, and done at 0.",
+            "maps_to": [
+              "O_COMPLETE",
+              "O_DONE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "busy"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Chosen architecture: one synchronous always_ff block drives registered outputs busy, sclk, mosi, and done; internal state is an 8-bit shift register, a half-period cycle counter, and a rising-edge counter.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_MODE0_EDGES"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "busy marks an active transfer; sclk is the generated mode-0 clock (idle 0); mosi is the registered serial data; done is a one-cycle flag; shift holds the captured byte and left-shifts so shift[7] is the current bit and shift[6] is the next bit.",
+            "maps_to": [
+              "O_START",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "half_cnt counts clk cycles in the current sclk half-period and triggers a toggle when it reaches HALF_PERIOD_CYCLES-1; rise_cnt counts completed sclk rising edges from 0 to 8 to locate the eighth sample and the following completion falling edge.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Priority model: reset first, then active-transfer updates, then idle-start acceptance, then quiescent-idle hold; this makes start during busy ignored and keeps idle outputs at zero.",
+            "maps_to": [
+              "O_RESET",
+              "O_BUSY_IGNORE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.4"
+            ],
+            "reads": [
+              "rst",
+              "busy",
+              "start"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset transition: on posedge clk with rst=1, busy, sclk, mosi, done, shift, half_cnt, and rise_cnt are all cleared to 0, cancelling any transfer.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.4"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Idle-start transition: on posedge clk with rst=0, busy=0, and start=1, shift captures data_in, busy becomes 1, sclk stays 0, mosi becomes data_in[7], and half_cnt, rise_cnt, and done are cleared.",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.4",
+              "S1.2"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "rst",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Half-period toggle rule: while busy, half_cnt increments until it equals HALF_PERIOD_CYCLES-1; at that point it resets to 0 and sclk toggles, producing a rising edge if the old sclk was 0 and a falling edge if the old sclk was 1.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S1.3"
+            ],
+            "reads": [
+              "half_cnt",
+              "sclk",
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "half_cnt",
+              "sclk"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Rising-edge sampling rule: on a 0->1 sclk toggle, rise_cnt increments and mosi is not modified, so the bit already present on mosi is stable across the rising sampling edge.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S2.2"
+            ],
+            "reads": [
+              "sclk",
+              "rise_cnt",
+              "mosi"
+            ],
+            "writes": [
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.5",
+            "stage": "S3",
+            "claim": "Falling-edge data/completion rule: on a 1->0 sclk toggle, if rise_cnt==8 the transfer completes (busy=0, sclk=0, mosi=0, done=1); otherwise shift advances left and mosi takes shift[6], the next lower bit.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST",
+              "O_COMPLETE",
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "sclk",
+              "rise_cnt",
+              "shift"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: after any reset, (sclk==0 && mosi==0 && busy==0 && done==0) holds until an accepted start occurs.",
+            "maps_to": [
+              "O_RESET",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: if busy=0, rst=0, and start=1 immediately before a posedge, then immediately after that edge busy=1, sclk=0, and mosi equals the pre-edge data_in[7].",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "busy",
+              "start",
+              "rst",
+              "data_in",
+              "mosi"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: while busy, sclk changes only on a posedge where half_cnt wrapped from HALF_PERIOD_CYCLES-1, and consecutive sclk edges are separated by exactly HALF_PERIOD_CYCLES clk periods.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "busy",
+              "sclk",
+              "half_cnt",
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: on every sclk rising edge, mosi equals the expected captured bit for that sample index, and mosi changes value only on sclk falling edges.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.4",
+              "S3.5"
+            ],
+            "reads": [
+              "sclk",
+              "mosi",
+              "rise_cnt",
+              "shift"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Candidate property: done is 1 for exactly one clk cycle and only on the completion transition where busy falls, sclk returns to 0, and mosi returns to 0 after the eighth rising edge.",
+            "maps_to": [
+              "O_DONE",
+              "O_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S3.5"
+            ],
+            "reads": [
+              "done",
+              "busy",
+              "sclk",
+              "mosi",
+              "rise_cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module header: spi_tx is declared with parameter HALF_PERIOD_CYCLES (default 2) and the exact ports clk, rst, start, data_in, sclk, mosi, busy, done; all outputs are logic updated in one always_ff.",
+            "maps_to": [
+              "O_RESET",
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "start",
+              "data_in"
+            ],
+            "writes": [
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Internal state: shift is 8 bits, half_cnt is 32 bits and compared with HALF_PERIOD_CYCLES-1, and rise_cnt is 4 bits to hold 0..8; these implement the divider and bit tracking.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S5.1"
+            ],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Reset branch: the highest-priority if (rst) clears busy, sclk, mosi, done, shift, half_cnt, and rise_cnt to 0 on posedge clk.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S5.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Operational branches: else if (busy) implements the divider toggle, rising-edge count, and falling-edge shift/completion; else if (start) implements idle-start capture; the final else holds quiescent idle at zero.",
+            "maps_to": [
+              "O_START",
+              "O_BUSY_IGNORE",
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST",
+              "O_COMPLETE",
+              "O_DONE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S3.5",
+              "S5.2"
+            ],
+            "reads": [
+              "busy",
+              "start",
+              "half_cnt",
+              "sclk",
+              "rise_cnt",
+              "shift",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "spi_tx",
+      "code": "module spi_tx #(\n  parameter int HALF_PERIOD_CYCLES = 2\n) (\n  input  logic       clk,\n  input  logic       rst,\n  input  logic       start,\n  input  logic [7:0] data_in,\n  output logic       sclk,\n  output logic       mosi,\n  output logic       busy,\n  output logic       done\n);\n\n  logic [7:0]  shift;\n  logic [31:0] half_cnt;\n  logic [3:0]  rise_cnt;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      busy     <= 1'b0;\n      sclk     <= 1'b0;\n      mosi     <= 1'b0;\n      done     <= 1'b0;\n      shift    <= 8'h00;\n      half_cnt <= 32'd0;\n      rise_cnt <= 4'd0;\n    end else begin\n      done <= 1'b0;\n\n      if (busy) begin\n        if (half_cnt == HALF_PERIOD_CYCLES - 1) begin\n          half_cnt <= 32'd0;\n          sclk     <= ~sclk;\n          if (!sclk) begin\n            rise_cnt <= rise_cnt + 4'd1;\n          end else begin\n            if (rise_cnt == 4'd8) begin\n              busy <= 1'b0;\n              sclk <= 1'b0;\n              mosi <= 1'b0;\n              done <= 1'b1;\n            end else begin\n              shift <= {shift[6:0], 1'b0};\n              mosi  <= shift[6];\n            end\n          end\n        end else begin\n          half_cnt <= half_cnt + 32'd1;\n        end\n      end else if (start) begin\n        busy     <= 1'b1;\n        sclk     <= 1'b0;\n        mosi     <= data_in[7];\n        shift    <= data_in;\n        half_cnt <= 32'd0;\n        rise_cnt <= 4'd0;\n      end else begin\n        busy <= 1'b0;\n        sclk <= 1'b0;\n        mosi <= 1'b0;\n      end\n    end\n  end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "All outputs are registered and observed after posedge clk; internal counters are cleared on reset or accepted start."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy4-preview",
+        "request_id": "9b248c08-cf39-415a-8246-33e07876224b",
+        "usage": {
+          "prompt_tokens": 1725,
+          "completion_tokens": 22221,
+          "total_tokens": 23946,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 18160
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:spi_tx_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY_IGNORE",
+        "O_COMPLETE",
+        "O_DIVIDER",
+        "O_DONE",
+        "O_IDLE",
+        "O_MODE0_EDGES",
+        "O_MSB_FIRST",
+        "O_RESET",
+        "O_START"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:spi_tx_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY_IGNORE",
+        "O_COMPLETE",
+        "O_DIVIDER",
+        "O_DONE",
+        "O_IDLE",
+        "O_MODE0_EDGES",
+        "O_MSB_FIRST",
+        "O_RESET",
+        "O_START"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 40).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 40,
+        "configured_obligations": [
+          "O_BUSY_IGNORE",
+          "O_COMPLETE",
+          "O_DIVIDER",
+          "O_DONE",
+          "O_IDLE",
+          "O_MODE0_EDGES",
+          "O_MSB_FIRST",
+          "O_RESET",
+          "O_START"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}

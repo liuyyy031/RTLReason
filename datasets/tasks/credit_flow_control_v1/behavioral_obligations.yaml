@@ -1,0 +1,30 @@
+schema_version: "1.0"
+task_id: credit_flow_control_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously restores credits to MAX_CREDITS and suppresses send_accept while rst is asserted.
+  - id: O_CURRENT_ACCEPT
+    category: acceptance
+    statement: Outside reset, send_accept is combinationally high exactly when send_req is high and the current pre-edge credit count is nonzero.
+  - id: O_CONSUME
+    category: transition
+    statement: An accepted send without a simultaneous return decreases credits by exactly one.
+  - id: O_RETURN
+    category: transition
+    statement: A credit_return without an accepted send increases a nonfull count by exactly one and never exceeds MAX_CREDITS.
+  - id: O_MIDDLE_SIMULTANEOUS
+    category: concurrency
+    statement: At a nonempty nonfull count, an accepted send simultaneous with credit_return leaves credits unchanged.
+  - id: O_FULL_SIMULTANEOUS
+    category: boundary
+    statement: At MAX_CREDITS, simultaneous send_req and credit_return accepts the send and leaves credits at MAX_CREDITS.
+  - id: O_EMPTY_NO_LOOKAHEAD
+    category: boundary
+    statement: At zero credits, simultaneous send_req and credit_return rejects the send and raises credits to one.
+  - id: O_FULL_SATURATION
+    category: boundary
+    statement: A credit_return at MAX_CREDITS without an accepted send is ignored.
+  - id: O_FLAGS_RANGE
+    category: safety
+    statement: Credits remains in the inclusive range zero through MAX_CREDITS, with empty and full exactly reflecting the current count.

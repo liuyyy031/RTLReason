@@ -1,0 +1,1 @@
+{"level":"hard","concepts":["fixed iteration latency","busy start gating","shift-add datapath","atomic result commit","WIDTH=1 boundary"],"formal_core":true,"expected_process_items":"20-32"}

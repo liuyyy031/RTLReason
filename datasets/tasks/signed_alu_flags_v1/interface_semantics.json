@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "task_id": "signed_alu_flags_v1",
+  "module_name": "signed_alu_flags",
+  "clock": {
+    "port": null,
+    "active_edge": "none",
+    "input_sampling": "continuous",
+    "registered_output_observation": "not_applicable"
+  },
+  "reset": {
+    "port": null,
+    "type": "none",
+    "active_level": "not_applicable",
+    "priority": "not_applicable"
+  },
+  "parameters": {
+    "WIDTH": {"type": "positive_integer", "minimum": 2, "default": 8}
+  },
+  "ports": {
+    "a": {"direction": "input", "width": "WIDTH"},
+    "b": {"direction": "input", "width": "WIDTH"},
+    "op": {"direction": "input", "width": 2},
+    "result": {"direction": "output", "width": "WIDTH"},
+    "zero": {"direction": "output", "width": 1},
+    "negative": {"direction": "output", "width": 1},
+    "carry": {"direction": "output", "width": 1},
+    "overflow": {"direction": "output", "width": 1}
+  },
+  "operation_encoding": {
+    "2'b00": "ADD: result is (a + b) modulo 2**WIDTH",
+    "2'b01": "SUB: result is (a - b) modulo 2**WIDTH",
+    "2'b10": "AND: result is a bitwise-AND b",
+    "2'b11": "XOR: result is a bitwise-XOR b"
+  },
+  "flag_semantics": {
+    "zero": "one iff every result bit is zero, for every operation",
+    "negative": "the most-significant result bit, for every operation",
+    "carry_add": "the unsigned carry-out bit of a + b",
+    "carry_sub": "one means no unsigned borrow (a >= b); zero means borrow",
+    "carry_logic": "zero for AND and XOR",
+    "overflow_add": "one iff a and b have the same sign and result has the opposite sign",
+    "overflow_sub": "one iff a and b have different signs and result has the opposite sign from a",
+    "overflow_logic": "zero for AND and XOR"
+  },
+  "acceptance": {
+    "operation": "all four op encodings are valid and evaluated continuously",
+    "latency": 0
+  },
+  "liveness_boundary": "This task is purely combinational; only functional safety/equivalence properties apply."
+}

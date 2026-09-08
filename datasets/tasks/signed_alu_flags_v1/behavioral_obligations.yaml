@@ -1,0 +1,27 @@
+schema_version: "1.0"
+task_id: signed_alu_flags_v1
+obligations:
+  - id: O_ADD_RESULT
+    category: datapath
+    statement: For op ADD, result is the low WIDTH bits of a plus b.
+  - id: O_SUB_RESULT
+    category: datapath
+    statement: For op SUB, result is a minus b modulo 2**WIDTH.
+  - id: O_LOGIC_RESULT
+    category: datapath
+    statement: AND and XOR produce the corresponding bitwise result for their frozen op encodings.
+  - id: O_ZERO
+    category: flag
+    statement: zero is one exactly when result equals zero for every operation.
+  - id: O_NEGATIVE
+    category: flag
+    statement: negative always equals the most-significant result bit.
+  - id: O_CARRY
+    category: flag
+    statement: carry is ADD carry-out, SUB no-borrow (a greater than or equal to b), and zero for logical operations.
+  - id: O_OVERFLOW
+    category: flag
+    statement: overflow follows two's-complement signed overflow for ADD and SUB and is zero for logical operations.
+  - id: O_COMBINATIONAL
+    category: timing
+    statement: All result and flag outputs are combinational functions of current inputs with no state or clock latency.

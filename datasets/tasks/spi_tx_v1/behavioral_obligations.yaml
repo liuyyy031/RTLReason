@@ -1,0 +1,12 @@
+schema_version: "1.0"
+task_id: spi_tx_v1
+obligations:
+  - {id: O_RESET, category: reset, statement: A sampled high rst synchronously forces idle outputs and cancels an active transfer.}
+  - {id: O_START, category: acceptance, statement: An idle start captures data_in, raises busy, keeps sclk low, and presents the MSB on mosi.}
+  - {id: O_BUSY_IGNORE, category: control, statement: start while busy does not replace the active word or restart its timing.}
+  - {id: O_DIVIDER, category: timing, statement: While busy each sclk half-period lasts exactly HALF_PERIOD_CYCLES clk edges.}
+  - {id: O_MODE0_EDGES, category: protocol, statement: MOSI is stable for rising sampling edges and advances only on falling sclk edges.}
+  - {id: O_MSB_FIRST, category: ordering, statement: The eight rising sclk edges expose captured bits 7 through 0 in order.}
+  - {id: O_COMPLETE, category: boundary, statement: Completion occurs on the falling edge after the eighth rising edge and returns sclk and mosi to zero.}
+  - {id: O_DONE, category: status, statement: done is a one-clk-cycle pulse exactly when the accepted byte completes.}
+  - {id: O_IDLE, category: stability, statement: While the transmitter is in quiescent idle with no accepted start, sclk and mosi remain zero and done remains zero.}

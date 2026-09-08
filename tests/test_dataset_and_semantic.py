@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 
@@ -82,12 +83,17 @@ class DatasetAndSemanticTests(unittest.TestCase):
 
     def test_real_interface_semantics_trace_is_not_unknown_obligation(self) -> None:
         task = load_task("ready_valid_slice_v1", project_root=PROJECT_ROOT)
-        process_path = (
-            PROJECT_ROOT / "runs" / "calibration" / "ready-valid-002" / "process.json"
+        candidate_path = (
+            PROJECT_ROOT
+            / "datasets"
+            / "validation"
+            / "candidates"
+            / "dev-candidate-ready-valid-002.json"
         )
         from rtlreason.models import ProcessArtifact
 
-        process = ProcessArtifact.from_json(process_path.read_text(encoding="utf-8"))
+        candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+        process = ProcessArtifact.from_dict(candidate["candidate_process"])
         issues = validate_process(process, task)
         self.assertFalse(
             any(issue.code == "UNKNOWN_OBLIGATION" for issue in issues)

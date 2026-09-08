@@ -2,13 +2,20 @@ import unittest
 
 from rtlreason.reference import (
     ApbRegisterBankReferenceModel,
+    AsyncHandshakeReferenceModel,
+    AxiStreamPacketCounterReferenceModel,
     CounterReferenceModel,
+    CacheTagLookupReferenceModel,
+    CreditFlowControlReferenceModel,
     DebounceFilterReferenceModel,
     DualPortRamReferenceModel,
     GrantHoldArbiterReferenceModel,
+    GrayCodeCounterReferenceModel,
     InterruptPendingReferenceModel,
+    MulticycleMultiplyReferenceModel,
     ProgrammableTimerReferenceModel,
     ReadyValidSliceReferenceModel,
+    RegisterFileBypassReferenceModel,
     PulseStretcherReferenceModel,
     ReadyValidFifo2ReferenceModel,
     RequestAckTimeoutReferenceModel,
@@ -18,12 +25,165 @@ from rtlreason.reference import (
     ShiftRegisterReferenceModel,
     SaturatingCounterReferenceModel,
     SerialParityReferenceModel,
+    SignedAluFlagsReferenceModel,
     StreamWidthAdapterReferenceModel,
+    SpiTxReferenceModel,
     TokenBucketReferenceModel,
+    UartRxReferenceModel,
 )
 
 
 class ReferenceModelTests(unittest.TestCase):
+    def test_multicycle_multiply_exact_latency_and_busy_ignore(self) -> None:
+        model = MulticycleMultiplyReferenceModel(width=4)
+        self.assertTrue(model.step(start=True, a=3, b=5).busy)
+        self.assertTrue(model.step(start=True, a=15, b=15).busy)
+        model.step()
+        model.step()
+        completed = model.step()
+        self.assertTrue(completed.done)
+        self.assertEqual(completed.result, 15)
+
+    def test_uart_rx_lsb_first_and_bad_stop(self) -> None:
+        model = UartRxReferenceModel(4)
+        model.step(rst=True)
+        levels = [False] * 4
+        for bit in range(8):
+            levels.extend([bool((0xA6 >> bit) & 1)] * 4)
+        levels.extend([False] * 4)
+        outputs = [model.step(rx=value) for value in levels]
+        completed = [output for output in outputs if output.data_valid]
+        self.assertEqual(len(completed), 1)
+        self.assertEqual(completed[0].data_out, 0xA6)
+        self.assertTrue(completed[0].framing_error)
+
+    def test_async_handshake_delivers_once_and_gates_busy(self) -> None:
+        model = AsyncHandshakeReferenceModel()
+        model.source_step(rst=True, send=False)
+        model.destination_step(rst=True)
+        accepted = model.source_step(rst=False, send=True)
+        self.assertTrue(accepted.accept)
+        blocked = model.source_step(rst=False, send=True)
+        self.assertFalse(blocked.accept)
+
+        pulses = []
+        for _ in range(4):
+            pulses.append(model.destination_step(rst=False))
+            model.source_step(rst=False, send=False)
+        self.assertEqual(sum(pulses), 1)
+        self.assertFalse(model.source_step(rst=False, send=False).busy)
+
+    def test_credit_flow_current_state_and_simultaneous_boundaries(self) -> None:
+        model = CreditFlowControlReferenceModel(max_credits=3)
+        full_pair = model.step(
+            rst=False, send_req=True, credit_return=True
+        )
+        self.assertTrue(full_pair.send_accept)
+        self.assertEqual(full_pair.credits, 3)
+
+        for _ in range(3):
+            output = model.step(
+                rst=False, send_req=True, credit_return=False
+            )
+            self.assertTrue(output.send_accept)
+        self.assertEqual(output.credits, 0)
+
+        empty_pair = model.step(
+            rst=False, send_req=True, credit_return=True
+        )
+        self.assertFalse(empty_pair.send_accept)
+        self.assertEqual(empty_pair.credits, 1)
+
+    def test_cache_tag_valid_and_lowest_way_priority(self) -> None:
+        model = CacheTagLookupReferenceModel()
+        miss = model.evaluate(5, [False, False], [5, 5], [10, 20])
+        self.assertEqual((miss.hit, miss.hit_way, miss.hit_data), (False, 0, 0))
+        hit = model.evaluate(5, [True, True], [5, 5], [10, 20])
+        self.assertEqual((hit.hit, hit.hit_way, hit.hit_data), (True, 0, 10))
+
+    def test_spi_tx_msb_first_and_busy_start_ignored(self) -> None:
+        model = SpiTxReferenceModel(half_period_cycles=1)
+        model.step(start=True, data_in=0xA6)
+        previous_sclk = False
+        sampled: list[int] = []
+        saw_done = False
+        for cycle in range(20):
+            output = model.step(start=cycle == 3, data_in=0xFF)
+            if not previous_sclk and output.sclk:
+                sampled.append(int(output.mosi))
+            previous_sclk = output.sclk
+            saw_done |= output.done
+        self.assertEqual(sampled, [1, 0, 1, 0, 0, 1, 1, 0])
+        self.assertTrue(saw_done)
+        self.assertFalse(model.busy)
+
+    def test_signed_alu_carry_no_borrow_and_overflow(self) -> None:
+        model = SignedAluFlagsReferenceModel(width=4)
+        add_overflow = model.evaluate(0b0111, 0b0001, 0)
+        self.assertEqual(add_overflow.result, 0b1000)
+        self.assertTrue(add_overflow.overflow)
+        self.assertFalse(add_overflow.carry)
+
+        subtract = model.evaluate(0b0011, 0b0101, 1)
+        self.assertEqual(subtract.result, 0b1110)
+        self.assertFalse(subtract.carry)
+        self.assertFalse(subtract.overflow)
+
+        subtract_overflow = model.evaluate(0b1000, 0b0001, 1)
+        self.assertEqual(subtract_overflow.result, 0b0111)
+        self.assertTrue(subtract_overflow.carry)
+        self.assertTrue(subtract_overflow.overflow)
+
+    def test_register_file_dual_read_bypass_and_reset_priority(self) -> None:
+        model = RegisterFileBypassReferenceModel(data_width=8, addr_width=2)
+        bypassed = model.observe(
+            we=True,
+            waddr=1,
+            wdata=0xA5,
+            raddr_a=1,
+            raddr_b=1,
+        )
+        self.assertEqual((bypassed.rdata_a, bypassed.rdata_b), (0xA5, 0xA5))
+        model.step(we=True, waddr=1, wdata=0xA5)
+        independent = model.observe(raddr_a=1, raddr_b=2)
+        self.assertEqual((independent.rdata_a, independent.rdata_b), (0xA5, 0))
+        reset = model.step(
+            rst=True,
+            we=True,
+            waddr=1,
+            wdata=0xFF,
+            raddr_a=1,
+            raddr_b=1,
+        )
+        self.assertEqual((reset.rdata_a, reset.rdata_b), (0, 0))
+
+    def test_axi_stream_packet_counter_gating_clear_and_saturation(self) -> None:
+        model = AxiStreamPacketCounterReferenceModel(count_width=2)
+        self.assertEqual(model.step(tvalid=True, tlast=True).beat_count, 0)
+        self.assertEqual(
+            model.step(tvalid=True, tready=True).beat_count,
+            1,
+        )
+        completed = model.step(tvalid=True, tready=True, tlast=True)
+        self.assertEqual((completed.beat_count, completed.packet_count), (2, 1))
+        cleared = model.step(clear=True, tvalid=True, tready=True, tlast=True)
+        self.assertEqual((cleared.beat_count, cleared.packet_count), (0, 0))
+        for _ in range(5):
+            saturated = model.step(tvalid=True, tready=True, tlast=True)
+        self.assertEqual((saturated.beat_count, saturated.packet_count), (3, 3))
+
+    def test_gray_counter_sequence_hold_wrap_and_reset_priority(self) -> None:
+        model = GrayCodeCounterReferenceModel(width=3)
+        self.assertEqual(model.step(rst=True, en=True).gray, 0)
+        sequence = [model.step(en=True) for _ in range(8)]
+        self.assertEqual(
+            [item.gray for item in sequence],
+            [0b001, 0b011, 0b010, 0b110, 0b111, 0b101, 0b100, 0b000],
+        )
+        self.assertEqual([item.wrap for item in sequence], [False] * 7 + [True])
+        self.assertEqual(model.step().gray, 0)
+        self.assertFalse(model.step().wrap)
+
     def test_saturating_counter_holds_boundaries(self) -> None:
         model = SaturatingCounterReferenceModel(width=2)
         self.assertTrue(model.step(rst=True).at_min)

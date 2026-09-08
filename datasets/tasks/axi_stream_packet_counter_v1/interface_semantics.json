@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "task_id": "axi_stream_packet_counter_v1",
+  "module_name": "axi_stream_packet_counter",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "beat_count_after_reset": 0,
+    "packet_count_after_reset": 0
+  },
+  "parameters": {
+    "COUNT_WIDTH": {
+      "type": "positive_integer",
+      "minimum": 1,
+      "default": 8
+    }
+  },
+  "ports": {
+    "clear": {"direction": "input", "width": 1},
+    "tvalid": {"direction": "input", "width": 1},
+    "tready": {"direction": "input", "width": 1},
+    "tlast": {"direction": "input", "width": 1},
+    "beat_count": {"direction": "output", "width": "COUNT_WIDTH"},
+    "packet_count": {"direction": "output", "width": "COUNT_WIDTH"}
+  },
+  "acceptance": {
+    "transfer": "tvalid AND tready sampled high while rst and clear are low",
+    "packet_completion": "an accepted transfer with tlast sampled high",
+    "priority": ["reset", "clear", "accepted_transfer", "hold"]
+  },
+  "counter_semantics": {
+    "beat_count": "total accepted transfers since the most recent reset or clear",
+    "packet_count": "total accepted transfers with tlast high since the most recent reset or clear",
+    "overflow": "each counter saturates independently at 2**COUNT_WIDTH-1",
+    "tlast_without_transfer": "ignored"
+  },
+  "transition": {
+    "reset": "both counters become zero regardless of all other inputs",
+    "clear": "both counters become zero; a simultaneous transfer is not counted",
+    "accepted_transfer": "beat_count increments unless saturated; packet_count increments unless saturated iff tlast is high",
+    "no_transfer": "both counters hold"
+  },
+  "liveness_boundary": "The monitor imposes no progress requirement on tvalid or tready. Formal Core contains only safety properties over sampled transfers."
+}

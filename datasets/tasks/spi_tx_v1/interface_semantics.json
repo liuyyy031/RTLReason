@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "task_id": "spi_tx_v1",
+  "module_name": "spi_tx",
+  "clock": {"port": "clk", "active_edge": "posedge", "input_sampling": "immediately_before_active_edge", "registered_output_observation": "immediately_after_active_edge"},
+  "reset": {"port": "rst", "type": "synchronous", "active_level": "high", "priority": "highest", "outputs_after_reset": {"sclk": 0, "mosi": 0, "busy": 0, "done": 0}},
+  "parameters": {"HALF_PERIOD_CYCLES": {"type": "positive_integer", "minimum": 1, "default": 2}},
+  "ports": {
+    "start": {"direction": "input", "width": 1},
+    "data_in": {"direction": "input", "width": 8},
+    "sclk": {"direction": "output", "width": 1},
+    "mosi": {"direction": "output", "width": 1},
+    "busy": {"direction": "output", "width": 1},
+    "done": {"direction": "output", "width": 1}
+  },
+  "acceptance": {"start": "accepted only when busy is zero and rst is low", "busy_start": "ignored without changing the active word or timing", "priority": ["reset", "active_transfer", "idle_start", "idle"]},
+  "spi_mode": {"cpol": 0, "cpha": 0, "bit_order": "MSB_first", "sampling_edge": "sclk_rising", "data_change_edge": "sclk_falling"},
+  "timing": {
+    "start_edge": "busy becomes one, sclk remains zero, and mosi becomes data_in[7]; this is not an sclk sampling edge",
+    "half_period": "while busy, sclk toggles after exactly HALF_PERIOD_CYCLES rising clk edges per half-period",
+    "data_sequence": "the eight rising sclk edges observe data_in[7] through data_in[0] in order",
+    "completion": "on the falling sclk edge after the eighth rising edge, busy becomes zero, sclk and mosi become zero, and done becomes one",
+    "done": "registered one-clk-cycle pulse; zero on all other cycles",
+    "idle": "sclk=0 and mosi=0",
+    "quiescent_idle": "if a cycle begins with busy=0 and accepts no start, busy, sclk, mosi, and done remain zero; the completion cycle is excluded because done is asserted on that transition"
+  },
+  "liveness_boundary": "Only bounded progress after an accepted start is required; no future start is assumed."
+}

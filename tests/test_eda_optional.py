@@ -145,6 +145,44 @@ class OptionalEdaRegressionTests(unittest.TestCase):
                 "apb_register_bank.sv",
                 "apb_register_bank_setup_write.sv",
             ),
+            (
+                "gray_code_counter_v1",
+                "gray_code_counter.sv",
+                "gray_code_counter_binary_output.sv",
+            ),
+            (
+                "axi_stream_packet_counter_v1",
+                "axi_stream_packet_counter.sv",
+                "axi_stream_packet_counter_valid_only.sv",
+            ),
+            (
+                "register_file_bypass_v1",
+                "register_file_bypass.sv",
+                "register_file_no_bypass.sv",
+            ),
+            (
+                "signed_alu_flags_v1",
+                "signed_alu_flags.sv",
+                "signed_alu_borrow_flag.sv",
+            ),
+            ("spi_tx_v1", "spi_tx.sv", "spi_tx_lsb_first.sv"),
+            (
+                "cache_tag_lookup_v1",
+                "cache_tag_lookup.sv",
+                "cache_tag_highest_way.sv",
+            ),
+            (
+                "credit_flow_control_v1",
+                "credit_flow_control.sv",
+                "credit_flow_return_lookahead.sv",
+            ),
+            (
+                "async_handshake_v1",
+                "async_handshake.sv",
+                "async_handshake_no_busy_gating.sv",
+            ),
+            ("uart_rx_v1", "uart_rx.sv", "uart_rx_ignore_stop.sv"),
+            ("multicycle_multiply_ctrl_v1", "multicycle_multiply_ctrl.sv", "multiply_restart_when_busy.sv"),
         )
         faults = PROJECT_ROOT / "tests" / "fixtures" / "task_faults"
         for task_id, reference_name, fault_name in cases:
@@ -156,6 +194,29 @@ class OptionalEdaRegressionTests(unittest.TestCase):
                 self.assertTrue(result.passed)
             with self.subTest(task_id=task_id, kind="fault"):
                 result = self.run_design(faults / fault_name, task_id)
+                self.assertTrue(result.available)
+                self.assertFalse(result.passed)
+
+    def test_batch_002_second_known_faults_fail(self) -> None:
+        cases = (
+            ("gray_code_counter_v1", "gray_code_counter_wrong_wrap.sv"),
+            (
+                "axi_stream_packet_counter_v1",
+                "axi_stream_packet_counter_transfer_over_clear.sv",
+            ),
+            ("register_file_bypass_v1", "register_file_write_over_reset.sv"),
+            ("signed_alu_flags_v1", "signed_alu_sub_overflow_as_add.sv"),
+            ("spi_tx_v1", "spi_tx_restarts_when_busy.sv"),
+            ("cache_tag_lookup_v1", "cache_tag_ignores_valid.sv"),
+            ("credit_flow_control_v1", "credit_flow_full_drops_return.sv"),
+            ("async_handshake_v1", "async_handshake_level_pulse.sv"),
+            ("uart_rx_v1", "uart_rx_valid_level.sv"),
+            ("multicycle_multiply_ctrl_v1", "multiply_early_done.sv"),
+        )
+        fault_root = PROJECT_ROOT / "tests" / "fixtures" / "task_faults"
+        for task_id, fault_name in cases:
+            with self.subTest(task_id=task_id):
+                result = self.run_design(fault_root / fault_name, task_id)
                 self.assertTrue(result.available)
                 self.assertFalse(result.passed)
 

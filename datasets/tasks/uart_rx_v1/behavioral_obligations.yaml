@@ -1,0 +1,30 @@
+schema_version: "1.0"
+task_id: uart_rx_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst clears receiver state, data_out, data_valid, framing_error, and busy.
+  - id: O_IDLE
+    category: stability
+    statement: While idle with rx high, busy, data_valid, and framing_error remain low.
+  - id: O_START_CENTER
+    category: timing
+    statement: A low idle observation is validated exactly HALF_CLKS clocks later; a high centre sample is a false start with no output.
+  - id: O_DATA_TIMING
+    category: timing
+    statement: After a valid start, each of eight data samples is exactly CLKS_PER_BIT clocks after the preceding centre sample.
+  - id: O_LSB_FIRST
+    category: ordering
+    statement: The first through eighth data centre samples become bits 0 through 7, respectively, of the completed byte presented on data_out at the stop-bit sample.
+  - id: O_STOP
+    category: timing
+    statement: The stop bit is sampled exactly CLKS_PER_BIT clocks after the bit-7 sample.
+  - id: O_VALID_PULSE
+    category: output
+    statement: data_valid pulses for one clock exactly at a stop-bit sample and data_out holds the completed byte thereafter.
+  - id: O_FRAMING_ERROR
+    category: output
+    statement: framing_error pulses with data_valid exactly when the sampled stop bit is low.
+  - id: O_BUSY
+    category: state
+    statement: busy is high from accepted start detection through stop sampling and low in idle.

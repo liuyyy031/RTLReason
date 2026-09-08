@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "task_id": "axi_stream_packet_counter_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_without_changes"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "No transfer or downstream-readiness progress is assumed."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": true,
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/axi-stream-packet-counter/reference-sim.json",
+    "reference_formal": "runs/task-admission/axi-stream-packet-counter/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "axi_stream_packet_counter_valid_only",
+        "rtl": "tests/fixtures/task_faults/axi_stream_packet_counter_valid_only.sv",
+        "broken_semantics": "Counts tvalid beats even when tready is low.",
+        "expected_obligations": [
+          "O_TRANSFER_GATE",
+          "O_BEAT_COUNT",
+          "O_PACKET_COUNT",
+          "O_HOLD"
+        ],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/axi-stream-packet-counter/bad-valid-only-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/axi-stream-packet-counter/bad-valid-only-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "axi_stream_packet_counter_transfer_over_clear",
+        "rtl": "tests/fixtures/task_faults/axi_stream_packet_counter_transfer_over_clear.sv",
+        "broken_semantics": "An accepted transfer overrides a simultaneous clear instead of clear taking priority.",
+        "expected_obligations": ["O_CLEAR", "O_BEAT_COUNT", "O_PACKET_COUNT"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/axi-stream-packet-counter/bad-transfer-over-clear-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/axi-stream-packet-counter/bad-transfer-over-clear-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/axi_stream_packet_counter_v1/problem.md": "144b4954ce0ffa57fe0fe8f73054037a152718831b3ee03ed7b46b9271613bab",
+      "datasets/tasks/axi_stream_packet_counter_v1/interface_semantics.json": "c83358654207975e7efff67a0215186f7eab4f0d3fedbf3ea85d415b132e97da",
+      "datasets/tasks/axi_stream_packet_counter_v1/behavioral_obligations.yaml": "3a9b6e19d83155452a3556175812d64aec519ceec6881f8ff9d11d666b615d19",
+      "datasets/tasks/axi_stream_packet_counter_v1/difficulty.json": "7c66cc941fa24508cbc3edabcfa6290ab7dd8d60c42149afe8c72ce282a41414",
+      "datasets/tasks/axi_stream_packet_counter_v1/provenance.json": "9c04625dcc98d1c286b36aa3cf6d72a653fb9e410ea9e28bd5b7bcc4427342ad",
+      "datasets/tasks/axi_stream_packet_counter_v1/verification.json": "5cac39253c4f11d36de99dd437a5aa5b1342372e985523e0fbf6aa7232521034",
+      "datasets/tasks/axi_stream_packet_counter_v1/reference_rtl/axi_stream_packet_counter.sv": "3023beeb0d73321ba600063b0da51f6b8e86b4c3d3d900532db34912554a2168",
+      "datasets/tasks/axi_stream_packet_counter_v1/testbench/tb_axi_stream_packet_counter.sv": "4d63a8169d7df1e3c622c44a0fbc6d64bb318f1062fb610f891a619e052f976a",
+      "datasets/tasks/axi_stream_packet_counter_v1/formal/axi_stream_packet_counter_formal.sv": "aaeadaa13df4ee79506cc56d3192bd045ed089826e48b97a70abcd9f964a1aa1",
+      "src/rtlreason/reference/axi_stream_packet_counter.py": "4f99a551e94cec4c89cafa841492386d1247996273fe6c2059f111874fa28503",
+      "tests/fixtures/task_faults/axi_stream_packet_counter_valid_only.sv": "e4ac7711d304459772c0911cd861a4afa8b8bb9be2445c3f9e488b838a83420a",
+      "tests/fixtures/task_faults/axi_stream_packet_counter_transfer_over_clear.sv": "c60f0326d643a301391b12e509acb9b6d99abbf4ae8ba40833ede28e5c2936a9"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_credit_flow_control.sv",
+    "top": "tb_credit_flow_control",
+    "vcd": "credit_flow_control.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/credit_flow_control_formal.sv",
+    "top": "credit_flow_control_formal",
+    "depth": 12,
+    "property_class": "bounded_safety",
+    "obligations": [
+      "O_RESET",
+      "O_CURRENT_ACCEPT",
+      "O_CONSUME",
+      "O_RETURN",
+      "O_MIDDLE_SIMULTANEOUS",
+      "O_FULL_SIMULTANEOUS",
+      "O_EMPTY_NO_LOOKAHEAD",
+      "O_FULL_SATURATION",
+      "O_FLAGS_RANGE"
+    ]
+  }
+}

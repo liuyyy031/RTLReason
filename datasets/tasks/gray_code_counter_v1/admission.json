@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "task_id": "gray_code_counter_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_without_changes"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "No progress is required while en is low."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": "not_applicable",
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/gray-code-counter/reference-sim.json",
+    "reference_formal": "runs/task-admission/gray-code-counter/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "gray_code_counter_binary_output",
+        "rtl": "tests/fixtures/task_faults/gray_code_counter_binary_output.sv",
+        "broken_semantics": "The observable output exposes the binary index instead of the reflected Gray encoding.",
+        "expected_obligations": ["O_ENABLE_STEP", "O_GRAY_MAPPING", "O_SINGLE_BIT"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/gray-code-counter/bad-binary-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/gray-code-counter/bad-binary-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "gray_code_counter_wrong_wrap",
+        "rtl": "tests/fixtures/task_faults/gray_code_counter_wrong_wrap.sv",
+        "broken_semantics": "wrap pulses one accepted enable edge before the maximum-index to zero transition.",
+        "expected_obligations": ["O_WRAP"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/gray-code-counter/bad-wrap-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/gray-code-counter/bad-wrap-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/gray_code_counter_v1/problem.md": "ef0b987accff9321409167c5635ca33eb0c65f5583be511f0ec729329c6ec2d1",
+      "datasets/tasks/gray_code_counter_v1/interface_semantics.json": "174c2d3f2e5ce5a0ef02d4afa946a673705affaae3c16f30a91353742f76518d",
+      "datasets/tasks/gray_code_counter_v1/behavioral_obligations.yaml": "c89bd127d7cab2f76b53126c3834abf51f8f72730e9ecd31a323050942592785",
+      "datasets/tasks/gray_code_counter_v1/difficulty.json": "f909c6cc17fb03ccd23803e385276da072f5cb2d6c68799d003e32f1be2f8069",
+      "datasets/tasks/gray_code_counter_v1/provenance.json": "9c04625dcc98d1c286b36aa3cf6d72a653fb9e410ea9e28bd5b7bcc4427342ad",
+      "datasets/tasks/gray_code_counter_v1/verification.json": "a5ba9b365144aee31f433861d3495fc568cc0e969e59f58134e541ed4e7d1abe",
+      "datasets/tasks/gray_code_counter_v1/reference_rtl/gray_code_counter.sv": "645768935b0c776e2df4f1fa46bf5f9fcbc02b67306621c3ef928a0971fe70d9",
+      "datasets/tasks/gray_code_counter_v1/testbench/tb_gray_code_counter.sv": "ceb5409ec8b16228b486d542473ded2f07c6b696335b17dbe35c9ed2f90c421f",
+      "datasets/tasks/gray_code_counter_v1/formal/gray_code_counter_formal.sv": "d6b633e5ad3cf73712d210b1e01599939bc761ba35ca99a0e61fc843ea1f51a8",
+      "src/rtlreason/reference/gray_code_counter.py": "a73cfc9e5d5c9830436ab71ff134544df1f1b2eafaad3a976d4c4dc8ffd61f68",
+      "tests/fixtures/task_faults/gray_code_counter_binary_output.sv": "2784d47fd9cf501f41161c6e5310fd09b7930ac4639f3c2af93117a0f1352a09",
+      "tests/fixtures/task_faults/gray_code_counter_wrong_wrap.sv": "cd82f40402374e7330576d12068a8af28c3793a4e79c30700ba763f96dfa4463"
+    }
+  }
+}

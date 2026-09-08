@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "task_id": "signed_alu_flags_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_without_changes"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "combinational_safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "No temporal progress properties apply."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": "not_applicable",
+    "simultaneous_operation_verified": "not_applicable",
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/signed-alu-flags/reference-sim.json",
+    "reference_formal": "runs/task-admission/signed-alu-flags/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "signed_alu_borrow_flag",
+        "rtl": "tests/fixtures/task_faults/signed_alu_borrow_flag.sv",
+        "broken_semantics": "SUB carry reports borrow instead of the frozen no-borrow convention.",
+        "expected_obligations": ["O_CARRY"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/signed-alu-flags/bad-borrow-flag-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/signed-alu-flags/bad-borrow-flag-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "signed_alu_sub_overflow_as_add",
+        "rtl": "tests/fixtures/task_faults/signed_alu_sub_overflow_as_add.sv",
+        "broken_semantics": "SUB uses the ADD signed-overflow predicate.",
+        "expected_obligations": ["O_OVERFLOW"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/signed-alu-flags/bad-sub-overflow-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/signed-alu-flags/bad-sub-overflow-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/signed_alu_flags_v1/problem.md": "0c78c397c285d0d172af7680eb764e81f45a172e041827fd8b5a10b5b552713a",
+      "datasets/tasks/signed_alu_flags_v1/interface_semantics.json": "4e129a02432a0ef5b92b0188b817fe60ccf0ee90a15644e637f45deffe4dfa01",
+      "datasets/tasks/signed_alu_flags_v1/behavioral_obligations.yaml": "9628ce9e2b74843ac2e50aae77814f5ca6c7a745dc7d84719002142aefd5336a",
+      "datasets/tasks/signed_alu_flags_v1/difficulty.json": "08266d16510844829905ef58046091574ab6035ed27546af4e3c13bf949ebaba",
+      "datasets/tasks/signed_alu_flags_v1/provenance.json": "9c04625dcc98d1c286b36aa3cf6d72a653fb9e410ea9e28bd5b7bcc4427342ad",
+      "datasets/tasks/signed_alu_flags_v1/verification.json": "cdf843b863d5838a45ab6f0c6af6040a9d818ef77c1d67b8ad509877449bf022",
+      "datasets/tasks/signed_alu_flags_v1/reference_rtl/signed_alu_flags.sv": "76ef0cadce71c1bc4af6218bae36623010dc9fc5f564a0b9410f2b88a0bf12f9",
+      "datasets/tasks/signed_alu_flags_v1/testbench/tb_signed_alu_flags.sv": "3d6f696e396c8c3afb10bfb8b296d4246922c6b3f658c4e2a0d54b1f25e56857",
+      "datasets/tasks/signed_alu_flags_v1/formal/signed_alu_flags_formal.sv": "610c58a3ac7db6726c7eb302de0455dc883e85cb13b2a6e7287e83751c806a02",
+      "src/rtlreason/reference/signed_alu_flags.py": "77c71d8b19d6bc9de936b6d7235aba8dc1c3c14db3395aa26e7f9b4f235511b1",
+      "tests/fixtures/task_faults/signed_alu_borrow_flag.sv": "783ba279de5ceb63c8664bf1f001528d6e2b9c37f97bd3942b97787b7957a40f",
+      "tests/fixtures/task_faults/signed_alu_sub_overflow_as_add.sv": "21acb528ea4985a6882b1ab97eb84184e46ff76194c2054d71a8e99b71c765c1"
+    }
+  }
+}

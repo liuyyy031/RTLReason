@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "task_id": "credit_flow_control_v1",
+  "module_name": "credit_flow_control",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "credits_after_reset": "MAX_CREDITS",
+    "send_accept_while_asserted": 0
+  },
+  "parameters": {
+    "MAX_CREDITS": {"type": "integer_at_least_one", "default": 3},
+    "CREDIT_WIDTH": "$clog2(MAX_CREDITS+1)",
+    "public_parameters": ["MAX_CREDITS"]
+  },
+  "ports": {
+    "clk": {"direction": "input", "width": 1},
+    "rst": {"direction": "input", "width": 1},
+    "send_req": {"direction": "input", "width": 1},
+    "credit_return": {"direction": "input", "width": 1},
+    "send_accept": {"direction": "output", "width": 1, "timing": "combinational_current_state"},
+    "credits": {"direction": "output", "width": "$clog2(MAX_CREDITS+1)", "timing": "registered_current_count"},
+    "empty": {"direction": "output", "width": 1, "timing": "combinational_current_state"},
+    "full": {"direction": "output", "width": 1, "timing": "combinational_current_state"}
+  },
+  "acceptance": {
+    "send": "!rst && send_req && current_credits_greater_than_zero",
+    "return": "!rst && credit_return && (current_credits_less_than_MAX_CREDITS || send_is_accepted)",
+    "decisions_use": "pre_edge_current_state",
+    "return_is_not_externally_acknowledged": true
+  },
+  "simultaneous_semantics": {
+    "middle": "accepted_send_and_return_cancel_so_count_holds",
+    "full": "send_is_accepted_and_return_replaces_consumed_credit_so_count_holds_at_MAX_CREDITS",
+    "empty": "send_is_rejected_without_lookahead_and_return_increments_count_to_one"
+  },
+  "boundary_semantics": {
+    "return_while_full_without_send": "ignored",
+    "request_while_empty_without_return": "rejected_and_count_holds",
+    "range": "zero_through_MAX_CREDITS_inclusive"
+  }
+}

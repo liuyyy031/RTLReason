@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_axi_stream_packet_counter.sv",
+    "top": "tb_axi_stream_packet_counter",
+    "vcd": "axi_stream_packet_counter.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/axi_stream_packet_counter_formal.sv",
+    "top": "axi_stream_packet_counter_formal",
+    "depth": 24,
+    "property_class": "safety",
+    "obligations": [
+      "O_RESET",
+      "O_CLEAR",
+      "O_TRANSFER_GATE",
+      "O_BEAT_COUNT",
+      "O_PACKET_COUNT",
+      "O_SATURATION",
+      "O_HOLD"
+    ]
+  }
+}

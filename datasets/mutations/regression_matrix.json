@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "matrix_version": "2026-09-02",
+  "matrix_version": "2026-09-07.8",
   "purpose": "Controlled EDA regression only. These known faults are not independent Gold labels.",
   "cases": [
     {"id":"fifo-empty-read-through","task_id":"fifo_sync_v1","rtl":"tests/fixtures/fifo_faults/empty_read_through.sv","mutation_class":"acceptance_boundary","expected_obligations":["O_EMPTY_SIMULTANEOUS"],"expected_simulation":"fail"},
@@ -24,6 +24,26 @@
     {"id":"programmable-timer-late","task_id":"programmable_timer_v1","rtl":"tests/fixtures/task_faults/programmable_timer_late.sv","mutation_class":"off_by_one_timing","expected_obligations":["O_EXPIRY"],"expected_simulation":"fail"},
     {"id":"interrupt-clear-dominant","task_id":"interrupt_pending_v1","rtl":"tests/fixtures/task_faults/interrupt_pending_clear_dominant.sv","mutation_class":"collision_priority","expected_obligations":["O_SET_DOMINANT"],"expected_simulation":"fail"},
     {"id":"width-adapter-big-endian","task_id":"stream_width_adapter_v1","rtl":"tests/fixtures/task_faults/stream_width_adapter_big_endian.sv","mutation_class":"ordering","expected_obligations":["O_PACK_ORDER"],"expected_simulation":"fail"},
-    {"id":"apb-setup-write","task_id":"apb_register_bank_v1","rtl":"tests/fixtures/task_faults/apb_register_bank_setup_write.sv","mutation_class":"protocol_phase","expected_obligations":["O_ACCESS_PHASE"],"expected_simulation":"fail"}
+    {"id":"apb-setup-write","task_id":"apb_register_bank_v1","rtl":"tests/fixtures/task_faults/apb_register_bank_setup_write.sv","mutation_class":"protocol_phase","expected_obligations":["O_ACCESS_PHASE"],"expected_simulation":"fail"},
+    {"id":"gray-binary-output","task_id":"gray_code_counter_v1","rtl":"tests/fixtures/task_faults/gray_code_counter_binary_output.sv","mutation_class":"encoding","expected_obligations":["O_ENABLE_STEP","O_GRAY_MAPPING","O_SINGLE_BIT"],"expected_simulation":"fail"},
+    {"id":"gray-wrong-wrap","task_id":"gray_code_counter_v1","rtl":"tests/fixtures/task_faults/gray_code_counter_wrong_wrap.sv","mutation_class":"boundary_timing","expected_obligations":["O_WRAP"],"expected_simulation":"fail"},
+    {"id":"stream-counter-valid-only","task_id":"axi_stream_packet_counter_v1","rtl":"tests/fixtures/task_faults/axi_stream_packet_counter_valid_only.sv","mutation_class":"acceptance_gating","expected_obligations":["O_TRANSFER_GATE","O_BEAT_COUNT","O_PACKET_COUNT","O_HOLD"],"expected_simulation":"fail"},
+    {"id":"stream-counter-transfer-over-clear","task_id":"axi_stream_packet_counter_v1","rtl":"tests/fixtures/task_faults/axi_stream_packet_counter_transfer_over_clear.sv","mutation_class":"control_priority","expected_obligations":["O_CLEAR","O_BEAT_COUNT","O_PACKET_COUNT"],"expected_simulation":"fail"},
+    {"id":"register-file-no-bypass","task_id":"register_file_bypass_v1","rtl":"tests/fixtures/task_faults/register_file_no_bypass.sv","mutation_class":"bypass_omission","expected_obligations":["O_BYPASS_A","O_BYPASS_B","O_DUAL_READ_COLLISION"],"expected_simulation":"fail"},
+    {"id":"register-file-write-over-reset","task_id":"register_file_bypass_v1","rtl":"tests/fixtures/task_faults/register_file_write_over_reset.sv","mutation_class":"control_priority","expected_obligations":["O_RESET"],"expected_simulation":"fail"},
+    {"id":"signed-alu-borrow-flag","task_id":"signed_alu_flags_v1","rtl":"tests/fixtures/task_faults/signed_alu_borrow_flag.sv","mutation_class":"flag_semantics","expected_obligations":["O_CARRY"],"expected_simulation":"fail"},
+    {"id":"signed-alu-sub-overflow-as-add","task_id":"signed_alu_flags_v1","rtl":"tests/fixtures/task_faults/signed_alu_sub_overflow_as_add.sv","mutation_class":"signed_overflow","expected_obligations":["O_OVERFLOW"],"expected_simulation":"fail"},
+    {"id":"spi-lsb-first","task_id":"spi_tx_v1","rtl":"tests/fixtures/task_faults/spi_tx_lsb_first.sv","mutation_class":"serialization_order","expected_obligations":["O_START","O_MSB_FIRST"],"expected_simulation":"fail"},
+    {"id":"spi-restart-when-busy","task_id":"spi_tx_v1","rtl":"tests/fixtures/task_faults/spi_tx_restarts_when_busy.sv","mutation_class":"busy_acceptance","expected_obligations":["O_BUSY_IGNORE","O_MSB_FIRST"],"expected_simulation":"fail"},
+    {"id":"cache-tag-highest-way","task_id":"cache_tag_lookup_v1","rtl":"tests/fixtures/task_faults/cache_tag_highest_way.sv","mutation_class":"priority_direction","expected_obligations":["O_MULTI_HIT_PRIORITY"],"expected_simulation":"fail"},
+    {"id":"cache-tag-ignore-valid","task_id":"cache_tag_lookup_v1","rtl":"tests/fixtures/task_faults/cache_tag_ignores_valid.sv","mutation_class":"validity_gating","expected_obligations":["O_VALID_MATCH","O_MISS","O_SINGLE_HIT"],"expected_simulation":"fail"},
+    {"id":"credit-flow-return-lookahead","task_id":"credit_flow_control_v1","rtl":"tests/fixtures/task_faults/credit_flow_return_lookahead.sv","mutation_class":"current_state_acceptance","expected_obligations":["O_CURRENT_ACCEPT","O_EMPTY_NO_LOOKAHEAD"],"expected_simulation":"fail"},
+    {"id":"credit-flow-full-drops-return","task_id":"credit_flow_control_v1","rtl":"tests/fixtures/task_faults/credit_flow_full_drops_return.sv","mutation_class":"simultaneous_boundary","expected_obligations":["O_FULL_SIMULTANEOUS"],"expected_simulation":"fail"},
+    {"id":"async-no-busy-gating","task_id":"async_handshake_v1","rtl":"tests/fixtures/task_faults/async_handshake_no_busy_gating.sv","mutation_class":"acceptance_gating","expected_obligations":["O_BUSY_GATING","O_EXACTLY_ONCE"],"expected_simulation":"fail"},
+    {"id":"async-level-pulse","task_id":"async_handshake_v1","rtl":"tests/fixtures/task_faults/async_handshake_level_pulse.sv","mutation_class":"pulse_width","expected_obligations":["O_SINGLE_PULSE","O_EXACTLY_ONCE"],"expected_simulation":"fail"},
+    {"id":"uart-ignore-stop","task_id":"uart_rx_v1","rtl":"tests/fixtures/task_faults/uart_rx_ignore_stop.sv","mutation_class":"error_gating","expected_obligations":["O_FRAMING_ERROR"],"expected_simulation":"fail"},
+    {"id":"uart-valid-level","task_id":"uart_rx_v1","rtl":"tests/fixtures/task_faults/uart_rx_valid_level.sv","mutation_class":"pulse_width","expected_obligations":["O_VALID_PULSE"],"expected_simulation":"fail"},
+    {"id":"multiply-restart-when-busy","task_id":"multicycle_multiply_ctrl_v1","rtl":"tests/fixtures/task_faults/multiply_restart_when_busy.sv","mutation_class":"busy_acceptance","expected_obligations":["O_BUSY_IGNORE","O_ATOMIC_COMMIT"],"expected_simulation":"fail"},
+    {"id":"multiply-early-done","task_id":"multicycle_multiply_ctrl_v1","rtl":"tests/fixtures/task_faults/multiply_early_done.sv","mutation_class":"off_by_one_timing","expected_obligations":["O_ITERATION_COUNT","O_RESULT_STABLE"],"expected_simulation":"fail"}
   ]
 }

@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "task_id": "multicycle_multiply_ctrl_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_without_changes"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "bounded_safety_only",
+    "unconditional_liveness_claims": false
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": true,
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/multiply-ctrl/reference-sim.json",
+    "reference_formal": "runs/task-admission/multiply-ctrl/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "multiply_restart_when_busy",
+        "rtl": "tests/fixtures/task_faults/multiply_restart_when_busy.sv",
+        "expected_obligations": [
+          "O_BUSY_IGNORE",
+          "O_ATOMIC_COMMIT"
+        ],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/multiply-ctrl/bad-restart-sim.json"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/multiply-ctrl/bad-restart-formal.json"
+        }
+      },
+      {
+        "mutation_id": "multiply_early_done",
+        "rtl": "tests/fixtures/task_faults/multiply_early_done.sv",
+        "expected_obligations": [
+          "O_ITERATION_COUNT",
+          "O_RESULT_STABLE"
+        ],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/multiply-ctrl/bad-early-sim.json"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/multiply-ctrl/bad-early-formal.json"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/multicycle_multiply_ctrl_v1/problem.md": "22ef9f26a4573398e273ff00a713a05b00f07a721de650a1fe198026b0f57e4c",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/interface_semantics.json": "736d8ff6b9ddfa6de7c4091d195b36416804340b84c3646b0fdf13e766862587",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/behavioral_obligations.yaml": "28bb231b7c4351357b0e18283e9172e08f6ee9acc2abac85d7891a2dc929dba3",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/difficulty.json": "5b00a7b90b6c0354833fe933ae4c036c08b4bfcf1ff9f3c12da9bb5e09ccc993",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/provenance.json": "a771c883ccb676960ccbb399eced59b6a45aaa45550f700c4557b923ab138d22",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/verification.json": "448684a2dbe3a03828628ddee1b79a5a0633dcc4eed98b050b43262da9a73fc9",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/reference_rtl/multicycle_multiply_ctrl.sv": "6d88b20d69c10a560d3469083323a1f63f2e06dc66adf6d064b2acd256082cf1",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/testbench/tb_multicycle_multiply_ctrl.sv": "c58f2855736fd81801d95b835cc987b09f3fe5a348e9d7e61e0c5759d170532a",
+      "datasets/tasks/multicycle_multiply_ctrl_v1/formal/multicycle_multiply_ctrl_formal.sv": "94d3438d1e3311cea9eb36d90ed9e2d7a3f64c074c091982e444dd7abcc6e258",
+      "src/rtlreason/reference/multicycle_multiply_ctrl.py": "2c764101aa747b2c43d29ebd5d2af468cb509f40c1e9ddb03d0328cbc1a5daf5",
+      "tests/fixtures/task_faults/multiply_restart_when_busy.sv": "0804ebfc4c9c2ccb909d2b6d3e70fb41d742113aa317509add6d5328ba8a63a6",
+      "tests/fixtures/task_faults/multiply_early_done.sv": "e58c0d9b3054e9e4ef3e5f5dd8bb1d7fc0fc326f69eff1832c734c333775faf5"
+    }
+  }
+}

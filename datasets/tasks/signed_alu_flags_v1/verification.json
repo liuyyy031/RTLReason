@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "simulation": {
+    "testbench": "testbench/tb_signed_alu_flags.sv",
+    "top": "tb_signed_alu_flags",
+    "vcd": "signed_alu_flags.vcd"
+  },
+  "formal": {
+    "enabled": true,
+    "harness": "formal/signed_alu_flags_formal.sv",
+    "top": "signed_alu_flags_formal",
+    "depth": 2,
+    "property_class": "safety",
+    "obligations": [
+      "O_ADD_RESULT",
+      "O_SUB_RESULT",
+      "O_LOGIC_RESULT",
+      "O_ZERO",
+      "O_NEGATIVE",
+      "O_CARRY",
+      "O_OVERFLOW",
+      "O_COMBINATIONAL"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "level": "intermediate",
+  "concepts": [
+    "valid-ready transfer gating",
+    "TLAST packet boundary",
+    "synchronous clear priority",
+    "independent saturating counters",
+    "registered state observation"
+  ],
+  "formal_core": true,
+  "expected_process_items": "15-24"
+}

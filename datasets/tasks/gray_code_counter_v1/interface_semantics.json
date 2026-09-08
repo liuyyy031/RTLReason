@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "task_id": "gray_code_counter_v1",
+  "module_name": "gray_code_counter",
+  "clock": {
+    "port": "clk",
+    "active_edge": "posedge",
+    "input_sampling": "immediately_before_active_edge",
+    "registered_output_observation": "immediately_after_active_edge"
+  },
+  "reset": {
+    "port": "rst",
+    "type": "synchronous",
+    "active_level": "high",
+    "priority": "highest",
+    "gray_after_reset": 0,
+    "wrap_after_reset": 0
+  },
+  "parameters": {
+    "WIDTH": {
+      "type": "positive_integer",
+      "minimum": 1,
+      "default": 4
+    }
+  },
+  "ports": {
+    "en": {"direction": "input", "width": 1},
+    "gray": {"direction": "output", "width": "WIDTH"},
+    "wrap": {"direction": "output", "width": 1}
+  },
+  "sequence": {
+    "name": "binary_reflected_gray_code",
+    "abstract_index_range": "0 through 2**WIDTH-1",
+    "encoding": "gray(index) = index XOR (index >> 1)",
+    "initial_index": 0,
+    "enabled_next_index": "(current_index + 1) modulo 2**WIDTH",
+    "disabled_next_index": "current_index",
+    "cyclic_adjacent_difference": "exactly one gray bit changes on every enabled transition, including wrap"
+  },
+  "acceptance": {
+    "advance": "en sampled high while rst is low",
+    "priority": ["reset", "enable", "hold"]
+  },
+  "transition": {
+    "reset": "abstract index becomes zero; gray is zero; wrap is zero",
+    "enable": "advance one sequence position; wrap is one iff the pre-edge abstract index was 2**WIDTH-1",
+    "idle": "abstract index and gray hold; wrap is zero"
+  },
+  "liveness_boundary": "No progress is required while en is low. Formal Core contains only safety properties over sampled transitions."
+}

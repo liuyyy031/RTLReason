@@ -1,0 +1,16 @@
+{
+  "annotator_id": "LT001",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "single_annotated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S1",
+  "gold_root_error": "S1.4",
+  "gold_error_type_l1": "Specification",
+  "gold_error_type_l2": "Boundary Case Misread",
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "notes": "Two independent review passes reached the same substantive error conclusion. In the first review, S1.1 through S1.3 correctly captured reset, acceptance, fixed WIDTH-edge execution, atomic completion, busy clearing, and the done pulse. The earliest error is S1.4, which states that result holds the previous completed value not only through acceptance and the first WIDTH-1 busy edges, but also after completion until reset or another completion. At the completion boundary, result must instead change atomically to the newly completed product and then hold that new value. This also conflicts with the correct atomic-commit statement already made in S1.3. In the second review, the same error was independently reproduced with a transaction whose product differs from the previously stored result: the old result must hold only until the WIDTH-th busy edge, after which the new product must remain visible. The later architecture, transition rules, properties, and final RTL implement the required behavior correctly, including WIDTH=1 and use of next_acc on the final iteration. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

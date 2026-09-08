@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "held-out-batch-002",
+  "plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "updated_at": "2026-09-08T11:25:21.1462278+08:00",
+  "collection_status": "collection_complete_blind_review_ready",
+  "planned_count": 10,
+  "collected_count": 10,
+  "pending_count": 0,
+  "technical_blocked_count": 0,
+  "semantic_evaluator_run_count": 0,
+  "samples": [
+    {"case_id":"heldout2-candidate-gray-code-001","task_id":"gray_code_counter_v1","status":"blind_review_ready","collected_at":"2026-09-08T00:54:44.640626+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"d9d8fa95-767a-4380-9bfc-4b5d61d389b3","finish_reason":"stop","source_run":"runs/held-out-batch-002/gray-code-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-gray-code-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-gray-code-001.review.json"},
+    {"case_id":"heldout2-candidate-axi-stream-counter-001","task_id":"axi_stream_packet_counter_v1","status":"blind_review_ready","collected_at":"2026-09-08T00:59:36.903893+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"da88566e-7f81-451c-b521-e7f7c6d7b7e7","finish_reason":"stop","source_run":"runs/held-out-batch-002/axi-stream-counter-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-axi-stream-counter-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-axi-stream-counter-001.review.json"},
+    {"case_id":"heldout2-candidate-register-file-bypass-001","task_id":"register_file_bypass_v1","status":"blind_review_ready","collected_at":"2026-09-08T01:03:16.897482+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"222c5058-fdbf-4a79-87d2-66b9dd41da9d","finish_reason":"stop","source_run":"runs/held-out-batch-002/register-file-bypass-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-register-file-bypass-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-register-file-bypass-001.review.json"},
+    {"case_id":"heldout2-candidate-signed-alu-001","task_id":"signed_alu_flags_v1","status":"blind_review_ready","collected_at":"2026-09-08T01:05:56.95226+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"892feaf3-10a9-4fd1-b5c1-31a0b6c60358","finish_reason":"stop","source_run":"runs/held-out-batch-002/signed-alu-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-signed-alu-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-signed-alu-001.review.json"},
+    {"case_id":"heldout2-candidate-cache-tag-001","task_id":"cache_tag_lookup_v1","status":"blind_review_ready","collected_at":"2026-09-08T01:40:45.666192+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"8c6575d4-224d-4bc4-8075-674f8c9388b1","finish_reason":"stop","source_run":"runs/held-out-batch-002/cache-tag-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-cache-tag-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-cache-tag-001.review.json"},
+    {"case_id":"heldout2-candidate-credit-flow-001","task_id":"credit_flow_control_v1","status":"blind_review_ready","collected_at":"2026-09-08T01:43:35.405127+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"06d4a6f2-3c0f-459b-8f1b-ef8f029b6f80","finish_reason":"stop","source_run":"runs/held-out-batch-002/credit-flow-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-credit-flow-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-credit-flow-001.review.json"},
+    {"case_id":"heldout2-candidate-async-handshake-001","task_id":"async_handshake_v1","status":"blind_review_ready","collected_at":"2026-09-08T09:24:07.507008+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"4a79fac4-80d4-4843-8d15-071650d69bb5","finish_reason":"stop","source_run":"runs/held-out-batch-002/async-handshake-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-async-handshake-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-async-handshake-001.review.json"},
+    {"case_id":"heldout2-candidate-uart-rx-001","task_id":"uart_rx_v1","status":"blind_review_ready","collected_at":"2026-09-08T09:41:24.750517+08:00","candidate_origin":"real_hy3","model":"hy3","request_id":"4e205842-598c-4147-9a33-bc5291d22eb4","finish_reason":"stop","source_run":"runs/held-out-batch-002/uart-rx-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-uart-rx-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-uart-rx-001.review.json"},
+    {"case_id":"heldout2-candidate-spi-tx-001","task_id":"spi_tx_v1","status":"blind_review_ready","collected_at":"2026-09-08T11:15:03.309743+08:00","candidate_origin":"real_model_output","model":"hy4-preview","request_id":"9b248c08-cf39-415a-8246-33e07876224b","finish_reason":"stop","source_run":"runs/held-out-batch-002/spi-tx-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-spi-tx-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-spi-tx-001.review.json"},
+    {"case_id":"heldout2-candidate-multiply-ctrl-001","task_id":"multicycle_multiply_ctrl_v1","status":"blind_review_ready","collected_at":"2026-09-08T11:24:51.581431+08:00","candidate_origin":"real_model_output","model":"hy4-preview","request_id":"28578c47-dc45-44d1-ba7b-031d7e6d5f24","finish_reason":"stop","source_run":"runs/held-out-batch-002/multiply-ctrl-001","trusted_rtl_verdict":true,"semantic_evaluator_status":"not_run","candidate":"datasets/validation/candidates/heldout2-candidate-multiply-ctrl-001.json","review_packet":"datasets/validation/review_packets/heldout2-candidate-multiply-ctrl-001.review.json"}
+  ],
+  "technical_blockers": [
+    {
+      "case_id": "heldout2-candidate-spi-tx-001",
+      "task_id": "spi_tx_v1",
+      "status": "resolved_by_hy4_preview_3000s_override",
+      "attempt_logs": [
+        "runs/held-out-batch-002/spi-tx-001/generation.attempt-001.failure.json",
+        "runs/held-out-batch-002/spi-tx-001/generation.attempt-002.failure.json",
+        "runs/held-out-batch-002/spi-tx-001/generation.attempt-003.aborted.json",
+        "runs/held-out-batch-002/spi-tx-001/generation.attempt-004.failure.json",
+        "runs/held-out-batch-002/spi-tx-001/generation.attempt-005.failure.json"
+      ],
+      "error": "TokenHub request exceeded its total time limit"
+    },
+    {
+      "case_id": "heldout2-candidate-multiply-ctrl-001",
+      "task_id": "multicycle_multiply_ctrl_v1",
+      "status": "resolved_by_hy4_preview_3000s_override",
+      "attempt_logs": [
+        "runs/held-out-batch-002/multiply-ctrl-001/generation.attempt-001.failure.json",
+        "runs/held-out-batch-002/multiply-ctrl-001/generation.attempt-002.failure.json"
+      ],
+      "error": "TokenHub request exceeded its total time limit"
+    }
+  ],
+  "pending_samples": []
+}

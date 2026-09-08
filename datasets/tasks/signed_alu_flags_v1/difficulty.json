@@ -1,0 +1,12 @@
+{
+  "level": "basic",
+  "concepts": [
+    "combinational ALU",
+    "carry versus no-borrow",
+    "two's-complement overflow",
+    "zero and sign flags",
+    "width-limited arithmetic"
+  ],
+  "formal_core": true,
+  "expected_process_items": "12-18"
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "task_id": "cache_tag_lookup_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_after_requested_change",
+    "requested_change": "Remove public WAY_WIDTH parameter because hit_way width is uniquely derived from WAYS.",
+    "implementation": "Reference RTL and interface-compatible known-bad fixtures now derive hit_way width directly with $clog2(WAYS)."
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "combinational_safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "The lookup is purely combinational; no temporal progress property applies."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": "not_applicable",
+    "simultaneous_operation_verified": "not_applicable",
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/cache-tag/reference-sim.json",
+    "reference_formal": "runs/task-admission/cache-tag/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "cache_tag_highest_way",
+        "rtl": "tests/fixtures/task_faults/cache_tag_highest_way.sv",
+        "broken_semantics": "A multi-hit lookup selects the highest matching way instead of the frozen lowest-way priority.",
+        "expected_obligations": ["O_MULTI_HIT_PRIORITY"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/cache-tag/bad-high-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/cache-tag/bad-high-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "cache_tag_ignores_valid",
+        "rtl": "tests/fixtures/task_faults/cache_tag_ignores_valid.sv",
+        "broken_semantics": "Tag equality can produce a hit even when the matching way is invalid.",
+        "expected_obligations": ["O_VALID_MATCH", "O_MISS", "O_SINGLE_HIT"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/cache-tag/bad-valid-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/cache-tag/bad-valid-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/cache_tag_lookup_v1/problem.md": "e2bc11ba050dcf54160d0d8a0544367fc709f0ce104202b42682d26e5879f487",
+      "datasets/tasks/cache_tag_lookup_v1/interface_semantics.json": "981eaf646160ffb786429fe8a261f9cc05fbf023545d5658c298492df76dedd5",
+      "datasets/tasks/cache_tag_lookup_v1/behavioral_obligations.yaml": "086f42ceaabf3efb965c73d17118db7af59fbb9937d1796f3a58bd27a0711e59",
+      "datasets/tasks/cache_tag_lookup_v1/difficulty.json": "1b1da89cee592b3474e656d0b10299755f8df33c47571fc61084a3e85ea6d366",
+      "datasets/tasks/cache_tag_lookup_v1/provenance.json": "a771c883ccb676960ccbb399eced59b6a45aaa45550f700c4557b923ab138d22",
+      "datasets/tasks/cache_tag_lookup_v1/verification.json": "5e482bbfb64f55c34bf307b6d606577c7126f556aa0b7ee56dc10903d67904e1",
+      "datasets/tasks/cache_tag_lookup_v1/reference_rtl/cache_tag_lookup.sv": "b272d48938a06e1a860d5f63110a55c447d271abc47bba9d0297f8f7956dc6ed",
+      "datasets/tasks/cache_tag_lookup_v1/testbench/tb_cache_tag_lookup.sv": "1e1bc284ea8260934c063ea161a199392433bd2784225b1b12da103d0d1c0170",
+      "datasets/tasks/cache_tag_lookup_v1/formal/cache_tag_lookup_formal.sv": "a29799d815c0efb5f85d5502519d0029f04f66a3eccc6242bbb222c9c2812418",
+      "src/rtlreason/reference/cache_tag_lookup.py": "edf34cc240eac3de285a29515cbd5e7e740bd13343c5fc43077087cf743a5398",
+      "tests/fixtures/task_faults/cache_tag_highest_way.sv": "d02f59d3e47db9e1fba9bd301eafbfc5ba45ce46794331d2a48ccf6bb768133f",
+      "tests/fixtures/task_faults/cache_tag_ignores_valid.sv": "f206ba8bbc68e272a981478c57f99977075e2cda841051199cc3e7be1b7fe0da"
+    }
+  }
+}

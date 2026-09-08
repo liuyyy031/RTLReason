@@ -1,0 +1,11 @@
+{
+  "schema_version":"1.0","task_id":"cache_tag_lookup_v1","module_name":"cache_tag_lookup",
+  "clock":{"port":null,"active_edge":"none","input_sampling":"continuous","registered_output_observation":"not_applicable"},
+  "reset":{"port":null,"type":"none","active_level":"not_applicable","priority":"not_applicable"},
+  "parameters":{"WAYS":{"type":"power_of_two_integer","minimum":2,"default":4},"TAG_WIDTH":{"type":"positive_integer","minimum":1,"default":6},"DATA_WIDTH":{"type":"positive_integer","minimum":1,"default":8},"WAY_WIDTH":"$clog2(WAYS)"},
+  "ports":{"lookup_tag":{"direction":"input","width":"TAG_WIDTH"},"valid":{"direction":"input","width":"WAYS"},"tags":{"direction":"input","width":"WAYS*TAG_WIDTH"},"data":{"direction":"input","width":"WAYS*DATA_WIDTH"},"hit":{"direction":"output","width":1},"hit_way":{"direction":"output","width":"WAY_WIDTH"},"hit_data":{"direction":"output","width":"DATA_WIDTH"}},
+  "packing":{"way_i_tag":"tags[i*TAG_WIDTH +: TAG_WIDTH]","way_i_data":"data[i*DATA_WIDTH +: DATA_WIDTH]","way_numbering":"way 0 occupies the least-significant slice"},
+  "acceptance":{"match":"valid[i] is one and way i tag equals lookup_tag","priority":"lowest numerical matching way wins"},
+  "outputs":{"single_or_multi_hit":"hit=1, hit_way is the lowest matching index, hit_data is that way's data","miss":"hit=0, hit_way=0, hit_data=0","latency":0},
+  "liveness_boundary":"Pure combinational selection; only functional safety properties apply."
+}

@@ -1,0 +1,9 @@
+schema_version: "1.0"
+task_id: cache_tag_lookup_v1
+obligations:
+  - {id: O_VALID_MATCH, category: acceptance, statement: A way matches only when its valid bit is one and its packed tag equals lookup_tag.}
+  - {id: O_MISS, category: boundary, statement: With no valid matching way hit is zero and hit_way and hit_data are zero.}
+  - {id: O_SINGLE_HIT, category: selection, statement: A single valid match returns hit one, its exact way index, and its associated packed data slice.}
+  - {id: O_MULTI_HIT_PRIORITY, category: priority, statement: Multiple valid matches deterministically select the lowest numerical way.}
+  - {id: O_PACKING, category: interface, statement: Way zero occupies the least-significant tag and data slices and every way uses its corresponding slices.}
+  - {id: O_COMBINATIONAL, category: timing, statement: All outputs are combinational functions of current inputs with zero latency and no state.}

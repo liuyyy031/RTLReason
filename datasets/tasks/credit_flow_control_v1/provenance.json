@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "created_by": "human-designed trusted asset",
+  "license": "MIT",
+  "reference_policy": "Trusted assets are independent of evaluated model responses.",
+  "candidate_generation_status": "forbidden_until_trusted_frozen",
+  "task_expansion_batch": "task-expansion-batch-002"
+}

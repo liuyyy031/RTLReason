@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "task_id": "credit_flow_control_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_after_requested_change",
+    "requested_change": "Constrain accepted credit_return to the non-reset domain.",
+    "implementation": "Interface acceptance.return now starts with !rst, matching reset priority and the reference RTL transition domain."
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "bounded_safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "Only per-edge acceptance, transition, boundary, flag, and range safety properties are claimed."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": true,
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/credit-flow/reference-sim.json",
+    "reference_formal": "runs/task-admission/credit-flow/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "credit_flow_return_lookahead",
+        "rtl": "tests/fixtures/task_faults/credit_flow_return_lookahead.sv",
+        "broken_semantics": "A return at zero credits incorrectly makes a simultaneous send request acceptable.",
+        "expected_obligations": ["O_CURRENT_ACCEPT", "O_EMPTY_NO_LOOKAHEAD"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/credit-flow/bad-lookahead-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/credit-flow/bad-lookahead-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "credit_flow_full_drops_return",
+        "rtl": "tests/fixtures/task_faults/credit_flow_full_drops_return.sv",
+        "broken_semantics": "At full credits, an accepted send takes priority and incorrectly drops a simultaneous return.",
+        "expected_obligations": ["O_FULL_SIMULTANEOUS"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/credit-flow/bad-full-drop-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/credit-flow/bad-full-drop-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/credit_flow_control_v1/problem.md": "1f2a1f8abb50784458ddb49a006c1ccff5cfe02788a8642ecb4ba003a4fe2318",
+      "datasets/tasks/credit_flow_control_v1/interface_semantics.json": "995b70d85baa28764d9a687df7674e121e4d58f52ef5a2521f8bb2621b81639f",
+      "datasets/tasks/credit_flow_control_v1/behavioral_obligations.yaml": "76e1039637baa158a8a160a37fe600faa8ffdefcc31d08bb2706842e215eb3c2",
+      "datasets/tasks/credit_flow_control_v1/difficulty.json": "8608f28c1fa8e19b3d95316a8780fe46a137b38e9a52eafd45d45a7f702cfb11",
+      "datasets/tasks/credit_flow_control_v1/provenance.json": "b391d436ecf4db72c73a829f533b0874a154bba1aced640200fb04839df1bcd4",
+      "datasets/tasks/credit_flow_control_v1/verification.json": "6118a13b5c93345160dcda984a57220ff4e7beecc3b823c480cafed0c5d196c0",
+      "datasets/tasks/credit_flow_control_v1/reference_rtl/credit_flow_control.sv": "b756a206a61c66206d0a83adcbd1b13e071d5c31b88714bdd55457f3c6cd7df3",
+      "datasets/tasks/credit_flow_control_v1/testbench/tb_credit_flow_control.sv": "a66ad5744e39e2899620f7e2a41f29451dcb3dd132128c1468063b95f17c829d",
+      "datasets/tasks/credit_flow_control_v1/formal/credit_flow_control_formal.sv": "ca945d05c7ac9c77deda53c4606d8d6ba0c04dd1a5d767b96b4f20c7b78aedff",
+      "src/rtlreason/reference/credit_flow_control.py": "6f969921e34affc7bb70ae8f9c68feeb6d46a269ea6a155eae77acff9649dbb1",
+      "tests/fixtures/task_faults/credit_flow_return_lookahead.sv": "aa424fefbf896b0936da1a8066d6ac8a97cecdf5930e0ba270e80ce9f07085a5",
+      "tests/fixtures/task_faults/credit_flow_full_drops_return.sv": "5bebadc7967a4fab2ad203c72ffeb8dbec017dbd0ebb0cd7f14c80866b03f4a3"
+    }
+  }
+}

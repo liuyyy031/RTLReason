@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "task_id": "register_file_bypass_v1",
+  "batch_id": "task-expansion-batch-002",
+  "status": "trusted_frozen",
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "independent_asset_review": {
+    "status": "approved",
+    "reviewer_id": "LT001",
+    "reviewed_at": "2026-09-07",
+    "decision": "pass_without_changes"
+  },
+  "safety_liveness_boundary": {
+    "formal_core": "safety_only",
+    "unconditional_liveness_claims": false,
+    "note": "No future write or read-address progress is assumed."
+  },
+  "checks": {
+    "problem_interface_consistent": true,
+    "observable_timing_frozen": true,
+    "obligations_microarchitecture_independent": true,
+    "reference_compiles": true,
+    "reference_simulation_passes": true,
+    "reference_formal_safety_passes": true,
+    "core_obligations_traceable": true,
+    "minimum_two_known_bad_detected": true,
+    "reset_boundary_verified": true,
+    "simultaneous_operation_verified": true,
+    "parameter_boundary_verified": true,
+    "independent_review_complete": true,
+    "hy3_candidate_absent": true,
+    "trusted_assets_finally_frozen": true
+  },
+  "verification_evidence": {
+    "reference_simulation": "runs/task-admission/register-file-bypass/reference-sim.json",
+    "reference_formal": "runs/task-admission/register-file-bypass/reference-formal.json",
+    "known_bad": [
+      {
+        "mutation_id": "register_file_no_bypass",
+        "rtl": "tests/fixtures/task_faults/register_file_no_bypass.sv",
+        "broken_semantics": "Both read ports expose old storage during a matching legal write instead of immediate wdata bypass.",
+        "expected_obligations": [
+          "O_BYPASS_A",
+          "O_BYPASS_B",
+          "O_DUAL_READ_COLLISION"
+        ],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/register-file-bypass/bad-no-bypass-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/register-file-bypass/bad-no-bypass-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      },
+      {
+        "mutation_id": "register_file_write_over_reset",
+        "rtl": "tests/fixtures/task_faults/register_file_write_over_reset.sv",
+        "broken_semantics": "A simultaneous write takes priority over synchronous reset.",
+        "expected_obligations": ["O_RESET"],
+        "simulation": {
+          "status": "fail",
+          "evidence": "runs/task-admission/register-file-bypass/bad-write-over-reset-sim.json",
+          "failure_phase": "property_check"
+        },
+        "formal": {
+          "status": "fail",
+          "evidence": "runs/task-admission/register-file-bypass/bad-write-over-reset-formal.json",
+          "failure_phase": "property_check",
+          "obligation_mapping": "unresolved_counterexample"
+        }
+      }
+    ]
+  },
+  "asset_hashes": {
+    "status": "frozen",
+    "algorithm": "sha256",
+    "files": {
+      "datasets/tasks/register_file_bypass_v1/problem.md": "ec0a4cfbbb502befb88df90beadf90d97916cfdd1a6c3fe374c447114a902305",
+      "datasets/tasks/register_file_bypass_v1/interface_semantics.json": "5d351db998ace8d9b97bff51c3dbe210405b01c6493689e888b9caa899e53554",
+      "datasets/tasks/register_file_bypass_v1/behavioral_obligations.yaml": "f85d612b52f6be85b2ef5b7bd8c7104b0162e5d5e508be7adb323a15e4cba611",
+      "datasets/tasks/register_file_bypass_v1/difficulty.json": "2ac47c8c49ea0a220c277497c4d4f9971340f6d778b4b31aefd351298e8dd436",
+      "datasets/tasks/register_file_bypass_v1/provenance.json": "9c04625dcc98d1c286b36aa3cf6d72a653fb9e410ea9e28bd5b7bcc4427342ad",
+      "datasets/tasks/register_file_bypass_v1/verification.json": "3ec8bc6a7e754164302230a749e4736dc238baef3f91a83b91a6235575928037",
+      "datasets/tasks/register_file_bypass_v1/reference_rtl/register_file_bypass.sv": "5fdcd8def5a5a472fcf7b4d6910376f45b6953f9911fed8d753c4e489d568032",
+      "datasets/tasks/register_file_bypass_v1/testbench/tb_register_file_bypass.sv": "f989e2ff2e4cb7f2a050e1d4b5e3355230d7015069d30cd95e450f24db6c71ec",
+      "datasets/tasks/register_file_bypass_v1/formal/register_file_bypass_formal.sv": "083a447436212b1d3c8b2081a58a848914ee1c36cab33f938fa096c3d530465b",
+      "src/rtlreason/reference/register_file_bypass.py": "8184deb880ad35de18a323d2986fb2bf152dd732a4e7f455490df465b090a1a9",
+      "tests/fixtures/task_faults/register_file_no_bypass.sv": "89bb3149b953c72f3743be906216037fd7fdfb26dce0eadc803ff6601bc282c9",
+      "tests/fixtures/task_faults/register_file_write_over_reset.sv": "c3734d3ec9b00230fd57b2ce2c53266d7ce4b93fa3d9dd120f6613d188d2b4d5"
+    }
+  }
+}

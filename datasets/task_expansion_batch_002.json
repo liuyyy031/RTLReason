@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "task-expansion-batch-002",
+  "registered_at": "2026-09-07",
+  "status": "generation_plan_frozen",
+  "purpose": "task_level_challenge_held_out",
+  "current_task_manifest_version": "2026-09-07.8",
+  "current_trusted_task_count": 30,
+  "target_trusted_task_count": 30,
+  "candidate_generation_allowed": true,
+  "candidate_generation_blocker": null,
+  "candidate_generation_plan": "datasets/validation/HELD_OUT_BATCH_002.json",
+  "semantic_evaluation_allowed": false,
+  "minimum_known_bad_per_task": 2,
+  "admission_required_before_manifest": true,
+  "tasks": [
+    {"task_id": "gray_code_counter_v1", "layer": "basic", "family": "encoding_counter", "wave": 1, "status": "trusted_frozen", "focus": ["gray_encoding", "enable_hold", "wrap_boundary"]},
+    {"task_id": "axi_stream_packet_counter_v1", "layer": "intermediate", "family": "stream_monitor", "wave": 1, "status": "trusted_frozen", "focus": ["valid_ready_gating", "tlast_boundary", "clear_priority"]},
+    {"task_id": "register_file_bypass_v1", "layer": "intermediate", "family": "register_file", "wave": 1, "status": "trusted_frozen", "focus": ["dual_read", "same_cycle_bypass", "address_collision"]},
+    {"task_id": "signed_alu_flags_v1", "layer": "basic", "family": "combinational_alu", "wave": 2, "status": "trusted_frozen", "focus": ["signed_overflow", "carry_borrow", "flag_consistency"]},
+    {"task_id": "spi_tx_v1", "layer": "intermediate", "family": "serial_protocol", "wave": 2, "status": "trusted_frozen", "focus": ["mode0_edge_timing", "msb_first", "busy_done"]},
+    {"task_id": "cache_tag_lookup_v1", "layer": "intermediate", "family": "associative_lookup", "wave": 2, "status": "trusted_frozen", "focus": ["valid_tag_match", "multi_hit_priority", "miss_output"]},
+    {"task_id": "credit_flow_control_v1", "layer": "intermediate", "family": "flow_control", "wave": 2, "status": "trusted_frozen", "focus": ["credit_acceptance", "consume_return_concurrency", "zero_full_boundary"]},
+    {"task_id": "async_handshake_v1", "layer": "hard", "family": "cdc_protocol", "wave": 3, "status": "trusted_frozen", "focus": ["toggle_synchronization", "event_exactly_once", "dual_clock_assumptions"], "risk_gate": "admit_only_with_reproducible_multiclock_formal"},
+    {"task_id": "uart_rx_v1", "layer": "hard", "family": "serial_protocol", "wave": 3, "status": "trusted_frozen", "focus": ["center_sampling", "frame_timing", "framing_error"]},
+    {"task_id": "multicycle_multiply_ctrl_v1", "layer": "hard", "family": "multicycle_datapath", "wave": 3, "status": "trusted_frozen", "focus": ["fixed_iteration_count", "busy_start_gating", "atomic_result_commit"]}
+  ]
+}

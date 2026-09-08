@@ -152,7 +152,7 @@ formal/
 
 `provenance.json` 记录任务来源、许可证、版本和可信资产生成政策；`verification.json` 冻结每题的 testbench、simulation top、VCD 文件、Formal harness/top、BMC 深度和覆盖的 obligations。任何被测 Hy3 输出都不得反向修改这些资产。
 
-当前已闭环的可信任务有 20 道：
+当前已闭环的可信任务有 30 道：
 
 - `fifo_sync_v1`：满/空并发读写、一周期读延迟与 FIFO ordering；
 - `counter_enable_v1`：reset/load/enable 优先级与 overflow 脉冲；
@@ -171,9 +171,21 @@ formal/
 - `saturating_counter_v1`：上下计数、边界饱和、enable hold 和当前状态边界标志。
 - `serial_parity_v1`：帧内 valid gating、start/finish 同边沿数据纳入和 done 脉冲。
 - `programmable_timer_v1`：周期装载、零值钳位、精确到期和同边沿 tick+reload。
+- `gray_code_counter_v1`：enable控制的reflected Gray序列、单bit变化和环回wrap。
+- `signed_alu_flags_v1`：ADD/SUB/AND/XOR、SUB no-borrow carry、有符号overflow和组合flags。
 - `interrupt_pending_v1`：中断捕获与 mask、最低位优先、ack 和同源 set-dominant 冲突。
 - `stream_width_adapter_v1`：8→16 位小端打包、部分字状态、背压稳定和禁止同边沿替换。
+- `axi_stream_packet_counter_v1`：valid/ready握手计数、TLAST packet计数、clear优先级和独立饱和。
+- `register_file_bypass_v1`：同步写、组合双读、same-cycle bypass和双口地址冲突。
+- `spi_tx_v1`：SPI MODE0、MSB-first、固定半周期分频、busy gating和精确完成边沿。
+- `cache_tag_lookup_v1`：valid-tag组合查找、packed way顺序、最低编号多命中优先和确定性miss输出。
+- `credit_flow_control_v1`：current-state credit发送接受、consume/return并发、空时无lookahead及满时替换语义。
+- `async_handshake_v1`：双时钟request/ack toggle、两级同步、单事件精确交付和协调reset合同。
+- `uart_rx_v1`：8N1中心采样、LSB-first字节映射、false start和stop framing error。
+- `multicycle_multiply_ctrl_v1`：固定WIDTH迭代、busy请求隔离、原子结果提交和done脉冲。
 - `apb_register_bank_v1`：APB setup/access 阶段、地址译码、零等待读写和错误门控。
+
+Task Expansion Batch 002 的10道新题已全部通过 Reference、Simulation、Formal、至少2个 known-bad 和独立资产审查，可信题目总量已达到30道。Batch 002 的任务级 Held-out 生成计划和 evaluator v1.5 快照已经冻结：每题仅采集1份新的独立 Hy3 回答，保留第一次有效生成，不按内容或 EDA 结果重采样，生成阶段不运行 Semantic Judge。详细设计与 Safety/Liveness 边界见 `docs/TASK_EXPANSION_BATCH_002.md`，机器可读清单见 `datasets/task_expansion_batch_002.json` 和 `datasets/validation/HELD_OUT_BATCH_002.json`。
 
 ### 5.2 S1–S5 Process Artifact
 
@@ -310,7 +322,7 @@ Gold Validation Set 可以包含：
 
 截至 2026-09-07，另有20份覆盖全部可信任务的新 Hy3 回答在运行评测器前完成双人复核并冻结为 Held-out Batch 001。冻结的 v1.5 在该批上的 Full Process Accuracy 为 0.7500、Macro-F1 为 0.7151、Root Error Accuracy 为 0.5000、Correct-RTL/Wrong-Process Recall 为 0.6000，关键依赖 micro-F1 为 0.2500；Final RTL Accuracy 为 1.0000。EDA-only 同样得到0.7500 Process Accuracy，但无法召回任何正确 RTL/错误过程样本。该批是已见任务上的 sample-level held-out，不代表新任务泛化；结果已一次性冻结，不得用于调整 v1.5 后重测同一批。详细分析见 `runs/metrics/evaluator-v1.5-held-out-batch-001/HELD_OUT_RESULTS_CN.md`。
 
-受控 EDA 回归由 `datasets/mutations/regression_matrix.json` 冻结，目前包含 22 个已知故障，覆盖全部 20 道可信题目。运行 `python -m rtlreason regression-summary` 可校验任务、RTL 路径、obligation 映射并汇总覆盖；运行 `python -m rtlreason regression-run` 会逐个执行已知错误 RTL，并要求可信仿真失败且至少命中一个预期 obligation。该矩阵只用于工程回归，不属于独立 Gold。
+受控 EDA 回归由 `datasets/mutations/regression_matrix.json` 冻结，目前包含 42 个已知故障，覆盖全部 30 道可信题目。运行 `python -m rtlreason regression-summary` 可校验任务、RTL 路径、obligation 映射并汇总覆盖；运行 `python -m rtlreason regression-run` 会逐个执行已知错误 RTL，并要求可信仿真失败且至少命中一个预期 obligation。该矩阵只用于工程回归，不属于独立 Gold。
 
 ## 6. 第一题 FIFO 的重点技术
 

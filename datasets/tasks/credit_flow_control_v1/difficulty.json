@@ -1,0 +1,12 @@
+{
+  "level": "intermediate",
+  "concepts": [
+    "current-state credit acceptance",
+    "consume and return concurrency",
+    "zero-credit no-lookahead boundary",
+    "full-credit replacement boundary",
+    "saturating parameterized state"
+  ],
+  "formal_core": true,
+  "expected_process_items": "16-26"
+}

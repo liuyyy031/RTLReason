@@ -1,0 +1,12 @@
+{
+  "level": "intermediate",
+  "concepts": [
+    "synchronous write",
+    "combinational dual read",
+    "same-cycle write-through bypass",
+    "address collision",
+    "reset priority"
+  ],
+  "formal_core": true,
+  "expected_process_items": "16-24"
+}

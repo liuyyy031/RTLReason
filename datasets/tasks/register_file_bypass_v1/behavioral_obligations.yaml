@@ -1,0 +1,24 @@
+schema_version: "1.0"
+task_id: register_file_bypass_v1
+obligations:
+  - id: O_RESET
+    category: reset
+    statement: A sampled high rst synchronously clears every stored word and suppresses a simultaneous write and bypass.
+  - id: O_WRITE
+    category: transition
+    statement: With rst low and we high at an active edge, exactly the word at waddr becomes wdata.
+  - id: O_STORAGE_HOLD
+    category: stability
+    statement: With rst and we low, every stored word holds its previous value; a write preserves all non-addressed words.
+  - id: O_COMB_READ
+    category: timing
+    statement: Each read port independently and combinationally returns the currently stored word selected by its read address when bypass does not apply.
+  - id: O_BYPASS_A
+    category: forwarding
+    statement: While rst is low and we is high with raddr_a equal to waddr, rdata_a immediately equals wdata.
+  - id: O_BYPASS_B
+    category: forwarding
+    statement: While rst is low and we is high with raddr_b equal to waddr, rdata_b immediately equals wdata.
+  - id: O_DUAL_READ_COLLISION
+    category: boundary
+    statement: If both read addresses match a legal write address, both read outputs expose wdata while any nonmatching port remains independent.

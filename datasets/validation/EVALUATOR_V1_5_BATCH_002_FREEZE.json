@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "freeze_id": "evaluator-v1.5-held-out-batch-002",
+  "frozen_at": "2026-09-07",
+  "semantic_prompt_version": "1.5",
+  "applies_to_batch": "held-out-batch-002",
+  "policy": {
+    "batch_candidate_outputs_seen_at_freeze": 0,
+    "batch_gold_labels_seen_at_freeze": 0,
+    "semantic_evaluator_run_on_batch": false,
+    "modify_before_reporting_same_held_out": false,
+    "development_and_batch_001_results_are_prior_evidence": true,
+    "batch_002_is_task_level_held_out": true,
+    "operational_collection_code_amended_after_eight_candidates": true,
+    "semantic_prompt_or_evaluator_logic_changed": false,
+    "operational_addendum": "datasets/validation/HELD_OUT_BATCH_002_HY4_TIMEOUT_ADDENDUM.json"
+  },
+  "sha256": {
+    "src/rtlreason/hy3/prompts.py": "7b74e87167c515531b5fdf63906bb120086b095d5f9f7b0290c943fd70073194",
+    "src/rtlreason/evaluator/schema.py": "559b17fe5faf64f89ecf4de18a91132cef9a55169c2648187357dfc2683ac998",
+    "src/rtlreason/evaluator/semantic.py": "9a8a764762ce7ac759811f99c724f3d70b2476697ee1901ff30b541a289971c0",
+    "src/rtlreason/evaluator/dependency.py": "b7d651c2995489c88f235e59c045dcbd5228c44c5b30fce647955295d13e4630",
+    "src/rtlreason/evaluator/attribution.py": "0efcd0e4448e62bd04925e0de5700224ee60db8674595f889cfae0a0ad91c9ad",
+    "src/rtlreason/evaluator/metrics.py": "b372ec292d4f10f5b44f310030cbae2ee34cf3c15b972d5355f73291bfce6d0b",
+    "src/rtlreason/evaluator/baselines.py": "38afaf44630984fcf5863c8b4638a348588ad79d7c04f81f6c575f11f8702c02",
+    "src/rtlreason/experiment.py": "aa64d48ca02223b9372bb6d07e3e0a32567a1d243dfcea18e4c049373b063a2f",
+    "src/rtlreason/validation.py": "a448280e313bfcd0a2efd3aa1d385e01a0a9b62b85ffb257e9e097a226812cd0",
+    "datasets/task_manifest.json": "2ce154f076411a2cea297b8c542d99fd4da8f6192a0152866b496de0422a7f18",
+    "datasets/validation/ANNOTATION_GUIDE_CN.md": "8b1edfd03c60d2108e5758be7d9c134b59ef5ec1eecd8c6d8c63d48b2d0307ac",
+    "datasets/validation/EXPERIMENT_PROTOCOL_CN.md": "dfd15e1eb82af98aecc5ff9cf6579d4d704d0d4f47a1003e452a5fad220eca77"
+  }
+}

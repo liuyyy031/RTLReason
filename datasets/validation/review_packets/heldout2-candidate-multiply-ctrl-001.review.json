@@ -1,0 +1,582 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-multiply-ctrl-001",
+  "task_id": "multicycle_multiply_ctrl_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/held-out-batch-002/multiply-ctrl-001",
+  "source_hashes": {
+    "process_sha256": "41162b994d8268750bba8f3be74244de049a33c7c524c0e17b84f22d93904139",
+    "evidence_sha256": "0f776b18dd6af6dd8f4dabc77781983723a47bf2071c9ff0176a199e33f34b97",
+    "report_sha256": "5a7fba170fc8bb7accdfab476f9bd48d051960dc1fe5c094e32add9986e4052b"
+  },
+  "candidate_process": {
+    "task_id": "multicycle_multiply_ctrl_v1",
+    "architecture_summary": "Hardwired shift-add multiplier: registered accumulator, left-shifted multiplicand, right-shifted multiplier, and iteration counter; separate registered busy/done/result outputs controlled by one synchronous always_ff block.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Reset is synchronous and active-high with highest priority: a sampled high rst clears busy, done, result, and all internal datapath state.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "An idle rising edge with start=1 accepts a transaction: both unsigned operands are captured, busy is set, and no shift-add iteration executes on that acceptance edge.",
+            "maps_to": [
+              "O_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "While busy, start/a/b changes are ignored; exactly WIDTH subsequent rising edges each execute one shift-add iteration, and the WIDTH-th busy edge commits the product, clears busy, and pulses done.",
+            "maps_to": [
+              "O_BUSY_IGNORE",
+              "O_ITERATION_COUNT",
+              "O_ATOMIC_COMMIT",
+              "O_DONE_PULSE",
+              "O_COMPLETION_STATE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "result holds the previous completed value from acceptance through the first WIDTH-1 busy edges and after completion until reset or another completion; WIDTH=1 completes on the single following busy edge.",
+            "maps_to": [
+              "O_RESULT_STABLE",
+              "O_WIDTH_ONE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Chosen architecture is a hardwired registered shift-add multiplier: a 2*WIDTH accumulator, a 2*WIDTH left-shifting multiplicand holding captured a, a WIDTH right-shifting multiplier holding captured b, and an iteration counter, all updated on posedge clk.",
+            "maps_to": [
+              "O_ACCEPT",
+              "O_ITERATION_COUNT"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r",
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Iteration counter cnt_r counts completed iterations; completion is detected when cnt_r equals WIDTH-1 on a busy edge, making that edge the final WIDTH-th iteration.",
+            "maps_to": [
+              "O_ITERATION_COUNT",
+              "O_WIDTH_ONE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "cnt_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output registers busy_r, done_r, and result_r are separate from the datapath; result_r is written only on reset or the WIDTH-th busy edge, and done_r is a one-cycle pulse register set only on completion.",
+            "maps_to": [
+              "O_RESULT_STABLE",
+              "O_ATOMIC_COMMIT",
+              "O_DONE_PULSE",
+              "O_COMPLETION_STATE"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "busy_r",
+              "done_r",
+              "result_r"
+            ],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Control is a single synchronous always_ff block: rst has highest priority, then done defaults low, then acceptance when !busy_r && start, else iteration when busy_r.",
+            "maps_to": [
+              "O_RESET",
+              "O_ACCEPT",
+              "O_BUSY_IGNORE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "rst",
+              "start",
+              "busy_r"
+            ],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r",
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On any posedge clk with rst=1, all registers including result_r, busy_r, done_r, acc_r, mcand_r, mplier_r, and cnt_r are cleared to 0, overriding any other action.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r",
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "On a posedge clk with rst=0, !busy_r, and start=1, the module captures a into mcand_r zero-extended to 2*WIDTH and b into mplier_r, clears acc_r and cnt_r, sets busy_r=1, and leaves result_r unchanged with done_r=0.",
+            "maps_to": [
+              "O_ACCEPT",
+              "O_WIDTH_ONE"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "busy_r",
+              "start",
+              "a",
+              "b"
+            ],
+            "writes": [
+              "mcand_r",
+              "mplier_r",
+              "acc_r",
+              "cnt_r",
+              "busy_r",
+              "done_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "On a posedge clk with rst=0 and busy_r=1, exactly one iteration executes: acc_r becomes mplier_r[0]?acc_r+mcand_r:acc_r, mcand_r shifts left, mplier_r shifts right; if cnt_r==WIDTH-1 the edge also writes result_r with the new accumulator, clears busy_r, sets done_r=1, and resets cnt_r, otherwise cnt_r increments.",
+            "maps_to": [
+              "O_ITERATION_COUNT",
+              "O_ATOMIC_COMMIT",
+              "O_DONE_PULSE",
+              "O_COMPLETION_STATE",
+              "O_RESULT_STABLE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3",
+              "S3.2"
+            ],
+            "reads": [
+              "busy_r",
+              "mplier_r",
+              "acc_r",
+              "mcand_r",
+              "cnt_r"
+            ],
+            "writes": [
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r",
+              "result_r",
+              "busy_r",
+              "done_r"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "In all non-reset cycles other than the completion cycle, done_r is driven to 0 and result_r is not written, so result_r holds through acceptance and the first WIDTH-1 busy edges and after completion.",
+            "maps_to": [
+              "O_DONE_PULSE",
+              "O_RESULT_STABLE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "done_r",
+              "result_r"
+            ],
+            "writes": [
+              "done_r"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate invariant: after reset, busy_r=0, done_r=0, and result_r=0.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "busy_r",
+              "done_r",
+              "result_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: if !busy_r && start && !rst on an edge, then after the edge busy_r=1, cnt_r=0, acc_r=0, mcand_r holds a, mplier_r holds b, and result_r is unchanged.",
+            "maps_to": [
+              "O_ACCEPT",
+              "O_RESULT_STABLE"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "busy_r",
+              "start",
+              "rst",
+              "a",
+              "b",
+              "mcand_r",
+              "mplier_r",
+              "acc_r",
+              "cnt_r",
+              "result_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: while busy_r=1, changes on start/a/b do not alter mcand_r, mplier_r, acc_r, or cnt_r, and exactly one iteration occurs per busy edge.",
+            "maps_to": [
+              "O_BUSY_IGNORE",
+              "O_ITERATION_COUNT"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "busy_r",
+              "start",
+              "a",
+              "b",
+              "mcand_r",
+              "mplier_r",
+              "acc_r",
+              "cnt_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: on the WIDTH-th busy edge (cnt_r==WIDTH-1 before the edge), result_r becomes the full product of the captured operands, busy_r becomes 0, and done_r=1; on the next non-reset edge done_r returns to 0 and result_r holds.",
+            "maps_to": [
+              "O_ATOMIC_COMMIT",
+              "O_DONE_PULSE",
+              "O_COMPLETION_STATE",
+              "O_WIDTH_ONE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "cnt_r",
+              "busy_r",
+              "result_r",
+              "done_r",
+              "mcand_r",
+              "mplier_r",
+              "acc_r"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "The module declares parameter WIDTH=8, the frozen ports, internal state registers busy_r/done_r/result_r/acc_r/mcand_r/mplier_r/cnt_r, and combinational next_acc/next_mcand/next_mplier wires.",
+            "maps_to": [
+              "O_ACCEPT",
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r",
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r"
+            ],
+            "rtl_blocks": [
+              "multicycle_multiply_ctrl"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "A single always_ff @(posedge clk) block implements reset, acceptance, and iteration/completion with nonblocking assignments and explicit done_r control, matching all transition rules.",
+            "maps_to": [
+              "O_RESET",
+              "O_ACCEPT",
+              "O_ITERATION_COUNT",
+              "O_ATOMIC_COMMIT",
+              "O_DONE_PULSE",
+              "O_COMPLETION_STATE"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "start",
+              "a",
+              "b",
+              "busy_r",
+              "cnt_r",
+              "mplier_r",
+              "acc_r",
+              "mcand_r"
+            ],
+            "writes": [
+              "busy_r",
+              "done_r",
+              "result_r",
+              "acc_r",
+              "mcand_r",
+              "mplier_r",
+              "cnt_r"
+            ],
+            "rtl_blocks": [
+              "multicycle_multiply_ctrl"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Continuous assignments drive outputs busy, done, and result from the internal registers; the RTL is synthesizable with no inferred latches or combinational loops.",
+            "maps_to": [
+              "O_RESULT_STABLE",
+              "O_DONE_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S5.2"
+            ],
+            "reads": [
+              "busy_r",
+              "done_r",
+              "result_r"
+            ],
+            "writes": [
+              "busy",
+              "done",
+              "result"
+            ],
+            "rtl_blocks": [
+              "multicycle_multiply_ctrl"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "multicycle_multiply_ctrl",
+      "code": "module multicycle_multiply_ctrl #(\n  parameter int WIDTH = 8\n) (\n  input  logic                  clk,\n  input  logic                  rst,\n  input  logic                  start,\n  input  logic [WIDTH-1:0]      a,\n  input  logic [WIDTH-1:0]      b,\n  output logic                  busy,\n  output logic                  done,\n  output logic [2*WIDTH-1:0]    result\n);\n\n  localparam int AW    = 2*WIDTH;\n  localparam int CNT_W = $clog2(WIDTH + 1);\n\n  logic                  busy_r;\n  logic                  done_r;\n  logic [AW-1:0]         result_r;\n  logic [AW-1:0]         acc_r;\n  logic [AW-1:0]         mcand_r;\n  logic [WIDTH-1:0]      mplier_r;\n  logic [CNT_W-1:0]      cnt_r;\n\n  logic [AW-1:0]         next_acc;\n  logic [AW-1:0]         next_mcand;\n  logic [WIDTH-1:0]      next_mplier;\n\n  assign next_acc    = mplier_r[0] ? (acc_r + mcand_r) : acc_r;\n  assign next_mcand  = mcand_r << 1;\n  assign next_mplier = mplier_r >> 1;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      busy_r   <= 1'b0;\n      done_r   <= 1'b0;\n      result_r <= '0;\n      acc_r    <= '0;\n      mcand_r  <= '0;\n      mplier_r <= '0;\n      cnt_r    <= '0;\n    end else if (!busy_r && start) begin\n      busy_r   <= 1'b1;\n      mcand_r  <= {{(WIDTH){1'b0}}, a};\n      mplier_r <= b;\n      acc_r    <= '0;\n      cnt_r    <= '0;\n      done_r   <= 1'b0;\n    end else if (busy_r) begin\n      acc_r    <= next_acc;\n      mcand_r  <= next_mcand;\n      mplier_r <= next_mplier;\n      if (cnt_r == WIDTH - 1) begin\n        result_r <= next_acc;\n        busy_r   <= 1'b0;\n        done_r   <= 1'b1;\n        cnt_r    <= '0;\n      end else begin\n        cnt_r  <= cnt_r + 1'b1;\n        done_r <= 1'b0;\n      end\n    end else begin\n      done_r <= 1'b0;\n    end\n  end\n\n  assign busy   = busy_r;\n  assign done   = done_r;\n  assign result = result_r;\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Assumes WIDTH >= 1 as required by the frozen interface; CNT_W is derived with $clog2(WIDTH+1)."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy4-preview",
+        "request_id": "28578c47-dc45-44d1-ba7b-031d7e6d5f24",
+        "usage": {
+          "prompt_tokens": 1693,
+          "completion_tokens": 19744,
+          "total_tokens": 21437,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 15535
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:multicycle_multiply_ctrl_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT",
+        "O_ATOMIC_COMMIT",
+        "O_BUSY_IGNORE",
+        "O_COMPLETION_STATE",
+        "O_DONE_PULSE",
+        "O_ITERATION_COUNT",
+        "O_RESET",
+        "O_RESULT_STABLE",
+        "O_WIDTH_ONE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:multicycle_multiply_ctrl_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACCEPT",
+        "O_ATOMIC_COMMIT",
+        "O_BUSY_IGNORE",
+        "O_COMPLETION_STATE",
+        "O_DONE_PULSE",
+        "O_ITERATION_COUNT",
+        "O_RESET",
+        "O_RESULT_STABLE",
+        "O_WIDTH_ONE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_ACCEPT",
+          "O_ATOMIC_COMMIT",
+          "O_BUSY_IGNORE",
+          "O_COMPLETION_STATE",
+          "O_DONE_PULSE",
+          "O_ITERATION_COUNT",
+          "O_RESET",
+          "O_RESULT_STABLE",
+          "O_WIDTH_ONE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "review_protocol": {
+    "blinded_to_evaluator_prediction": true,
+    "use_trusted_task_assets": true,
+    "annotation_schema": "human_annotation.schema.json",
+    "guideline_version": "1.1"
+  }
+}
