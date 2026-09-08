@@ -1,0 +1,1038 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-axi-stream-counter-001",
+  "split": "held_out",
+  "task_id": "axi_stream_packet_counter_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/axi-stream-counter-001",
+  "source_hashes": {
+    "process_sha256": "08b9cb15e771d24490ea0a9114134aec21653a5ca5ba104d67f1eab6301085a1",
+    "evidence_sha256": "f4fa604cf14cf4617b2272d20775d22b4ebdf7a20084e86ef30f66bf0a19eed8",
+    "report_sha256": "2fb28e2b03bbe99434c452af19d7515c02ce9edfe091efcec7f97b815744c3bb"
+  },
+  "candidate_process": {
+    "task_id": "axi_stream_packet_counter_v1",
+    "architecture_summary": "Single always_ff with two saturating up-counter registers (beat_cnt_r, packet_cnt_r) and priority-based updates (reset > clear > accepted transfer > hold); outputs directly driven by registers.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module uses synchronous positive-edge clk and high-active synchronous rst with highest priority, zeroing both counters.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Clear is synchronous, lower priority than reset, zeroes both counters and suppresses counting of a simultaneous transfer.",
+            "maps_to": [
+              "O_CLEAR"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "A beat is accepted only when tvalid and tready are high while rst and clear are low; counters saturate independently at MAX.",
+            "maps_to": [
+              "O_TRANSFER_GATE",
+              "O_SATURATION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "When no reset, clear, or accepted transfer occurs, counters hold; tlast alone has no effect.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses two COUNT_WIDTH-bit registers beat_cnt_r and packet_cnt_r as the only state, updated in one always_ff block.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "rtl_blocks": [
+              "counter_registers"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational priority logic computes next values from current registers and inputs rst, clear, tvalid, tready, tlast.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "beat_cnt_r",
+              "packet_cnt_r",
+              "rst",
+              "clear",
+              "tvalid",
+              "tready",
+              "tlast"
+            ],
+            "writes": [
+              "beat_next",
+              "packet_next"
+            ],
+            "rtl_blocks": [
+              "next_value_logic"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Output ports beat_count and packet_count are driven directly by the registered counters to satisfy registered output observation.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "writes": [
+              "beat_count",
+              "packet_count"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset rule: if rst high at clock edge, beat_next and packet_next are forced to zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "beat_next",
+              "packet_next"
+            ],
+            "rtl_blocks": [
+              "next_value_logic"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Clear rule: else if clear high, beat_next and packet_next are zero and any transfer is ignored.",
+            "maps_to": [
+              "O_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "clear"
+            ],
+            "writes": [
+              "beat_next",
+              "packet_next"
+            ],
+            "rtl_blocks": [
+              "next_value_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Transfer rule: else if tvalid and tready, beat_next saturates at MAX or increments; packet_next increments iff tlast high with its own saturation.",
+            "maps_to": [
+              "O_TRANSFER_GATE",
+              "O_BEAT_COUNT",
+              "O_PACKET_COUNT",
+              "O_SATURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "tvalid",
+              "tready",
+              "tlast",
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "writes": [
+              "beat_next",
+              "packet_next"
+            ],
+            "rtl_blocks": [
+              "next_value_logic"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Hold rule: else beat_next and packet_next retain current register values; tlast alone ignored.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "writes": [
+              "beat_next",
+              "packet_next"
+            ],
+            "rtl_blocks": [
+              "next_value_logic"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: After rst high edge, beat_count==0 and packet_count==0 regardless of other inputs.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "beat_count",
+              "packet_count",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: With rst low and clear high, counters are zero and do not increment even if tvalid&tready.",
+            "maps_to": [
+              "O_CLEAR"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "beat_count",
+              "packet_count",
+              "clear",
+              "tvalid",
+              "tready"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: On accepted transfer without saturation, beat_count increases by 1; at MAX it stays MAX.",
+            "maps_to": [
+              "O_BEAT_COUNT",
+              "O_SATURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "beat_count",
+              "tvalid",
+              "tready"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: packet_count increases by 1 only on accepted transfer with tlast high, saturating independently.",
+            "maps_to": [
+              "O_PACKET_COUNT",
+              "O_SATURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "packet_count",
+              "tlast",
+              "tvalid",
+              "tready"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Candidate: With no reset/clear/transfer, both counters hold previous values.",
+            "maps_to": [
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "beat_count",
+              "packet_count"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implements counter registers and priority next-value logic in a single always_ff block as described in S3.",
+            "maps_to": [
+              "O_RESET",
+              "O_CLEAR",
+              "O_TRANSFER_GATE",
+              "O_BEAT_COUNT",
+              "O_PACKET_COUNT",
+              "O_SATURATION",
+              "O_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "clear",
+              "tvalid",
+              "tready",
+              "tlast",
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "writes": [
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "rtl_blocks": [
+              "counter_registers",
+              "next_value_logic"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implements output bindings from registers to ports beat_count and packet_count.",
+            "maps_to": [],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "beat_cnt_r",
+              "packet_cnt_r"
+            ],
+            "writes": [
+              "beat_count",
+              "packet_count"
+            ],
+            "rtl_blocks": [
+              "output_assign"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "axi_stream_packet_counter",
+      "code": "module axi_stream_packet_counter #(parameter int COUNT_WIDTH = 8) (\n  input  logic clk,\n  input  logic rst,\n  input  logic clear,\n  input  logic tvalid,\n  input  logic tready,\n  input  logic tlast,\n  output logic [COUNT_WIDTH-1:0] beat_count,\n  output logic [COUNT_WIDTH-1:0] packet_count\n);\n\n  localparam [COUNT_WIDTH-1:0] MAX = {COUNT_WIDTH{1'b1}};\n  logic [COUNT_WIDTH-1:0] beat_cnt_r;\n  logic [COUNT_WIDTH-1:0] packet_cnt_r;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      beat_cnt_r   <= '0;\n      packet_cnt_r <= '0;\n    end else if (clear) begin\n      beat_cnt_r   <= '0;\n      packet_cnt_r <= '0;\n    end else if (tvalid && tready) begin\n      beat_cnt_r <= (beat_cnt_r == MAX) ? MAX : beat_cnt_r + 1'b1;\n      if (tlast)\n        packet_cnt_r <= (packet_cnt_r == MAX) ? MAX : packet_cnt_r + 1'b1;\n      else\n        packet_cnt_r <= packet_cnt_r;\n    end else begin\n      beat_cnt_r   <= beat_cnt_r;\n      packet_cnt_r <= packet_cnt_r;\n    end\n  end\n\n  assign beat_count   = beat_cnt_r;\n  assign packet_count = packet_cnt_r;\n\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Synchronous reset and clear prioritized as required; independent saturation via localparam MAX.",
+        "Outputs are registered through continuous assign from flops, meeting observation timing."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "da88566e-7f81-451c-b521-e7f7c6d7b7e7",
+        "usage": {
+          "prompt_tokens": 1547,
+          "completion_tokens": 10352,
+          "total_tokens": 11899,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 7852
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:axi_stream_packet_counter_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BEAT_COUNT",
+        "O_CLEAR",
+        "O_HOLD",
+        "O_PACKET_COUNT",
+        "O_RESET",
+        "O_SATURATION",
+        "O_TRANSFER_GATE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:axi_stream_packet_counter_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BEAT_COUNT",
+        "O_CLEAR",
+        "O_HOLD",
+        "O_PACKET_COUNT",
+        "O_RESET",
+        "O_SATURATION",
+        "O_TRANSFER_GATE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 24).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 24,
+        "configured_obligations": [
+          "O_BEAT_COUNT",
+          "O_CLEAR",
+          "O_HOLD",
+          "O_PACKET_COUNT",
+          "O_RESET",
+          "O_SATURATION",
+          "O_TRANSFER_GATE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "4e1c0476a19dc689b7ff5a4efabdf62d1d7dc15fd2d020c623891d7ee2990d28",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r",
+            "rtl_traceability:counter_registers"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:next_value_logic"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "def_use:beat_count",
+            "def_use:packet_count"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "def_use:beat_count",
+            "def_use:packet_count"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "def_use:beat_count"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "def_use:packet_count"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.5",
+          "reasons": [
+            "def_use:beat_count",
+            "def_use:packet_count"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:output_assign"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:next_value_logic"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:next_value_logic"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:next_value_logic"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:next_value_logic",
+            "shared_obligation_context:O_HOLD"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:beat_cnt_r",
+            "def_use:packet_cnt_r"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2"
+          ]
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.4"
+          ]
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": []
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_SATURATION",
+            "shared_obligation:O_TRANSFER_GATE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_SATURATION",
+            "shared_obligation:O_TRANSFER_GATE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BEAT_COUNT",
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACKET_COUNT",
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BEAT_COUNT",
+            "shared_obligation:O_PACKET_COUNT",
+            "shared_obligation:O_SATURATION",
+            "shared_obligation:O_TRANSFER_GATE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CLEAR"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BEAT_COUNT",
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACKET_COUNT",
+            "shared_obligation:O_SATURATION"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_HOLD"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 19,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "da88566e-7f81-451c-b521-e7f7c6d7b7e7",
+      "usage": {
+        "prompt_tokens": 1547,
+        "completion_tokens": 10352,
+        "total_tokens": 11899,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7852
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. The first review verified reset and clear priority, transfer gating, beat and packet counting, independent saturation, hold behavior, and the final RTL against the frozen semantics. The second review independently reconstructed reset/clear collisions, tlast without transfer, one-counter-saturated cases, and the COUNT_WIDTH=1 boundary. S2.2 and S3 describe conceptual beat_next and packet_next values although the final RTL encodes the same next-state decisions directly inside the sequential block; this is an implementation-form difference rather than a substantive reasoning error because the guards, priorities, and resulting state transitions are unchanged and S5.1 correctly identifies the delivered single-always_ff implementation. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  }
+}

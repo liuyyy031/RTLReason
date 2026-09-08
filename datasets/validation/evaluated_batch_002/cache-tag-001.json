@@ -1,0 +1,1368 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-cache-tag-001",
+  "split": "held_out",
+  "task_id": "cache_tag_lookup_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/cache-tag-001",
+  "source_hashes": {
+    "process_sha256": "f05be44d104cb94500429e604402e4217982b86a569940e06b0799d0d74823e8",
+    "evidence_sha256": "4bcee52d42e435dc61ea8791583932162a40c0213e15c3cb590cade0501d5970",
+    "report_sha256": "7c867e3343b05b296b9cb5fe0a7b7a4a96026f4de67df5351ada404fc33925d1"
+  },
+  "candidate_process": {
+    "task_id": "cache_tag_lookup_v1",
+    "architecture_summary": "Parallel per-way tag equality masked by valid generates a match vector; a combinational priority encoder selects the lowest matching way as one-hot; output mux drives hit, hit_way, and hit_data with zero latency and no state.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module is pure combinational with zero latency and no state, satisfying O_COMBINATIONAL.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A way matches only when valid[i]=1 and its packed tag slice equals lookup_tag, satisfying O_VALID_MATCH and O_PACKING.",
+            "maps_to": [
+              "O_VALID_MATCH",
+              "O_PACKING"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "On miss (no valid match) hit=0, hit_way=0, hit_data=0, satisfying O_MISS.",
+            "maps_to": [
+              "O_MISS"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "If one or more matches, hit=1 and the lowest numerical way is selected, satisfying O_SINGLE_HIT and O_MULTI_HIT_PRIORITY.",
+            "maps_to": [
+              "O_SINGLE_HIT",
+              "O_MULTI_HIT_PRIORITY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: parallel match vector match_vec[i] = valid[i] & (tags[i*TAG_WIDTH +: TAG_WIDTH] == lookup_tag).",
+            "maps_to": [
+              "O_VALID_MATCH",
+              "O_PACKING"
+            ],
+            "claimed_dependencies": [
+              "S1.2"
+            ],
+            "reads": [
+              "lookup_tag",
+              "valid",
+              "tags"
+            ],
+            "writes": [
+              "match_vec"
+            ],
+            "rtl_blocks": [
+              "match_gen"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Architecture: priority encoder derives one-hot lowest match via prefix OR: hit_onehot[i] = match_vec[i] & ~(i>0 ? |match_vec[i-1:0] : 1'b0).",
+            "maps_to": [
+              "O_MULTI_HIT_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.4"
+            ],
+            "reads": [
+              "match_vec"
+            ],
+            "writes": [
+              "hit_onehot"
+            ],
+            "rtl_blocks": [
+              "priority_enc"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Architecture: hit = |match_vec; hit_way and hit_data selected from hit_onehot; on no match they stay zero.",
+            "maps_to": [
+              "O_SINGLE_HIT",
+              "O_MISS",
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.3"
+            ],
+            "reads": [
+              "match_vec",
+              "hit_onehot",
+              "data"
+            ],
+            "writes": [
+              "hit",
+              "hit_way",
+              "hit_data"
+            ],
+            "rtl_blocks": [
+              "out_mux"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Architecture is fully stateless; all signals are combinational continuous functions with no registers.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "All outputs continuously track inputs with no clock or reset events, implementing zero-latency combinational propagation.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S1.1"
+            ],
+            "reads": [
+              "lookup_tag",
+              "valid",
+              "tags",
+              "data"
+            ],
+            "writes": [
+              "hit",
+              "hit_way",
+              "hit_data"
+            ],
+            "rtl_blocks": [
+              "match_gen",
+              "priority_enc",
+              "out_mux"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "When match_vec is all zero, hit_way and hit_data are forced to zero irrespective of any prior value because no memory exists.",
+            "maps_to": [
+              "O_MISS"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S1.3"
+            ],
+            "reads": [
+              "match_vec"
+            ],
+            "writes": [
+              "hit",
+              "hit_way",
+              "hit_data"
+            ],
+            "rtl_blocks": [
+              "out_mux"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Priority selection is deterministic and stable: only the lowest index with match_vec=1 contributes to hit_way/hit_data.",
+            "maps_to": [
+              "O_MULTI_HIT_PRIORITY",
+              "O_SINGLE_HIT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.4"
+            ],
+            "reads": [
+              "match_vec",
+              "hit_onehot"
+            ],
+            "writes": [
+              "hit_way",
+              "hit_data"
+            ],
+            "rtl_blocks": [
+              "priority_enc",
+              "out_mux"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: for all i, hit_onehot[i] implies valid[i] and tag slice i equals lookup_tag.",
+            "maps_to": [
+              "O_VALID_MATCH"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "hit_onehot",
+              "valid",
+              "tags",
+              "lookup_tag"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: hit == (|match_vec) and (hit==0 => hit_way==0 and hit_data==0).",
+            "maps_to": [
+              "O_MISS",
+              "O_SINGLE_HIT"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.2"
+            ],
+            "reads": [
+              "hit",
+              "hit_way",
+              "hit_data",
+              "match_vec"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: if multiple match_vec bits are set, hit_onehot has exactly one bit at the minimum index.",
+            "maps_to": [
+              "O_MULTI_HIT_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.3"
+            ],
+            "reads": [
+              "match_vec",
+              "hit_onehot"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: when hit=1, hit_data equals the data slice of the selected way per packing.",
+            "maps_to": [
+              "O_PACKING",
+              "O_SINGLE_HIT"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "hit",
+              "hit_onehot",
+              "data",
+              "hit_data"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement match_gen: generate loop assigns match_vec from valid, tags, and lookup_tag.",
+            "maps_to": [
+              "O_VALID_MATCH",
+              "O_PACKING"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.1"
+            ],
+            "reads": [
+              "lookup_tag",
+              "valid",
+              "tags"
+            ],
+            "writes": [
+              "match_vec"
+            ],
+            "rtl_blocks": [
+              "match_gen"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement priority_enc: generate loop builds hit_onehot using prefix OR of match_vec.",
+            "maps_to": [
+              "O_MULTI_HIT_PRIORITY"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.3"
+            ],
+            "reads": [
+              "match_vec"
+            ],
+            "writes": [
+              "hit_onehot"
+            ],
+            "rtl_blocks": [
+              "priority_enc"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement out_mux: assign hit and select hit_way/hit_data via loop over hit_onehot, defaulting to zero.",
+            "maps_to": [
+              "O_MISS",
+              "O_SINGLE_HIT",
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.2"
+            ],
+            "reads": [
+              "match_vec",
+              "hit_onehot",
+              "data"
+            ],
+            "writes": [
+              "hit",
+              "hit_way",
+              "hit_data"
+            ],
+            "rtl_blocks": [
+              "out_mux"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Integrate all blocks in module cache_tag_lookup with parameterized packed buses and no state.",
+            "maps_to": [
+              "O_PACKING",
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S5.1",
+              "S5.2",
+              "S5.3"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "cache_tag_lookup"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "cache_tag_lookup",
+      "code": "module cache_tag_lookup #(\n    parameter int WAYS = 4,\n    parameter int TAG_WIDTH = 6,\n    parameter int DATA_WIDTH = 8\n) (\n    input  logic [TAG_WIDTH-1:0] lookup_tag,\n    input  logic [WAYS-1:0] valid,\n    input  logic [WAYS*TAG_WIDTH-1:0] tags,\n    input  logic [WAYS*DATA_WIDTH-1:0] data,\n    output logic hit,\n    output logic [$clog2(WAYS)-1:0] hit_way,\n    output logic [DATA_WIDTH-1:0] hit_data\n);\n    localparam int WAY_WIDTH = $clog2(WAYS);\n    logic [WAYS-1:0] match_vec;\n    logic [WAYS-1:0] hit_onehot;\n\n    for (genvar i=0; i<WAYS; i++) begin : gen_match\n        assign match_vec[i] = valid[i] & (tags[i*TAG_WIDTH +: TAG_WIDTH] == lookup_tag);\n    end\n\n    for (genvar i=0; i<WAYS; i++) begin : gen_pri\n        if (i==0) begin\n            assign hit_onehot[i] = match_vec[i];\n        end else begin\n            assign hit_onehot[i] = match_vec[i] & ~(|match_vec[i-1:0]);\n        end\n    end\n\n    assign hit = |match_vec;\n\n    always_comb begin\n        hit_way = '0;\n        hit_data = '0;\n        for (int i=0; i<WAYS; i++) begin\n            if (hit_onehot[i]) begin\n                hit_way = WAY_WIDTH'(i);\n                hit_data = data[i*DATA_WIDTH +: DATA_WIDTH];\n            end\n        end\n    end\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "No clock or reset ports; fully combinational.",
+        "WAY_WIDTH derived as $clog2(WAYS) and used for hit_way width."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "8c6575d4-224d-4bc4-8075-674f8c9388b1",
+        "usage": {
+          "prompt_tokens": 1410,
+          "completion_tokens": 13148,
+          "total_tokens": 14558,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 10369
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:cache_tag_lookup_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_COMBINATIONAL",
+        "O_MISS",
+        "O_MULTI_HIT_PRIORITY",
+        "O_PACKING",
+        "O_SINGLE_HIT",
+        "O_VALID_MATCH"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:cache_tag_lookup_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_COMBINATIONAL",
+        "O_MISS",
+        "O_MULTI_HIT_PRIORITY",
+        "O_PACKING",
+        "O_SINGLE_HIT",
+        "O_VALID_MATCH"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 2).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 2,
+        "configured_obligations": [
+          "O_COMBINATIONAL",
+          "O_MISS",
+          "O_MULTI_HIT_PRIORITY",
+          "O_PACKING",
+          "O_SINGLE_HIT",
+          "O_VALID_MATCH"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "bd557e4b7ca55669c3926563c90b7ba427c40eed9f16880495061070f3f8d0ae",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:match_gen"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:hit_onehot"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:priority_enc"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:hit_onehot",
+            "shared_obligation_context:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:hit_onehot"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:hit_onehot",
+            "shared_obligation_context:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:out_mux",
+            "shared_obligation_context:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:hit",
+            "property_derivation:def_use:hit_data",
+            "property_derivation:def_use:hit_way",
+            "shared_obligation_context:O_MISS",
+            "shared_obligation_context:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:hit",
+            "property_derivation:def_use:hit_data",
+            "shared_obligation_context:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:out_mux"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:priority_enc"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:match_gen"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:out_mux"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:hit",
+            "property_derivation:def_use:hit_data",
+            "property_derivation:def_use:hit_way",
+            "shared_obligation_context:O_MISS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:priority_enc",
+            "shared_obligation_context:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:out_mux",
+            "shared_obligation_context:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:match_vec"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:hit_onehot"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1",
+            "S2.2",
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.4"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1",
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.1",
+            "S3.1",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.3",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.3"
+          ]
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3",
+            "S5.1",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.2"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S5.1",
+            "S5.2",
+            "S5.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_PACKING",
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACKING",
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY",
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACKING",
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MISS",
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL",
+            "shared_obligation:O_MISS",
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MISS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_VALID_MATCH"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_MISS",
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_MULTI_HIT_PRIORITY"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_HIT"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_PACKING"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 19,
+        "claimed_dependency_count": 30,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7368421052631579,
+        "gaps": {
+          "S2.4": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "8c6575d4-224d-4bc4-8075-674f8c9388b1",
+      "usage": {
+        "prompt_tokens": 1410,
+        "completion_tokens": 13148,
+        "total_tokens": 14558,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 10369
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "118c17ed-a929-44d5-a005-31fd70cc55f7",
+      "usage": {
+        "prompt_tokens": 4786,
+        "completion_tokens": 5733,
+        "total_tokens": 10519,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 4139
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.5",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the process was checked sequentially from specification understanding through architecture, combinational rules, candidate properties, and final RTL. The match condition correctly requires both a valid bit and tag equality, way packing follows the frozen least-significant-slice convention, misses return zero outputs, and multiple matches select the lowest numerical way. In the second review, the parameter and priority boundaries were independently reconstructed. WAYS is restricted to powers of two of at least two, so the derived hit-way width is well defined; the generated prefix-OR one-hot encoder admits exactly the minimum matching index, and the output mux therefore selects the corresponding packed data slice without later overwrite. The implementation is purely combinational with complete defaults and no inferred state. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/held_out_batch_002/cache-tag-001.json",
+    "source_gold_sha256": "edd713e5cb1248ee5c09bddacd5d29627cee7bac880def7183c4c983f4beca4d",
+    "source_report": "runs/evaluator-v1.5-held-out-batch-002/cache-tag-001/report.json",
+    "source_report_sha256": "3f8c985aa23b78af0153a3c09653e937aac0cca6b288e9d94284f8dcd45f71c3",
+    "semantic_prompt_version": "1.5",
+    "dependency_graph_digest": "bd557e4b7ca55669c3926563c90b7ba427c40eed9f16880495061070f3f8d0ae",
+    "gold_labels_modified": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the four combinational operations and all status-flag semantics were checked sequentially from specification understanding through architecture, candidate properties, and final RTL. ADD and SUB results are correctly reduced to WIDTH bits, zero and negative reflect the final result, ADD carry is obtained from extended addition, SUB carry implements the frozen no-borrow convention, and the signed-overflow conditions are correct for both arithmetic operations. In the second review, arithmetic boundary cases and parameter behavior were independently reconstructed, including carry-producing addition, borrowing and non-borrowing subtraction, signed overflow at both positive and negative limits, and logical operations with cleared carry and overflow. The S4.3 carry expression is consistent with the explicitly established extended-arithmetic intent and does not constitute a substantive process error. The implementation is fully combinational with no state or latency. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

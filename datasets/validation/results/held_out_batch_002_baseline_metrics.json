@@ -1,0 +1,274 @@
+{
+  "case_count": 10,
+  "overall": {
+    "eda_only": {
+      "final_rtl_accuracy": 0.9,
+      "process_correctness_accuracy": 0.6,
+      "process_correctness_macro_f1": 0.375,
+      "stage_first_error_localization_accuracy": 0.0,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 0.0,
+      "error_type_l1_macro_f1": 0.0,
+      "root_error_accuracy": 0.0,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 10,
+        "predicted_rtl": 10,
+        "predicted_process": 10,
+        "gold_process_errors": 4,
+        "correct_rtl_wrong_process": 3
+      }
+    },
+    "semantic_only": {
+      "final_rtl_accuracy": 0.9,
+      "process_correctness_accuracy": 0.8,
+      "process_correctness_macro_f1": 0.7619047619047619,
+      "stage_first_error_localization_accuracy": 0.5,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 0.6666666666666666,
+      "error_type_l1_macro_f1": 0.2222222222222222,
+      "root_error_accuracy": 0.5,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 10,
+        "predicted_rtl": 10,
+        "predicted_process": 10,
+        "gold_process_errors": 4,
+        "correct_rtl_wrong_process": 3
+      }
+    },
+    "full": {
+      "final_rtl_accuracy": 0.9,
+      "process_correctness_accuracy": 0.8,
+      "process_correctness_macro_f1": 0.7619047619047619,
+      "stage_first_error_localization_accuracy": 0.5,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 0.6666666666666666,
+      "error_type_l1_macro_f1": 0.2222222222222222,
+      "root_error_accuracy": 0.5,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": 0.6666666666666666,
+      "critical_dependency_micro_recall": 0.25,
+      "critical_dependency_micro_f1": 0.36363636363636365,
+      "coverage": {
+        "total": 10,
+        "predicted_rtl": 10,
+        "predicted_process": 10,
+        "gold_process_errors": 4,
+        "correct_rtl_wrong_process": 3
+      }
+    }
+  },
+  "by_layer": {
+    "basic": {
+      "case_count": 2,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.5,
+          "process_correctness_macro_f1": 0.3333333333333333,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": 1.0,
+          "critical_dependency_micro_recall": 0.5,
+          "critical_dependency_micro_f1": 0.6666666666666666,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        }
+      }
+    },
+    "intermediate": {
+      "case_count": 5,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.8,
+          "process_correctness_macro_f1": 0.4444444444444444,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 5,
+            "predicted_rtl": 5,
+            "predicted_process": 5,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 1.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 5,
+            "predicted_rtl": 5,
+            "predicted_process": 5,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 1.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": 0.5,
+          "critical_dependency_micro_recall": 0.5,
+          "critical_dependency_micro_f1": 0.5,
+          "coverage": {
+            "total": 5,
+            "predicted_rtl": 5,
+            "predicted_process": 5,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        }
+      }
+    },
+    "hard": {
+      "case_count": 3,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 0.6666666666666666,
+          "process_correctness_accuracy": 0.3333333333333333,
+          "process_correctness_macro_f1": 0.25,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 3,
+            "predicted_rtl": 3,
+            "predicted_process": 3,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 0.6666666666666666,
+          "process_correctness_accuracy": 0.3333333333333333,
+          "process_correctness_macro_f1": 0.25,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 3,
+            "predicted_rtl": 3,
+            "predicted_process": 3,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 0.6666666666666666,
+          "process_correctness_accuracy": 0.3333333333333333,
+          "process_correctness_macro_f1": 0.25,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 3,
+            "predicted_rtl": 3,
+            "predicted_process": 3,
+            "gold_process_errors": 2,
+            "correct_rtl_wrong_process": 1
+          }
+        }
+      }
+    }
+  }
+}

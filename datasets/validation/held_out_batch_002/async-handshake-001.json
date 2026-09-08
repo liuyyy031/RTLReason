@@ -1,0 +1,1531 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-async-handshake-001",
+  "split": "held_out",
+  "task_id": "async_handshake_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/async-handshake-001",
+  "source_hashes": {
+    "process_sha256": "1473957c639ee7ad7546eaa4f168a59595209637870512e1485fd3db3f7c6d93",
+    "evidence_sha256": "546f0f2d6394eba0e145a7c7bac94670fa6ea2936e8df55848faaf79920ccb90",
+    "report_sha256": "3651e418a00f8cd1def8b7870c827203628bc27e67429944bcba4235bdd056fd"
+  },
+  "candidate_process": {
+    "task_id": "async_handshake_v1",
+    "architecture_summary": "Toggle-request/ack handshake with dual two-stage synchronizers: source req_toggle flips on accept, synchronized to destination where change detection yields one-cycle dst_pulse and updates ack_toggle_dst, which is synchronized back to clear src_busy.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module transfers one source event at a time across async domains using request and acknowledgement toggles.",
+            "maps_to": [
+              "O_EXACTLY_ONCE",
+              "O_SOURCE_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Both resets are synchronous active-high; coordinated epoch clears all state and suppresses acceptance.",
+            "maps_to": [
+              "O_RESET",
+              "O_RESET_CONTRACT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "src_accept is combinational and true when !src_rst && src_send && !src_busy; src_busy marks outstanding event.",
+            "maps_to": [
+              "O_SOURCE_ACCEPT",
+              "O_BUSY_GATING"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Destination produces exactly one registered dst_pulse upon detecting a change in the synchronized request toggle.",
+            "maps_to": [
+              "O_SINGLE_PULSE",
+              "O_REQUEST_SYNC"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Declare named state: req_toggle, ack_sync_src1/2 in source; req_sync_dst1/2, ack_toggle_dst, dst_pulse_reg in destination.",
+            "maps_to": [
+              "O_RESET",
+              "O_ACK_RETURN"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.3",
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "req_toggle",
+              "ack_sync_src1",
+              "ack_sync_src2",
+              "req_sync_dst1",
+              "req_sync_dst2",
+              "ack_toggle_dst",
+              "dst_pulse_reg"
+            ],
+            "rtl_blocks": [
+              "state_regs"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Two-stage synchronizers: req_toggle -> req_sync_dst1 -> req_sync_dst2; ack_toggle_dst -> ack_sync_src1 -> ack_sync_src2.",
+            "maps_to": [
+              "O_REQUEST_SYNC",
+              "O_ACK_RETURN"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "req_toggle",
+              "ack_toggle_dst"
+            ],
+            "writes": [
+              "req_sync_dst1",
+              "req_sync_dst2",
+              "ack_sync_src1",
+              "ack_sync_src2"
+            ],
+            "rtl_blocks": [
+              "req_sync",
+              "ack_sync"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Destination change detection: if req_sync_dst2 != ack_toggle_dst then capture and assert dst_pulse_reg for one cycle.",
+            "maps_to": [
+              "O_SINGLE_PULSE",
+              "O_REQUEST_SYNC"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "req_sync_dst2",
+              "ack_toggle_dst"
+            ],
+            "writes": [
+              "ack_toggle_dst",
+              "dst_pulse_reg"
+            ],
+            "rtl_blocks": [
+              "dst_detect"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Combinational outputs: src_busy = req_toggle != ack_sync_src2; src_accept = !src_rst && src_send && !src_busy; dst_pulse = dst_pulse_reg.",
+            "maps_to": [
+              "O_SOURCE_ACCEPT",
+              "O_BUSY_GATING",
+              "O_ACK_RETURN"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "req_toggle",
+              "ack_sync_src2",
+              "src_send",
+              "src_rst",
+              "dst_pulse_reg"
+            ],
+            "writes": [
+              "src_accept",
+              "src_busy",
+              "dst_pulse"
+            ],
+            "rtl_blocks": [
+              "combo_outputs"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "On posedge src_clk, if src_rst clear regs else shift ack sync and flip req_toggle when src_accept.",
+            "maps_to": [
+              "O_RESET",
+              "O_SOURCE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.4"
+            ],
+            "reads": [
+              "src_rst",
+              "src_accept",
+              "ack_toggle_dst"
+            ],
+            "writes": [
+              "req_toggle",
+              "ack_sync_src1",
+              "ack_sync_src2"
+            ],
+            "rtl_blocks": [
+              "src_logic"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "On posedge dst_clk, one block shifts req sync flops; another block clears or detects change to update ack_toggle_dst and dst_pulse_reg.",
+            "maps_to": [
+              "O_RESET",
+              "O_SINGLE_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "dst_rst",
+              "req_toggle"
+            ],
+            "writes": [
+              "req_sync_dst1",
+              "req_sync_dst2",
+              "ack_toggle_dst",
+              "dst_pulse_reg"
+            ],
+            "rtl_blocks": [
+              "dst_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "src_busy clears only after ack_sync_src2 equals req_toggle, two src cycles after destination update.",
+            "maps_to": [
+              "O_ACK_RETURN",
+              "O_BUSY_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S2.2"
+            ],
+            "reads": [
+              "req_toggle",
+              "ack_sync_src2"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "While src_busy high, src_accept is false so no further req_toggle flip occurs.",
+            "maps_to": [
+              "O_BUSY_GATING",
+              "O_EXACTLY_ONCE"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S3.1"
+            ],
+            "reads": [
+              "src_accept",
+              "src_busy",
+              "src_rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: src_accept == (!src_rst && src_send && !src_busy).",
+            "maps_to": [
+              "O_SOURCE_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "src_accept",
+              "src_rst",
+              "src_send",
+              "src_busy"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: dst_pulse high for exactly one dst cycle per req_sync_dst2 change.",
+            "maps_to": [
+              "O_SINGLE_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "dst_pulse",
+              "req_sync_dst2",
+              "ack_toggle_dst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: src_busy == (req_toggle != ack_sync_src2).",
+            "maps_to": [
+              "O_ACK_RETURN",
+              "O_BUSY_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "src_busy",
+              "req_toggle",
+              "ack_sync_src2"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: after coordinated reset all regs and outputs are zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "req_toggle",
+              "ack_sync_src1",
+              "ack_sync_src2",
+              "req_sync_dst1",
+              "req_sync_dst2",
+              "ack_toggle_dst",
+              "dst_pulse_reg",
+              "src_accept",
+              "src_busy",
+              "dst_pulse"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module async_handshake declared with frozen interface ports.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_ports"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Source always block implements req_toggle flip and ack synchronizer shift.",
+            "maps_to": [
+              "O_SOURCE_ACCEPT",
+              "O_ACK_RETURN"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S2.2"
+            ],
+            "reads": [
+              "src_clk",
+              "src_rst",
+              "src_accept",
+              "ack_toggle_dst"
+            ],
+            "writes": [
+              "req_toggle",
+              "ack_sync_src1",
+              "ack_sync_src2"
+            ],
+            "rtl_blocks": [
+              "src_logic"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Destination implements two always blocks: req synchronizer flops and detect/pulse logic.",
+            "maps_to": [
+              "O_REQUEST_SYNC",
+              "O_SINGLE_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S2.3"
+            ],
+            "reads": [
+              "dst_clk",
+              "dst_rst",
+              "req_toggle"
+            ],
+            "writes": [
+              "req_sync_dst1",
+              "req_sync_dst2",
+              "ack_toggle_dst",
+              "dst_pulse_reg"
+            ],
+            "rtl_blocks": [
+              "dst_logic"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Continuous assignments implement src_accept, src_busy, dst_pulse.",
+            "maps_to": [
+              "O_SOURCE_ACCEPT",
+              "O_BUSY_GATING"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S3.4"
+            ],
+            "reads": [
+              "req_toggle",
+              "ack_sync_src2",
+              "src_send",
+              "src_rst",
+              "dst_pulse_reg"
+            ],
+            "writes": [
+              "src_accept",
+              "src_busy",
+              "dst_pulse"
+            ],
+            "rtl_blocks": [
+              "assign_outputs"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "async_handshake",
+      "code": "module async_handshake (\n  input  wire src_clk,\n  input  wire src_rst,\n  input  wire src_send,\n  output wire src_accept,\n  output wire src_busy,\n  input  wire dst_clk,\n  input  wire dst_rst,\n  output wire dst_pulse\n);\n\n  reg req_toggle;\n  reg ack_sync_src1;\n  reg ack_sync_src2;\n  reg req_sync_dst1;\n  reg req_sync_dst2;\n  reg ack_toggle_dst;\n  reg dst_pulse_reg;\n\n  assign src_busy = (req_toggle != ack_sync_src2);\n  assign src_accept = (!src_rst && src_send && !src_busy);\n  assign dst_pulse = dst_pulse_reg;\n\n  // Source domain: request toggle and acknowledgement synchronizer\n  always @(posedge src_clk) begin\n    if (src_rst) begin\n      req_toggle <= 1'b0;\n      ack_sync_src1 <= 1'b0;\n      ack_sync_src2 <= 1'b0;\n    end else begin\n      ack_sync_src1 <= ack_toggle_dst;\n      ack_sync_src2 <= ack_sync_src1;\n      if (src_accept) req_toggle <= ~req_toggle;\n    end\n  end\n\n  // Destination domain: two-stage request synchronizer\n  always @(posedge dst_clk) begin\n    if (dst_rst) begin\n      req_sync_dst1 <= 1'b0;\n      req_sync_dst2 <= 1'b0;\n    end else begin\n      req_sync_dst1 <= req_toggle;\n      req_sync_dst2 <= req_sync_dst1;\n    end\n  end\n\n  // Destination domain: change detection and one-cycle pulse\n  always @(posedge dst_clk) begin\n    if (dst_rst) begin\n      ack_toggle_dst <= 1'b0;\n      dst_pulse_reg <= 1'b0;\n    end else if (req_sync_dst2 != ack_toggle_dst) begin\n      ack_toggle_dst <= req_sync_dst2;\n      dst_pulse_reg <= 1'b1;\n    end else begin\n      dst_pulse_reg <= 1'b0;\n    end\n  end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "Digital protocol only; no metastability modeling. Coordinated reset assumed."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "4a79fac4-80d4-4843-8d15-071650d69bb5",
+        "usage": {
+          "prompt_tokens": 1980,
+          "completion_tokens": 17507,
+          "total_tokens": 19487,
+          "prompt_tokens_details": {
+            "cached_tokens": 1856
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 14343
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:async_handshake_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_RETURN",
+        "O_BUSY_GATING",
+        "O_EXACTLY_ONCE",
+        "O_REQUEST_SYNC",
+        "O_RESET",
+        "O_RESET_CONTRACT",
+        "O_SINGLE_PULSE",
+        "O_SOURCE_ACCEPT"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:async_handshake_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ACK_RETURN",
+        "O_BUSY_GATING",
+        "O_EXACTLY_ONCE",
+        "O_REQUEST_SYNC",
+        "O_RESET",
+        "O_RESET_CONTRACT",
+        "O_SINGLE_PULSE",
+        "O_SOURCE_ACCEPT"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 32).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 32,
+        "configured_obligations": [
+          "O_ACK_RETURN",
+          "O_BUSY_GATING",
+          "O_EXACTLY_ONCE",
+          "O_REQUEST_SYNC",
+          "O_RESET",
+          "O_RESET_CONTRACT",
+          "O_SINGLE_PULSE",
+          "O_SOURCE_ACCEPT"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "de843e5f71f12ac5081ad1fec36ecd259556d187104de4a6aedbdfa48749ec01",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:ack_toggle_dst",
+            "def_use:req_toggle",
+            "shared_obligation_context:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:ack_toggle_dst"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:req_toggle",
+            "shared_obligation_context:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:ack_sync_src1",
+            "property_derivation:def_use:ack_sync_src2",
+            "property_derivation:def_use:ack_toggle_dst",
+            "property_derivation:def_use:dst_pulse_reg",
+            "property_derivation:def_use:req_sync_dst1",
+            "property_derivation:def_use:req_sync_dst2",
+            "property_derivation:def_use:req_toggle",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:req_sync_dst2",
+            "shared_obligation_context:O_REQUEST_SYNC"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:ack_sync_src2",
+            "shared_obligation_context:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:dst_pulse_reg"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:ack_toggle_dst"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:ack_toggle_dst",
+            "shared_obligation_context:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:src_accept",
+            "shared_obligation_context:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:src_accept",
+            "def_use:src_busy",
+            "shared_obligation_context:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:src_accept",
+            "property_derivation:def_use:src_busy",
+            "shared_obligation_context:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:src_busy",
+            "shared_obligation_context:O_ACK_RETURN",
+            "shared_obligation_context:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:src_accept",
+            "shared_obligation_context:O_ACK_RETURN",
+            "shared_obligation_context:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:req_toggle",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:ack_sync_src2",
+            "def_use:req_toggle"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:ack_sync_src1",
+            "property_derivation:def_use:ack_sync_src2",
+            "property_derivation:def_use:req_toggle",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:src_logic",
+            "shared_obligation_context:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:ack_toggle_dst",
+            "property_derivation:def_use:dst_pulse_reg",
+            "property_derivation:def_use:req_sync_dst1",
+            "property_derivation:def_use:req_sync_dst2",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:ack_toggle_dst"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:dst_logic",
+            "shared_obligation_context:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:req_toggle"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:ack_sync_src2",
+            "def_use:req_toggle",
+            "shared_obligation_context:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:dst_pulse_reg"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.3",
+            "S1.4"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.4"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S3.1",
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [
+            "S2.4",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2",
+            "S5.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4",
+            "S3.4"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S1.3",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_EXACTLY_ONCE"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING",
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING",
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC",
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC",
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_REQUEST_SYNC",
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN",
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN",
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN",
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING",
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN",
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_SINGLE_PULSE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_ACK_RETURN"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_GATING"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_SOURCE_ACCEPT"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 20,
+        "claimed_dependency_count": 31,
+        "items_with_structural_traceability": 16,
+        "structural_traceability_coverage": 0.8,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "4a79fac4-80d4-4843-8d15-071650d69bb5",
+      "usage": {
+        "prompt_tokens": 1980,
+        "completion_tokens": 17507,
+        "total_tokens": 19487,
+        "prompt_tokens_details": {
+          "cached_tokens": 1856
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 14343
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the process was checked sequentially from the coordinated reset contract through source acceptance, request-toggle synchronization, destination change detection, acknowledgement return, busy gating, and final RTL. The implementation correctly accepts only one outstanding source event, uses the second destination synchronization stage for delivery, emits one registered destination pulse, and keeps the source busy until the acknowledgement has traversed both source synchronization stages. In the second review, the CDC boundary cases were independently reconstructed, including repeated src_send while busy, request and acknowledgement synchronization latency, duplicate-pulse prevention, coincident source and destination clock edges, and coordinated reset behavior. No unilateral or in-flight reset counterexample is applicable because those cases are explicitly outside the frozen task contract. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  }
+}

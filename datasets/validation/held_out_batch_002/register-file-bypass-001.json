@@ -1,0 +1,1104 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-register-file-bypass-001",
+  "split": "held_out",
+  "task_id": "register_file_bypass_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/register-file-bypass-001",
+  "source_hashes": {
+    "process_sha256": "4603c4bdd5fb886a95b2c27857d94cf1c0c991febb5941cb68aa4928c6b2271e",
+    "evidence_sha256": "12d47b4d7985d81d0a9e02d4ff5699b6e7204f54b23a5f5248c2b564a6635376",
+    "report_sha256": "e057ae7df43618809cdbbc73b2f14e07afc56536b648eb6dadb1b665062c7821"
+  },
+  "candidate_process": {
+    "task_id": "register_file_bypass_v1",
+    "architecture_summary": "Parameterized register array with synchronous reset/write priority and combinational dual read ports that multiplex wdata on equal-address write bypass.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module implements 2**ADDR_WIDTH words of DATA_WIDTH bits via parameters ADDR_WIDTH and DATA_WIDTH.",
+            "maps_to": [
+              "interface_semantics.parameters"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Synchronous active-high reset clears all stored words and suppresses simultaneous write and bypass.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "One synchronous write port updates only the word at waddr with wdata when rst low and we high.",
+            "maps_to": [
+              "O_WRITE",
+              "O_STORAGE_HOLD"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Two combinational read ports return stored words and forward wdata immediately when read address matches legal write address.",
+            "maps_to": [
+              "O_COMB_READ",
+              "O_BYPASS_A",
+              "O_BYPASS_B",
+              "O_DUAL_READ_COLLISION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Stored state is a single register array mem[0:DEPTH-1] of DATA_WIDTH-bit words.",
+            "maps_to": [
+              "O_STORAGE_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "mem_decl"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Sequential block always_ff samples rst, we, waddr, wdata at posedge clk and applies reset priority then write.",
+            "maps_to": [
+              "O_RESET",
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3",
+              "S2.1"
+            ],
+            "reads": [
+              "rst",
+              "we",
+              "waddr",
+              "wdata"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Combinational read/bypass logic selects wdata when rst low and we high and read address equals waddr, else mem[raddr].",
+            "maps_to": [
+              "O_COMB_READ",
+              "O_BYPASS_A",
+              "O_BYPASS_B",
+              "O_DUAL_READ_COLLISION"
+            ],
+            "claimed_dependencies": [
+              "S1.4",
+              "S2.1"
+            ],
+            "reads": [
+              "rst",
+              "we",
+              "raddr_a",
+              "raddr_b",
+              "waddr",
+              "wdata",
+              "mem"
+            ],
+            "writes": [
+              "rdata_a",
+              "rdata_b"
+            ],
+            "rtl_blocks": [
+              "read_bypass"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk if rst high, all mem entries transition to zero and we is ignored.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "At posedge clk with rst low and we high, mem[waddr] transitions to wdata and other entries hold.",
+            "maps_to": [
+              "O_WRITE",
+              "O_STORAGE_HOLD"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "rst",
+              "we",
+              "waddr",
+              "wdata"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Read outputs are zero-latency combinational; bypass uses current rst/we/waddr/wdata and mem.",
+            "maps_to": [
+              "O_COMB_READ",
+              "O_BYPASS_A",
+              "O_BYPASS_B"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [
+              "rst",
+              "we",
+              "raddr_a",
+              "raddr_b",
+              "waddr",
+              "wdata",
+              "mem"
+            ],
+            "writes": [
+              "rdata_a",
+              "rdata_b"
+            ],
+            "rtl_blocks": [
+              "read_bypass"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "If both read addresses match waddr during legal write, both outputs expose wdata; nonmatching port independent.",
+            "maps_to": [
+              "O_DUAL_READ_COLLISION"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.3"
+            ],
+            "reads": [
+              "raddr_a",
+              "raddr_b",
+              "waddr"
+            ],
+            "writes": [
+              "rdata_a",
+              "rdata_b"
+            ],
+            "rtl_blocks": [
+              "read_bypass"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: after rst high edge, all mem entries equal zero.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "mem",
+              "rst"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: after legal write, mem[waddr] equals wdata and other entries unchanged.",
+            "maps_to": [
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "mem",
+              "waddr",
+              "wdata"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: rst low and we high and raddr_a==waddr implies rdata_a==wdata.",
+            "maps_to": [
+              "O_BYPASS_A"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "rdata_a",
+              "rst",
+              "we",
+              "raddr_a",
+              "waddr",
+              "wdata"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: both read addresses match legal write address implies rdata_a==wdata and rdata_b==wdata.",
+            "maps_to": [
+              "O_DUAL_READ_COLLISION"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "rdata_a",
+              "rdata_b",
+              "raddr_a",
+              "raddr_b",
+              "waddr",
+              "we",
+              "rst",
+              "wdata"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Declare module with parameters DATA_WIDTH, ADDR_WIDTH and exact ports from interface.",
+            "maps_to": [
+              "interface_semantics.ports"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": [
+              "module_hdr"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement sequential always_ff block for reset/write priority updating mem.",
+            "maps_to": [
+              "O_RESET",
+              "O_WRITE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.1",
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "we",
+              "waddr",
+              "wdata"
+            ],
+            "writes": [
+              "mem"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement continuous assign read ports with bypass multiplexers for both ports.",
+            "maps_to": [
+              "O_COMB_READ",
+              "O_BYPASS_A",
+              "O_BYPASS_B",
+              "O_DUAL_READ_COLLISION"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "rst",
+              "we",
+              "raddr_a",
+              "raddr_b",
+              "waddr",
+              "wdata",
+              "mem"
+            ],
+            "writes": [
+              "rdata_a",
+              "rdata_b"
+            ],
+            "rtl_blocks": [
+              "read_bypass"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "register_file_bypass",
+      "code": "module register_file_bypass #(parameter int DATA_WIDTH = 8, parameter int ADDR_WIDTH = 2) (input logic clk, input logic rst, input logic we, input logic [ADDR_WIDTH-1:0] waddr, input logic [DATA_WIDTH-1:0] wdata, input logic [ADDR_WIDTH-1:0] raddr_a, input logic [ADDR_WIDTH-1:0] raddr_b, output logic [DATA_WIDTH-1:0] rdata_a, output logic [DATA_WIDTH-1:0] rdata_b);\n  localparam int DEPTH = 2**ADDR_WIDTH;\n  logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      for (int i = 0; i < DEPTH; i++) mem[i] <= '0;\n    end else if (we) begin\n      mem[waddr] <= wdata;\n    end\n  end\n  assign rdata_a = (rst == 1'b0 && we == 1'b1 && raddr_a == waddr) ? wdata : mem[raddr_a];\n  assign rdata_b = (rst == 1'b0 && we == 1'b1 && raddr_b == waddr) ? wdata : mem[raddr_b];\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Bypass uses pre-edge sampled we and waddr as required; reset suppresses write and bypass.",
+        "All read logic is combinational with zero latency."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "222c5058-fdbf-4a79-87d2-66b9dd41da9d",
+        "usage": {
+          "prompt_tokens": 1652,
+          "completion_tokens": 8291,
+          "total_tokens": 9943,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 5847
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:register_file_bypass_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BYPASS_A",
+        "O_BYPASS_B",
+        "O_COMB_READ",
+        "O_DUAL_READ_COLLISION",
+        "O_RESET",
+        "O_STORAGE_HOLD",
+        "O_WRITE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:register_file_bypass_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BYPASS_A",
+        "O_BYPASS_B",
+        "O_COMB_READ",
+        "O_DUAL_READ_COLLISION",
+        "O_RESET",
+        "O_STORAGE_HOLD",
+        "O_WRITE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 20).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 20,
+        "configured_obligations": [
+          "O_BYPASS_A",
+          "O_BYPASS_B",
+          "O_COMB_READ",
+          "O_DUAL_READ_COLLISION",
+          "O_RESET",
+          "O_STORAGE_HOLD",
+          "O_WRITE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "be0b3d4331f6177db43d28ac9c29bb67776ece0ab0ccfba2acb0f37507f42221",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "def_use:mem"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:seq_update",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:read_bypass",
+            "shared_obligation_context:O_BYPASS_A",
+            "shared_obligation_context:O_BYPASS_B",
+            "shared_obligation_context:O_COMB_READ"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:seq_update"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:mem",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:mem"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:mem",
+            "shared_obligation_context:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:seq_update",
+            "shared_obligation_context:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "rtl_traceability:read_bypass"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:rdata_a",
+            "shared_obligation_context:O_BYPASS_A"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:rdata_a",
+            "property_derivation:def_use:rdata_b",
+            "shared_obligation_context:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:read_bypass",
+            "shared_obligation_context:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:mem"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.4",
+            "S2.1"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S3.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S3.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_STORAGE_HOLD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_STORAGE_HOLD",
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ",
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ",
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_STORAGE_HOLD"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET",
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ",
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A",
+            "shared_obligation:O_BYPASS_B",
+            "shared_obligation:O_COMB_READ"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_WRITE"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_BYPASS_A"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_DUAL_READ_COLLISION"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 22,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "222c5058-fdbf-4a79-87d2-66b9dd41da9d",
+      "usage": {
+        "prompt_tokens": 1652,
+        "completion_tokens": 8291,
+        "total_tokens": 9943,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5847
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, reset priority, synchronous write behavior, storage preservation, combinational dual-read behavior, and same-cycle write bypass were checked sequentially from specification understanding through the final RTL. The implementation clears all stored words on a sampled reset edge, suppresses simultaneous write and bypass during reset, updates only the addressed word on a legal write, and independently forwards wdata to each matching read port. In the second review, reset/write collisions, single- and dual-port address matches, nonmatching-port independence, pre-edge bypass visibility, post-write read behavior, and the unspecified pre-reset memory state were independently reconstructed. No concrete legal parameter counterexample or tool failure was present that would justify a parameterization error under guideline v1.1. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  }
+}

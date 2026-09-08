@@ -1,0 +1,28 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewer",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.2",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Consequent",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S4.2"
+    },
+    {
+      "source": "S3.2",
+      "target": "S4.2"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_ENABLE_STEP",
+    "O_GRAY_MAPPING"
+  ],
+  "notes": "Two independent review passes reached the same substantive error conclusion. S1 through S3 correctly describe reset priority, enabled modulo advancement, Gray encoding, hold behavior, and wrap timing. The earliest error is S4.2. Its non-overlapping implication checks the consequent on the following cycle, when idx already represents the newly advanced sequence index, but the consequent applies another +1 before encoding it. For example, from idx=0 with an accepted enable, the RTL correctly produces idx=1 and gray=Gray(1), whereas S4.2 expects Gray(2). The property therefore reasons one sequence position ahead. The second review independently reproduced the same current-versus-next-state counterexample and verified that S4.3 single-bit behavior, S4.4 wrap history, WIDTH=1, and the final RTL remain correct. No concrete legal parameter counterexample was found for the implementation. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

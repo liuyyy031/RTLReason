@@ -1,5 +1,25 @@
 # RTLReason 项目方案
 
+## 0. 快速开始
+
+需要 Python 3.11 或更高版本。Simulation 需要 Icarus Verilog，Formal 需要 Yosys/SymbiYosys；Windows 可直接使用 OSS CAD Suite。
+
+```powershell
+python -m pip install -e .
+Copy-Item .env.example .env
+```
+
+然后在 `.env` 中配置 `HY3_API_KEY`。密钥仅用于真实模型生成和 Semantic Judge，本地数据校验、参考模型与已冻结结果审计不需要 API 调用。
+
+```powershell
+python -m rtlreason doctor
+python -m rtlreason dataset-summary
+python -m rtlreason regression-summary
+python -m unittest discover -s tests -v
+```
+
+`doctor` 用于检查配置与 EDA 工具；`dataset-summary` 校验30道可信任务的分层清单；`regression-summary` 校验42个受控 known-bad 样本的任务覆盖。完整 CLI 子命令可通过 `python -m rtlreason --help` 查看。
+
 ## 1. 选题背景
 
 大模型已经能够生成可综合 RTL，但仅用最终仿真是否通过来评价模型，会丢失大量重要信息：
@@ -185,7 +205,7 @@ formal/
 - `multicycle_multiply_ctrl_v1`：固定WIDTH迭代、busy请求隔离、原子结果提交和done脉冲。
 - `apb_register_bank_v1`：APB setup/access 阶段、地址译码、零等待读写和错误门控。
 
-Task Expansion Batch 002 的10道新题已全部通过 Reference、Simulation、Formal、至少2个 known-bad 和独立资产审查，可信题目总量已达到30道。Batch 002 的任务级 Held-out 生成计划和 evaluator v1.5 快照已经冻结：每题仅采集1份新的独立 Hy3 回答，保留第一次有效生成，不按内容或 EDA 结果重采样，生成阶段不运行 Semantic Judge。详细设计与 Safety/Liveness 边界见 `docs/TASK_EXPANSION_BATCH_002.md`，机器可读清单见 `datasets/task_expansion_batch_002.json` 和 `datasets/validation/HELD_OUT_BATCH_002.json`。
+Task Expansion Batch 002 的10道新题已全部通过 Reference、Simulation、Formal、至少2个 known-bad 和独立资产审查，可信题目总量已达到30道。该批任务级 Held-out 实验已完成 Gold 冻结和 evaluator v1.5 一次性评测：10份候选中8份为 Hy3，另2份是 Hy3 连续超时后按预登记附加规则采集的 `hy4-preview` 输出，二者分层报告，不混入纯 Hy3 指标。所有样本均保留第一次有效生成，不按内容或 EDA 结果重采样，生成阶段未运行 Semantic Judge。详细设计与 Safety/Liveness 边界见 [`docs/TASK_EXPANSION_BATCH_002.md`](docs/TASK_EXPANSION_BATCH_002.md)，机器可读计划见 [`datasets/task_expansion_batch_002.json`](datasets/task_expansion_batch_002.json) 和 [`datasets/validation/HELD_OUT_BATCH_002.json`](datasets/validation/HELD_OUT_BATCH_002.json)，最终结果见 [`docs/HELD_OUT_BATCH_002_RESULTS_CN.md`](docs/HELD_OUT_BATCH_002_RESULTS_CN.md)。
 
 ### 5.2 S1–S5 Process Artifact
 
@@ -318,9 +338,11 @@ Gold Validation Set 可以包含：
 - Semantic-only：使用逐项语义 Judge，但不使用依赖图和 Evidence Attribution；
 - Full RTLReason：Semantic、Dependency 与 Attribution 完整链路。
 
-截至 2026-09-06，盲审池包含 44 个真实模型输出和 3 个受控样本，47/47 通过 provenance 与盲审包一致性审计；其中 42 份为 Hy3，2 份为其它真实模型输出，不同模型来源不得在“Hy3 准确率”中混算。Development Set 已晋升 47 份独立 Gold，并完成 Semantic Judge v1.5 的冻结候选重评和 47/47 版本化 snapshots。Full RTLReason 的 Development Process Accuracy 与 Macro-F1 均为 1.0000，17 个过程错误全部被召回；First-stage 与 Root Error Accuracy 均为 0.9412，关键依赖 micro-F1 为 0.5098。EDA-only 仍无法召回任何“正确 RTL/错误过程”样本。v1.5 的规则来自同一 Development 集的 v1.4 误差分析，因此这些只能视为校准结果，不能作为 held-out 泛化结论。可信题目共 20 道，详细结果及剩余误差见 `runs/metrics/evaluator-v1.5-full47/ERROR_ANALYSIS_CN.md`。
+截至 2026-09-06，盲审池包含 44 个真实模型输出和 3 个受控样本，47/47 通过 provenance 与盲审包一致性审计；其中 42 份为 Hy3，2 份为其它真实模型输出，不同模型来源不得在“Hy3 准确率”中混算。Development Set 已晋升 47 份独立 Gold，并完成 Semantic Judge v1.5 的冻结候选重评和 47/47 版本化 snapshots。Full RTLReason 的 Development Process Accuracy 与 Macro-F1 均为 1.0000，17 个过程错误全部被召回；First-stage 与 Root Error Accuracy 均为 0.9412，关键依赖 micro-F1 为 0.5098。EDA-only 仍无法召回任何“正确 RTL/错误过程”样本。v1.5 的规则来自同一 Development 集的 v1.4 误差分析，因此这些只能视为校准结果，不能作为 held-out 泛化结论。该 Development 集覆盖当时已建成的20道可信题目；仓库当前已扩展到30道。
 
-截至 2026-09-07，另有20份覆盖全部可信任务的新 Hy3 回答在运行评测器前完成双人复核并冻结为 Held-out Batch 001。冻结的 v1.5 在该批上的 Full Process Accuracy 为 0.7500、Macro-F1 为 0.7151、Root Error Accuracy 为 0.5000、Correct-RTL/Wrong-Process Recall 为 0.6000，关键依赖 micro-F1 为 0.2500；Final RTL Accuracy 为 1.0000。EDA-only 同样得到0.7500 Process Accuracy，但无法召回任何正确 RTL/错误过程样本。该批是已见任务上的 sample-level held-out，不代表新任务泛化；结果已一次性冻结，不得用于调整 v1.5 后重测同一批。详细分析见 `runs/metrics/evaluator-v1.5-held-out-batch-001/HELD_OUT_RESULTS_CN.md`。
+截至 2026-09-07，另有20份覆盖当时20道可信任务的新 Hy3 回答在运行评测器前完成双人复核并冻结为 Held-out Batch 001。冻结的 v1.5 在该批上的 Full Process Accuracy 为 0.7500、Macro-F1 为 0.7151、Root Error Accuracy 为 0.5000、Correct-RTL/Wrong-Process Recall 为 0.6000，关键依赖 micro-F1 为 0.2500；Final RTL Accuracy 为 1.0000。EDA-only 同样得到0.7500 Process Accuracy，但无法召回任何正确 RTL/错误过程样本。该批是已见任务上的 sample-level held-out，不代表新任务泛化；结果已一次性冻结，不得用于调整 v1.5 后重测同一批。评审记录见 [`datasets/validation/HELD_OUT_BATCH_001_REVIEW_CN.md`](datasets/validation/HELD_OUT_BATCH_001_REVIEW_CN.md)。
+
+截至 2026-09-08，Held-out Batch 002 完成10份新任务样本的独立人工 Gold、哈希冻结和 v1.5 一次性评测。全部10份上，Full RTLReason 的 Final RTL Accuracy 为 0.9000、Process Accuracy 为 0.8000、Process Macro-F1 为 0.7619、Root Error Accuracy 为 0.5000，关键依赖 micro-F1 为 0.3636；EDA-only 的 Process Accuracy 为 0.6000。纯 Hy3 子集为8份，Process Accuracy 为 0.8750；2份 `hy4-preview` 仅作跨模型补充，不用于宣称 Hy3 指标。该批仅10个样本，不声称统计显著性。Gold 与评测结果已冻结，不得回改 v1.5 后将同一批重新报告为 held-out 结果。详细结果见 [`docs/HELD_OUT_BATCH_002_RESULTS_CN.md`](docs/HELD_OUT_BATCH_002_RESULTS_CN.md)，冻结记录见 [`datasets/validation/HELD_OUT_BATCH_002_GOLD_FREEZE.json`](datasets/validation/HELD_OUT_BATCH_002_GOLD_FREEZE.json) 和 [`datasets/validation/HELD_OUT_BATCH_002_EVALUATION.json`](datasets/validation/HELD_OUT_BATCH_002_EVALUATION.json)。
 
 受控 EDA 回归由 `datasets/mutations/regression_matrix.json` 冻结，目前包含 42 个已知故障，覆盖全部 30 道可信题目。运行 `python -m rtlreason regression-summary` 可校验任务、RTL 路径、obligation 映射并汇总覆盖；运行 `python -m rtlreason regression-run` 会逐个执行已知错误 RTL，并要求可信仿真失败且至少命中一个预期 obligation。该矩阵只用于工程回归，不属于独立 Gold。
 

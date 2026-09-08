@@ -226,6 +226,54 @@ class BaselineAndManifestTests(unittest.TestCase):
             ).hexdigest()
             self.assertEqual(actual, expected, relative_path)
 
+    def test_held_out_batch_002_gold_freeze_matches_records(self) -> None:
+        freeze = json.loads(
+            (
+                PROJECT_ROOT
+                / "datasets"
+                / "validation"
+                / "HELD_OUT_BATCH_002_GOLD_FREEZE.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(freeze["status"], "gold_frozen_evaluator_pending")
+        self.assertEqual(freeze["case_count"], 10)
+        self.assertEqual(freeze["distribution"]["gold_process_correct"], 6)
+        self.assertEqual(freeze["distribution"]["gold_process_incorrect"], 4)
+        self.assertEqual(freeze["model_partitions"]["hy3"]["case_count"], 8)
+        self.assertEqual(
+            freeze["model_partitions"]["hy4-preview"]["case_count"], 2
+        )
+        for group in ("control_hashes", "gold_sha256"):
+            for relative_path, expected in freeze[group].items():
+                actual = hashlib.sha256(
+                    (PROJECT_ROOT / relative_path).read_bytes()
+                ).hexdigest()
+                self.assertEqual(actual, expected, relative_path)
+
+    def test_held_out_batch_002_evaluation_artifacts_are_frozen(self) -> None:
+        result = json.loads(
+            (
+                PROJECT_ROOT
+                / "datasets"
+                / "validation"
+                / "HELD_OUT_BATCH_002_EVALUATION.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(result["status"], "one_shot_evaluation_complete")
+        self.assertEqual(result["case_count"], 10)
+        self.assertEqual(result["semantic_evaluator"]["model"], "hy3")
+        self.assertFalse(result["semantic_evaluator"]["gold_labels_provided_to_judge"])
+        frozen_paths = {
+            result["gold_freeze"]["path"]: result["gold_freeze"]["sha256"],
+            result["evaluator_freeze"]["path"]: result["evaluator_freeze"]["sha256"],
+            **result["artifact_sha256"],
+        }
+        for relative_path, expected in frozen_paths.items():
+            actual = hashlib.sha256(
+                (PROJECT_ROOT / relative_path).read_bytes()
+            ).hexdigest()
+            self.assertEqual(actual, expected, relative_path)
+
     def test_gray_code_counter_frozen_record_is_consistent(self) -> None:
         self.assert_trusted_frozen_record_is_consistent("gray_code_counter_v1")
 

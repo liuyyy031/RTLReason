@@ -1,0 +1,16 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, reset priority, synchronous write behavior, storage preservation, combinational dual-read behavior, and same-cycle write bypass were checked sequentially from specification understanding through the final RTL. The implementation clears all stored words on a sampled reset edge, suppresses simultaneous write and bypass during reset, updates only the addressed word on a legal write, and independently forwards wdata to each matching read port. In the second review, reset/write collisions, single- and dual-port address matches, nonmatching-port independence, pre-edge bypass visibility, post-write read behavior, and the unspecified pre-reset memory state were independently reconstructed. No concrete legal parameter counterexample or tool failure was present that would justify a parameterization error under guideline v1.1. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

@@ -1,0 +1,16 @@
+{
+  "annotator_id": "LT001+LT002",
+  "annotator_role": "independent RTL reviewers, adjudicated",
+  "guideline_version": "1.1",
+  "independent_of_tested_model": true,
+  "status": "adjudicated",
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. The first review verified reset and clear priority, transfer gating, beat and packet counting, independent saturation, hold behavior, and the final RTL against the frozen semantics. The second review independently reconstructed reset/clear collisions, tlast without transfer, one-counter-saturated cases, and the COUNT_WIDTH=1 boundary. S2.2 and S3 describe conceptual beat_next and packet_next values although the final RTL encodes the same next-state decisions directly inside the sequential block; this is an implementation-form difference rather than a substantive reasoning error because the guards, priorities, and resulting state transitions are unchanged and S5.1 correctly identifies the delivered single-always_ff implementation. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+}

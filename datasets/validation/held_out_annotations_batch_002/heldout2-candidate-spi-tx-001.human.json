@@ -1,9 +1,9 @@
 {
-  "annotator_id": "LT001",
+  "annotator_id": "LT001+LT002",
   "annotator_role": "independent RTL reviewer",
   "guideline_version": "1.1",
   "independent_of_tested_model": true,
-  "status": "single_annotated",
+  "status": "adjudicated",
   "gold_rtl_correct": true,
   "gold_process_correct": false,
   "gold_first_error_stage": "S4",

@@ -1,0 +1,1794 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-spi-tx-001",
+  "split": "held_out",
+  "task_id": "spi_tx_v1",
+  "candidate_origin": "real_model_output",
+  "source_run": "runs/held-out-batch-002/spi-tx-001",
+  "source_hashes": {
+    "process_sha256": "0aabb72a1fb1f19d70972f2aac81efdf51babbe991e8c302492c1bf51e77fee9",
+    "evidence_sha256": "ac95271862291a744df8a10283ba8cfe3c08d6edd39de6baa6c58acdf5800c29",
+    "report_sha256": "c3ef54e97ba1d33370f7d35261a61163c8bc2e86910aa4be4502b026dd7db818"
+  },
+  "candidate_process": {
+    "task_id": "spi_tx_v1",
+    "architecture_summary": "Single always_ff registered design: a half-period divider toggles sclk, a 4-bit rising-edge counter tracks the eight samples, and an 8-bit left-shift register supplies MSB-first MOSI; reset, active-transfer, idle-start, and quiescent-idle priorities are explicit.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "A sampled high rst synchronously forces sclk, mosi, busy, and done to 0 and cancels any active transfer; reset has priority over all other behavior.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "A start is accepted only when rst is low and busy is 0; the accepted start captures data_in, sets busy=1, holds sclk=0, and presents data_in[7] on mosi without creating an sclk sampling edge.",
+            "maps_to": [
+              "O_START",
+              "O_BUSY_IGNORE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "start",
+              "busy",
+              "rst",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "While busy, sclk toggles after exactly HALF_PERIOD_CYCLES rising clk edges per half-period; mosi is stable across each sclk rising edge and updates only on sclk falling edges, exposing captured bits 7 down to 0 in order.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "sclk",
+              "mosi"
+            ],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Completion occurs on the falling sclk edge after the eighth rising edge: busy returns to 0, sclk and mosi return to 0, and done asserts for exactly one clk cycle; with no accepted start, quiescent idle holds busy, sclk, mosi, and done at 0.",
+            "maps_to": [
+              "O_COMPLETE",
+              "O_DONE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [
+              "busy"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done"
+            ],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Chosen architecture: one synchronous always_ff block drives registered outputs busy, sclk, mosi, and done; internal state is an 8-bit shift register, a half-period cycle counter, and a rising-edge counter.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_MODE0_EDGES"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "clk",
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "busy marks an active transfer; sclk is the generated mode-0 clock (idle 0); mosi is the registered serial data; done is a one-cycle flag; shift holds the captured byte and left-shifts so shift[7] is the current bit and shift[6] is the next bit.",
+            "maps_to": [
+              "O_START",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "half_cnt counts clk cycles in the current sclk half-period and triggers a toggle when it reaches HALF_PERIOD_CYCLES-1; rise_cnt counts completed sclk rising edges from 0 to 8 to locate the eighth sample and the following completion falling edge.",
+            "maps_to": [
+              "O_DIVIDER",
+              "O_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Priority model: reset first, then active-transfer updates, then idle-start acceptance, then quiescent-idle hold; this makes start during busy ignored and keeps idle outputs at zero.",
+            "maps_to": [
+              "O_RESET",
+              "O_BUSY_IGNORE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2",
+              "S1.4"
+            ],
+            "reads": [
+              "rst",
+              "busy",
+              "start"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "Reset transition: on posedge clk with rst=1, busy, sclk, mosi, done, shift, half_cnt, and rise_cnt are all cleared to 0, cancelling any transfer.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.4"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "Idle-start transition: on posedge clk with rst=0, busy=0, and start=1, shift captures data_in, busy becomes 1, sclk stays 0, mosi becomes data_in[7], and half_cnt, rise_cnt, and done are cleared.",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.4",
+              "S1.2"
+            ],
+            "reads": [
+              "start",
+              "busy",
+              "rst",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Half-period toggle rule: while busy, half_cnt increments until it equals HALF_PERIOD_CYCLES-1; at that point it resets to 0 and sclk toggles, producing a rising edge if the old sclk was 0 and a falling edge if the old sclk was 1.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S1.3"
+            ],
+            "reads": [
+              "half_cnt",
+              "sclk",
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "half_cnt",
+              "sclk"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "Rising-edge sampling rule: on a 0->1 sclk toggle, rise_cnt increments and mosi is not modified, so the bit already present on mosi is stable across the rising sampling edge.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S2.2"
+            ],
+            "reads": [
+              "sclk",
+              "rise_cnt",
+              "mosi"
+            ],
+            "writes": [
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S3.5",
+            "stage": "S3",
+            "claim": "Falling-edge data/completion rule: on a 1->0 sclk toggle, if rise_cnt==8 the transfer completes (busy=0, sclk=0, mosi=0, done=1); otherwise shift advances left and mosi takes shift[6], the next lower bit.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST",
+              "O_COMPLETE",
+              "O_DONE"
+            ],
+            "claimed_dependencies": [
+              "S3.3",
+              "S3.4",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "sclk",
+              "rise_cnt",
+              "shift"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate property: after any reset, (sclk==0 && mosi==0 && busy==0 && done==0) holds until an accepted start occurs.",
+            "maps_to": [
+              "O_RESET",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.1"
+            ],
+            "reads": [
+              "rst",
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate property: if busy=0, rst=0, and start=1 immediately before a posedge, then immediately after that edge busy=1, sclk=0, and mosi equals the pre-edge data_in[7].",
+            "maps_to": [
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "clk",
+              "busy",
+              "start",
+              "rst",
+              "data_in",
+              "mosi"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate property: while busy, sclk changes only on a posedge where half_cnt wrapped from HALF_PERIOD_CYCLES-1, and consecutive sclk edges are separated by exactly HALF_PERIOD_CYCLES clk periods.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "busy",
+              "sclk",
+              "half_cnt",
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate property: on every sclk rising edge, mosi equals the expected captured bit for that sample index, and mosi changes value only on sclk falling edges.",
+            "maps_to": [
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.4",
+              "S3.5"
+            ],
+            "reads": [
+              "sclk",
+              "mosi",
+              "rise_cnt",
+              "shift"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S4.5",
+            "stage": "S4",
+            "claim": "Candidate property: done is 1 for exactly one clk cycle and only on the completion transition where busy falls, sclk returns to 0, and mosi returns to 0 after the eighth rising edge.",
+            "maps_to": [
+              "O_DONE",
+              "O_COMPLETE"
+            ],
+            "claimed_dependencies": [
+              "S3.5"
+            ],
+            "reads": [
+              "done",
+              "busy",
+              "sclk",
+              "mosi",
+              "rise_cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Module header: spi_tx is declared with parameter HALF_PERIOD_CYCLES (default 2) and the exact ports clk, rst, start, data_in, sclk, mosi, busy, done; all outputs are logic updated in one always_ff.",
+            "maps_to": [
+              "O_RESET",
+              "O_START"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "start",
+              "data_in"
+            ],
+            "writes": [
+              "sclk",
+              "mosi",
+              "busy",
+              "done"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Internal state: shift is 8 bits, half_cnt is 32 bits and compared with HALF_PERIOD_CYCLES-1, and rise_cnt is 4 bits to hold 0..8; these implement the divider and bit tracking.",
+            "maps_to": [
+              "O_DIVIDER"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S5.1"
+            ],
+            "reads": [
+              "HALF_PERIOD_CYCLES"
+            ],
+            "writes": [
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Reset branch: the highest-priority if (rst) clears busy, sclk, mosi, done, shift, half_cnt, and rise_cnt to 0 on posedge clk.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S5.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Operational branches: else if (busy) implements the divider toggle, rising-edge count, and falling-edge shift/completion; else if (start) implements idle-start capture; the final else holds quiescent idle at zero.",
+            "maps_to": [
+              "O_START",
+              "O_BUSY_IGNORE",
+              "O_MODE0_EDGES",
+              "O_MSB_FIRST",
+              "O_COMPLETE",
+              "O_DONE",
+              "O_IDLE"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3",
+              "S3.4",
+              "S3.5",
+              "S5.2"
+            ],
+            "reads": [
+              "busy",
+              "start",
+              "half_cnt",
+              "sclk",
+              "rise_cnt",
+              "shift",
+              "data_in"
+            ],
+            "writes": [
+              "busy",
+              "sclk",
+              "mosi",
+              "done",
+              "shift",
+              "half_cnt",
+              "rise_cnt"
+            ],
+            "rtl_blocks": [
+              "spi_tx"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "spi_tx",
+      "code": "module spi_tx #(\n  parameter int HALF_PERIOD_CYCLES = 2\n) (\n  input  logic       clk,\n  input  logic       rst,\n  input  logic       start,\n  input  logic [7:0] data_in,\n  output logic       sclk,\n  output logic       mosi,\n  output logic       busy,\n  output logic       done\n);\n\n  logic [7:0]  shift;\n  logic [31:0] half_cnt;\n  logic [3:0]  rise_cnt;\n\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      busy     <= 1'b0;\n      sclk     <= 1'b0;\n      mosi     <= 1'b0;\n      done     <= 1'b0;\n      shift    <= 8'h00;\n      half_cnt <= 32'd0;\n      rise_cnt <= 4'd0;\n    end else begin\n      done <= 1'b0;\n\n      if (busy) begin\n        if (half_cnt == HALF_PERIOD_CYCLES - 1) begin\n          half_cnt <= 32'd0;\n          sclk     <= ~sclk;\n          if (!sclk) begin\n            rise_cnt <= rise_cnt + 4'd1;\n          end else begin\n            if (rise_cnt == 4'd8) begin\n              busy <= 1'b0;\n              sclk <= 1'b0;\n              mosi <= 1'b0;\n              done <= 1'b1;\n            end else begin\n              shift <= {shift[6:0], 1'b0};\n              mosi  <= shift[6];\n            end\n          end\n        end else begin\n          half_cnt <= half_cnt + 32'd1;\n        end\n      end else if (start) begin\n        busy     <= 1'b1;\n        sclk     <= 1'b0;\n        mosi     <= data_in[7];\n        shift    <= data_in;\n        half_cnt <= 32'd0;\n        rise_cnt <= 4'd0;\n      end else begin\n        busy <= 1'b0;\n        sclk <= 1'b0;\n        mosi <= 1'b0;\n      end\n    end\n  end\n\nendmodule\n"
+    },
+    "metadata": {
+      "notes": [
+        "All outputs are registered and observed after posedge clk; internal counters are cleared on reset or accepted start."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy4-preview",
+        "request_id": "9b248c08-cf39-415a-8246-33e07876224b",
+        "usage": {
+          "prompt_tokens": 1725,
+          "completion_tokens": 22221,
+          "total_tokens": 23946,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 18160
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:spi_tx_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY_IGNORE",
+        "O_COMPLETE",
+        "O_DIVIDER",
+        "O_DONE",
+        "O_IDLE",
+        "O_MODE0_EDGES",
+        "O_MSB_FIRST",
+        "O_RESET",
+        "O_START"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:spi_tx_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY_IGNORE",
+        "O_COMPLETE",
+        "O_DIVIDER",
+        "O_DONE",
+        "O_IDLE",
+        "O_MODE0_EDGES",
+        "O_MSB_FIRST",
+        "O_RESET",
+        "O_START"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 40).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 40,
+        "configured_obligations": [
+          "O_BUSY_IGNORE",
+          "O_COMPLETE",
+          "O_DIVIDER",
+          "O_DONE",
+          "O_IDLE",
+          "O_MODE0_EDGES",
+          "O_MSB_FIRST",
+          "O_RESET",
+          "O_START"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S4",
+  "gold_root_error": "S4.4",
+  "gold_error_type_l1": "Property",
+  "gold_error_type_l2": "Incorrect Antecedent",
+  "gold_parent_dependency": [
+    {
+      "source": "S3.2",
+      "target": "S4.4"
+    },
+    {
+      "source": "S3.5",
+      "target": "S4.4"
+    }
+  ],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": false,
+  "predicted_first_error_stage": "S4",
+  "predicted_root_error": "S4.4",
+  "predicted_error_type_l1": "Property",
+  "predicted_error_type_l2": "Incorrect Consequent",
+  "predicted_parent_dependency": [
+    {
+      "source": "S3.4",
+      "target": "S4.4"
+    },
+    {
+      "source": "S3.5",
+      "target": "S4.4"
+    }
+  ],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": false,
+    "root_errors": [
+      "S4.4"
+    ],
+    "earliest_error_stage": "S4",
+    "primary_error_item": "S4.4",
+    "violated_obligations": [],
+    "review_focus": [
+      {
+        "item_id": "S4.4",
+        "status": "incorrect",
+        "error_type_l1": "Property",
+        "error_type_l2": "Incorrect Consequent",
+        "explanation": "Clause 'mosi changes value only on sclk falling edges' is false: mosi also changes on accepted idle-start (posedge clk, sclk stays 0) and on reset, which are legal causes not excluded by claim scope.",
+        "confidence": 0.9
+      }
+    ],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "4ccfa6a8e34ea24cc5a0203f81b5f65fff3411bc7a71b709a7ad201e318d9937",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S3.5",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S4.5",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S1.1",
+          "target": "S1.2",
+          "reasons": [
+            "def_use:busy"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S1.4",
+          "reasons": [
+            "def_use:busy"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:busy"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:spi_tx",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:busy",
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:done",
+            "property_derivation:def_use:mosi",
+            "property_derivation:def_use:sclk",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:half_cnt",
+            "def_use:sclk",
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:mosi",
+            "def_use:rise_cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.5",
+          "reasons": [
+            "def_use:shift"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:mosi",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_START"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:sclk",
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.5",
+          "reasons": [
+            "def_use:sclk"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:half_cnt",
+            "property_derivation:def_use:sclk",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S3.5",
+          "reasons": [
+            "def_use:rise_cnt",
+            "rtl_traceability:spi_tx",
+            "shared_obligation_context:O_MODE0_EDGES",
+            "shared_obligation_context:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:rise_cnt",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_MODE0_EDGES",
+            "shared_obligation_context:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:mosi",
+            "property_derivation:def_use:sclk",
+            "property_derivation:def_use:shift",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_MODE0_EDGES",
+            "shared_obligation_context:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.5",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:done",
+            "property_derivation:def_use:mosi",
+            "property_derivation:def_use:sclk",
+            "property_derivation:rtl_traceability:spi_tx",
+            "shared_obligation_context:O_COMPLETE",
+            "shared_obligation_context:O_DONE"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:spi_tx"
+          ]
+        },
+        {
+          "source": "S5.3",
+          "target": "S5.4",
+          "reasons": [
+            "def_use:busy",
+            "def_use:half_cnt",
+            "def_use:rise_cnt",
+            "def_use:sclk",
+            "def_use:shift",
+            "rtl_traceability:spi_tx"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S1.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S1.1"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S1.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S1.2"
+          ],
+          "unverified_claimed_edges": []
+        },
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [
+            "S2.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2",
+            "S1.4"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S2.2",
+            "S2.4"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.3"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.5": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.4",
+            "S3.5"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.5": {
+          "confirmed_claimed_edges": [
+            "S3.5"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S4.5"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [
+            "S5.1"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S5.1"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.3"
+          ],
+          "unverified_claimed_edges": [
+            "S3.2",
+            "S3.3",
+            "S3.4",
+            "S3.5",
+            "S5.2"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_IGNORE"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_IGNORE",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_DIVIDER",
+            "shared_obligation:O_MODE0_EDGES"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_COMPLETE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MSB_FIRST",
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_COMPLETE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_COMPLETE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMPLETE"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_IDLE",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_BUSY_IGNORE",
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S3.5",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S4.5",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S3.5",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE",
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_IDLE"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_DIVIDER"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_MODE0_EDGES",
+            "shared_obligation:O_MSB_FIRST"
+          ]
+        },
+        {
+          "source": "S4.5",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMPLETE",
+            "shared_obligation:O_DONE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_START"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 22,
+        "claimed_dependency_count": 37,
+        "items_with_structural_traceability": 22,
+        "structural_traceability_coverage": 1.0,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_model_output",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy4-preview",
+      "request_id": "9b248c08-cf39-415a-8246-33e07876224b",
+      "usage": {
+        "prompt_tokens": 1725,
+        "completion_tokens": 22221,
+        "total_tokens": 23946,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 18160
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "54c382ba-6118-42f9-a88f-a3d6ab175bc2",
+      "usage": {
+        "prompt_tokens": 6338,
+        "completion_tokens": 11764,
+        "total_tokens": 18102,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9755
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.5",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "Two independent review passes reached the same substantive error conclusion. S1 through S3 correctly describe reset, idle-start acceptance, exact half-period timing, Mode-0 sampling, MSB-first ordering, and completion after the eighth rising edge. The earliest error is S4.4, which states that MOSI changes value only on sclk falling edges. This omits the legal accepted-start case: when the transmitter is idle with mosi=0 and an accepted start has data_in[7]=1, the acceptance edge changes mosi to 1 while sclk remains low, so no falling sclk edge occurs. S3.2 correctly describes this initialization, making S4.4 the first contradictory item. The second review independently reproduced the same start-boundary counterexample and confirmed that subsequent falling-edge data advancement and completion behavior are correct. The final RTL implements the frozen SPI semantics correctly, and trusted directed simulation and bounded formal verification pass all configured obligations."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/held_out_batch_002/spi-tx-001.json",
+    "source_gold_sha256": "e40aea85ce4efb843fd0715814cce217ee5f5900a3c592b04109e9c1192b44ec",
+    "source_report": "runs/evaluator-v1.5-held-out-batch-002/spi-tx-001/report.json",
+    "source_report_sha256": "71c37c6d602cd7f6a29fc2c2323ce75316b5ea6d764497f467f92d0b5ed6f247",
+    "semantic_prompt_version": "1.5",
+    "dependency_graph_digest": "4ccfa6a8e34ea24cc5a0203f81b5f65fff3411bc7a71b709a7ad201e318d9937",
+    "gold_labels_modified": false
+  }
+}

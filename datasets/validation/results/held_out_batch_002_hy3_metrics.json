@@ -1,0 +1,274 @@
+{
+  "case_count": 8,
+  "overall": {
+    "eda_only": {
+      "final_rtl_accuracy": 0.875,
+      "process_correctness_accuracy": 0.75,
+      "process_correctness_macro_f1": 0.42857142857142855,
+      "stage_first_error_localization_accuracy": 0.0,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 0.0,
+      "error_type_l1_macro_f1": 0.0,
+      "root_error_accuracy": 0.0,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 8,
+        "predicted_rtl": 8,
+        "predicted_process": 8,
+        "gold_process_errors": 2,
+        "correct_rtl_wrong_process": 1
+      }
+    },
+    "semantic_only": {
+      "final_rtl_accuracy": 0.875,
+      "process_correctness_accuracy": 0.875,
+      "process_correctness_macro_f1": 0.7948717948717949,
+      "stage_first_error_localization_accuracy": 0.5,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 1.0,
+      "error_type_l1_macro_f1": 0.0,
+      "root_error_accuracy": 0.5,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": null,
+      "critical_dependency_micro_recall": 0.0,
+      "critical_dependency_micro_f1": null,
+      "coverage": {
+        "total": 8,
+        "predicted_rtl": 8,
+        "predicted_process": 8,
+        "gold_process_errors": 2,
+        "correct_rtl_wrong_process": 1
+      }
+    },
+    "full": {
+      "final_rtl_accuracy": 0.875,
+      "process_correctness_accuracy": 0.875,
+      "process_correctness_macro_f1": 0.7948717948717949,
+      "stage_first_error_localization_accuracy": 0.5,
+      "process_false_positive_rate": 0.0,
+      "correct_rtl_wrong_process_recall": 1.0,
+      "error_type_l1_macro_f1": 0.0,
+      "root_error_accuracy": 0.5,
+      "critical_dependency_exact_accuracy": 0.0,
+      "critical_dependency_micro_precision": 1.0,
+      "critical_dependency_micro_recall": 0.16666666666666666,
+      "critical_dependency_micro_f1": 0.2857142857142857,
+      "coverage": {
+        "total": 8,
+        "predicted_rtl": 8,
+        "predicted_process": 8,
+        "gold_process_errors": 2,
+        "correct_rtl_wrong_process": 1
+      }
+    }
+  },
+  "by_layer": {
+    "basic": {
+      "case_count": 2,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 0.5,
+          "process_correctness_macro_f1": 0.3333333333333333,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 0.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": 1.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": 1.0,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 1.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": 1.0,
+          "critical_dependency_micro_recall": 0.5,
+          "critical_dependency_micro_f1": 0.6666666666666666,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 1
+          }
+        }
+      }
+    },
+    "intermediate": {
+      "case_count": 4,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": null,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": null,
+          "root_error_accuracy": null,
+          "critical_dependency_exact_accuracy": null,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": null,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 4,
+            "predicted_rtl": 4,
+            "predicted_process": 4,
+            "gold_process_errors": 0,
+            "correct_rtl_wrong_process": 0
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": null,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": null,
+          "root_error_accuracy": null,
+          "critical_dependency_exact_accuracy": null,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": null,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 4,
+            "predicted_rtl": 4,
+            "predicted_process": 4,
+            "gold_process_errors": 0,
+            "correct_rtl_wrong_process": 0
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 1.0,
+          "process_correctness_accuracy": 1.0,
+          "process_correctness_macro_f1": 1.0,
+          "stage_first_error_localization_accuracy": null,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": null,
+          "root_error_accuracy": null,
+          "critical_dependency_exact_accuracy": null,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": null,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 4,
+            "predicted_rtl": 4,
+            "predicted_process": 4,
+            "gold_process_errors": 0,
+            "correct_rtl_wrong_process": 0
+          }
+        }
+      }
+    },
+    "hard": {
+      "case_count": 2,
+      "metrics": {
+        "eda_only": {
+          "final_rtl_accuracy": 0.5,
+          "process_correctness_accuracy": 0.5,
+          "process_correctness_macro_f1": 0.3333333333333333,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 0
+          }
+        },
+        "semantic_only": {
+          "final_rtl_accuracy": 0.5,
+          "process_correctness_accuracy": 0.5,
+          "process_correctness_macro_f1": 0.3333333333333333,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 0
+          }
+        },
+        "full": {
+          "final_rtl_accuracy": 0.5,
+          "process_correctness_accuracy": 0.5,
+          "process_correctness_macro_f1": 0.3333333333333333,
+          "stage_first_error_localization_accuracy": 0.0,
+          "process_false_positive_rate": 0.0,
+          "correct_rtl_wrong_process_recall": null,
+          "error_type_l1_macro_f1": 0.0,
+          "root_error_accuracy": 0.0,
+          "critical_dependency_exact_accuracy": 0.0,
+          "critical_dependency_micro_precision": null,
+          "critical_dependency_micro_recall": 0.0,
+          "critical_dependency_micro_f1": null,
+          "coverage": {
+            "total": 2,
+            "predicted_rtl": 2,
+            "predicted_process": 2,
+            "gold_process_errors": 1,
+            "correct_rtl_wrong_process": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "evaluation_id": "evaluator-v1.5-held-out-batch-002",
+  "batch_id": "held-out-batch-002",
+  "evaluated_at": "2026-09-08",
+  "status": "one_shot_evaluation_complete",
+  "case_count": 10,
+  "semantic_evaluator": {
+    "provider": "Tencent Cloud TokenHub",
+    "model": "hy3",
+    "prompt_version": "1.5",
+    "gold_labels_provided_to_judge": false,
+    "gold_labels_modified_after_evaluation": false
+  },
+  "gold_freeze": {
+    "path": "datasets/validation/HELD_OUT_BATCH_002_GOLD_FREEZE.json",
+    "sha256": "d2e7a8811f211f12b2d25a3ec6fe108e576fa082ea922cc3b6e05faaf2b1a9fb"
+  },
+  "evaluator_freeze": {
+    "path": "datasets/validation/EVALUATOR_V1_5_BATCH_002_FREEZE.json",
+    "sha256": "e1d6939423008bb228d71596cf2379f277c368d01ba0becbfc68471b4443f99d"
+  },
+  "overall_full_metrics": {
+    "final_rtl_accuracy": 0.9,
+    "process_correctness_accuracy": 0.8,
+    "process_correctness_macro_f1": 0.7619047619047619,
+    "stage_first_error_localization_accuracy": 0.5,
+    "correct_rtl_wrong_process_recall": 0.6666666666666666,
+    "error_type_l1_macro_f1": 0.2222222222222222,
+    "root_error_accuracy": 0.5,
+    "critical_dependency_micro_precision": 0.6666666666666666,
+    "critical_dependency_micro_recall": 0.25,
+    "critical_dependency_micro_f1": 0.36363636363636365
+  },
+  "baseline_comparison": {
+    "eda_only_process_accuracy": 0.6,
+    "semantic_only_process_accuracy": 0.8,
+    "full_process_accuracy": 0.8,
+    "eda_only_root_accuracy": 0.0,
+    "semantic_only_root_accuracy": 0.5,
+    "full_root_accuracy": 0.5
+  },
+  "model_partitions": {
+    "hy3": {
+      "case_count": 8,
+      "full_process_accuracy": 0.875,
+      "full_process_macro_f1": 0.7948717948717949,
+      "full_root_accuracy": 0.5,
+      "full_dependency_micro_f1": 0.2857142857142857
+    },
+    "hy4-preview": {
+      "case_count": 2,
+      "full_process_accuracy": 0.5,
+      "full_process_macro_f1": 0.6666666666666666,
+      "full_root_accuracy": 0.5,
+      "full_dependency_micro_f1": 0.5,
+      "small_sample_warning": true
+    }
+  },
+  "case_outcomes": [
+    {"case":"async-handshake-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"axi-stream-counter-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"cache-tag-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"credit-flow-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"gray-code-001","model":"hy3","gold_process":false,"predicted_process":false,"gold_root":"S4.2","predicted_root":"S4.2","root_match":true},
+    {"case":"multiply-ctrl-001","model":"hy4-preview","gold_process":false,"predicted_process":true,"gold_root":"S1.4","predicted_root":null,"root_match":false},
+    {"case":"register-file-bypass-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"signed-alu-001","model":"hy3","gold_process":true,"predicted_process":true,"root_match":null},
+    {"case":"spi-tx-001","model":"hy4-preview","gold_process":false,"predicted_process":false,"gold_root":"S4.4","predicted_root":"S4.4","root_match":true},
+    {"case":"uart-rx-001","model":"hy3","gold_process":false,"predicted_process":true,"gold_root":"S5.1","predicted_root":null,"root_match":false}
+  ],
+  "artifact_sha256": {
+    "datasets/validation/evaluated_batch_002/async-handshake-001.json": "e4ded85515289f8185e5b19e73ff7be13ba694134da5e1ed860ac0570f837777",
+    "datasets/validation/evaluated_batch_002/axi-stream-counter-001.json": "91065ca5c32527baa81a6e8341fe404c53a2626380989ecb3674b5a00727bb01",
+    "datasets/validation/evaluated_batch_002/cache-tag-001.json": "523c71aa6ca1528e291adb74c6fe27e7a0a7452d03259055c15374c328a3b570",
+    "datasets/validation/evaluated_batch_002/credit-flow-001.json": "02c0fa7acbbca562b260511ff81b8fcab4e864bce2027bf5154b722fa1064afa",
+    "datasets/validation/evaluated_batch_002/gray-code-001.json": "6b4d5279cdd08181281bd45532bfdd91c3452c0a3606855b89fbe08e5f2c81f8",
+    "datasets/validation/evaluated_batch_002/multiply-ctrl-001.json": "a603cc7774ea1719144eba9d421d223ea0080efcaf92b5cdd356bc58e0ceafdd",
+    "datasets/validation/evaluated_batch_002/register-file-bypass-001.json": "1d821d16970f43703f8783fcb05a9c7eb76521f73f607ec620356adcfcfab35f",
+    "datasets/validation/evaluated_batch_002/signed-alu-001.json": "cee5be768033f8b0d4bd866773c65d441b93a52f9a6d4ed252cc19f7469af8a6",
+    "datasets/validation/evaluated_batch_002/spi-tx-001.json": "2581b287ce5211c902d5034edab13b31beb53bb5a823d112804b099881dd0ba7",
+    "datasets/validation/evaluated_batch_002/uart-rx-001.json": "8871107c9d2af858de1cc90cf8c28c064840b894e5c676034edec84a9d07d7e2",
+    "datasets/validation/results/held_out_batch_002_baseline_metrics.json": "d3a4eb7e4011440a4ef1c00b7728d230a28b3639769234ef58592cafb3da388b",
+    "datasets/validation/results/held_out_batch_002_hy3_metrics.json": "2328f9cee87dab586e05bf7f9ff5190fc18076a353e2d91b2653a664770bc1d9",
+    "datasets/validation/results/held_out_batch_002_hy4_preview_metrics.json": "1fad34d6f652e66c6b9f0507c3d1b4232d77da96ae5e6066af0d8265001b7dc3"
+  }
+}

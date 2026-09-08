@@ -1,0 +1,1379 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-signed-alu-001",
+  "split": "held_out",
+  "task_id": "signed_alu_flags_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/signed-alu-001",
+  "source_hashes": {
+    "process_sha256": "cc22e7ac08960c28470e49b2d68a2e914ab5acf0519eed5411c6e410e3399d23",
+    "evidence_sha256": "23fa1af61abad11453f684173fa505043cc9f27ad5381887f6865c89880fe4c5",
+    "report_sha256": "d49e568d951d41057ba881eb001c10ff694d7a306213d53cf6ade6f2df06d2b4"
+  },
+  "candidate_process": {
+    "task_id": "signed_alu_flags_v1",
+    "architecture_summary": "Parameterized combinational ALU using extended-width arithmetic for ADD/SUB carry/overflow and bitwise logic for AND/XOR, with a flag unit deriving zero/negative and muxing op-specific carry/overflow.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Module is fully combinational with inputs a,b,op and outputs result,zero,negative,carry,overflow per frozen interface.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Four operations ADD(00),SUB(01),AND(10),XOR(11) produce result per frozen encoding.",
+            "maps_to": [
+              "O_ADD_RESULT",
+              "O_SUB_RESULT",
+              "O_LOGIC_RESULT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Flags zero,negative derived from result; carry and overflow follow op-specific unsigned/signed semantics.",
+            "maps_to": [
+              "O_ZERO",
+              "O_NEGATIVE",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture: parameterizable WIDTH; no sequential state; all outputs computed in continuous/always_comb logic.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S1.1"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Internal extended arithmetic computes {carry_add,result}=a+b and {borrow,result}=a-b with WIDTH+1 bits to derive carry_sub and overflow_sub.",
+            "maps_to": [
+              "O_ADD_RESULT",
+              "O_SUB_RESULT",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "a",
+              "b"
+            ],
+            "writes": [
+              "result",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_arith"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Logic operations AND/XOR computed bitwise; carry/overflow forced zero for logical ops.",
+            "maps_to": [
+              "O_LOGIC_RESULT",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "a",
+              "b"
+            ],
+            "writes": [
+              "result",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_logic"
+            ]
+          },
+          {
+            "id": "S2.4",
+            "stage": "S2",
+            "claim": "Flag unit computes zero=~|result, negative=result[WIDTH-1], and muxes op-specific carry/overflow to outputs.",
+            "maps_to": [
+              "O_ZERO",
+              "O_NEGATIVE",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S1.3",
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "result",
+              "op"
+            ],
+            "writes": [
+              "zero",
+              "negative",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "flag_unit"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "No clock or reset; all outputs track inputs with zero latency (combinational).",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op"
+            ],
+            "writes": [
+              "result",
+              "zero",
+              "negative",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_arith",
+              "alu_logic",
+              "flag_unit"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "For any op or operand change, result and flags recompute immediately via synthesizable combinational logic.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "op",
+              "a",
+              "b"
+            ],
+            "writes": [
+              "result",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_arith",
+              "alu_logic"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "No internal state or feedback; no temporal transition rules beyond continuous evaluation.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.4"
+            ],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: result == (op==00)?(a+b):(op==01)?(a-b):(op==10)?(a&b):(a^b) truncated to WIDTH.",
+            "maps_to": [
+              "O_ADD_RESULT",
+              "O_SUB_RESULT",
+              "O_LOGIC_RESULT"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op",
+              "result"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: zero == (result==0) and negative == result[WIDTH-1].",
+            "maps_to": [
+              "O_ZERO",
+              "O_NEGATIVE"
+            ],
+            "claimed_dependencies": [
+              "S2.4"
+            ],
+            "reads": [
+              "result",
+              "zero",
+              "negative"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: carry == (op==00)?(a+b)>>WIDTH:(op==01)?(a>=b):1'b0.",
+            "maps_to": [
+              "O_CARRY"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op",
+              "carry"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: overflow == (op==00)?(a[WIDTH-1]==b[WIDTH-1]&&result[WIDTH-1]!=a[WIDTH-1]):(op==01)?(a[WIDTH-1]!=b[WIDTH-1]&&result[WIDTH-1]!=a[WIDTH-1]):1'b0.",
+            "maps_to": [
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S2.3"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op",
+              "result",
+              "overflow"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implement arithmetic block producing ADD/SUB result, carry, overflow via extended vectors.",
+            "maps_to": [
+              "O_ADD_RESULT",
+              "O_SUB_RESULT",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S4.1",
+              "S4.3",
+              "S4.4"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op"
+            ],
+            "writes": [
+              "result",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_arith"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implement logic block for AND/XOR with forced zero carry/overflow.",
+            "maps_to": [
+              "O_LOGIC_RESULT",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S4.1"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op"
+            ],
+            "writes": [
+              "result",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "alu_logic"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implement flag block assigning zero, negative, and muxed carry/overflow to outputs.",
+            "maps_to": [
+              "O_ZERO",
+              "O_NEGATIVE",
+              "O_CARRY",
+              "O_OVERFLOW"
+            ],
+            "claimed_dependencies": [
+              "S2.4",
+              "S4.2"
+            ],
+            "reads": [
+              "result",
+              "op",
+              "carry",
+              "overflow"
+            ],
+            "writes": [
+              "zero",
+              "negative",
+              "carry",
+              "overflow",
+              "result"
+            ],
+            "rtl_blocks": [
+              "flag_unit"
+            ]
+          },
+          {
+            "id": "S5.4",
+            "stage": "S5",
+            "claim": "Top-level module wraps blocks with always_comb and continuous assignments, satisfying combinational requirement.",
+            "maps_to": [
+              "O_COMBINATIONAL"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S5.1",
+              "S5.2",
+              "S5.3"
+            ],
+            "reads": [
+              "a",
+              "b",
+              "op"
+            ],
+            "writes": [
+              "result",
+              "zero",
+              "negative",
+              "carry",
+              "overflow"
+            ],
+            "rtl_blocks": [
+              "signed_alu_flags"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "signed_alu_flags",
+      "code": "module signed_alu_flags #(parameter int WIDTH = 8) (\n    input  logic [WIDTH-1:0] a,\n    input  logic [WIDTH-1:0] b,\n    input  logic [1:0]       op,\n    output logic [WIDTH-1:0] result,\n    output logic             zero,\n    output logic             negative,\n    output logic             carry,\n    output logic             overflow\n);\n    logic [WIDTH:0] ext_add;\n    logic [WIDTH:0] ext_sub;\n    logic [WIDTH-1:0] add_res, sub_res, and_res, xor_res;\n    logic             carry_add, carry_sub;\n    logic             ovf_add, ovf_sub;\n    logic [WIDTH-1:0] arith_res;\n    logic             arith_carry, arith_ovf;\n\n    assign ext_add = {1'b0, a} + {1'b0, b};\n    assign ext_sub = {1'b0, a} - {1'b0, b};\n    assign add_res = ext_add[WIDTH-1:0];\n    assign sub_res = ext_sub[WIDTH-1:0];\n    assign carry_add = ext_add[WIDTH];\n    assign carry_sub = ~ext_sub[WIDTH];\n    assign and_res = a & b;\n    assign xor_res = a ^ b;\n    assign ovf_add = (a[WIDTH-1] == b[WIDTH-1]) && (add_res[WIDTH-1] != a[WIDTH-1]);\n    assign ovf_sub = (a[WIDTH-1] != b[WIDTH-1]) && (sub_res[WIDTH-1] != a[WIDTH-1]);\n\n    always_comb begin\n        case (op)\n            2'b00: begin arith_res = add_res; arith_carry = carry_add; arith_ovf = ovf_add; end\n            2'b01: begin arith_res = sub_res; arith_carry = carry_sub; arith_ovf = ovf_sub; end\n            2'b10: begin arith_res = and_res; arith_carry = 1'b0; arith_ovf = 1'b0; end\n            2'b11: begin arith_res = xor_res; arith_carry = 1'b0; arith_ovf = 1'b0; end\n            default: begin arith_res = '0; arith_carry = 1'b0; arith_ovf = 1'b0; end\n        endcase\n    end\n\n    assign result = arith_res;\n    assign zero = (arith_res == '0);\n    assign negative = arith_res[WIDTH-1];\n    assign carry = arith_carry;\n    assign overflow = arith_ovf;\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "No sequential elements; fully combinational."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "892feaf3-10a9-4fd1-b5c1-31a0b6c60358",
+        "usage": {
+          "prompt_tokens": 1573,
+          "completion_tokens": 9882,
+          "total_tokens": 11455,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 6977
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:signed_alu_flags_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_ADD_RESULT",
+        "O_CARRY",
+        "O_COMBINATIONAL",
+        "O_LOGIC_RESULT",
+        "O_NEGATIVE",
+        "O_OVERFLOW",
+        "O_SUB_RESULT",
+        "O_ZERO"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:signed_alu_flags_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_ADD_RESULT",
+        "O_CARRY",
+        "O_COMBINATIONAL",
+        "O_LOGIC_RESULT",
+        "O_NEGATIVE",
+        "O_OVERFLOW",
+        "O_SUB_RESULT",
+        "O_ZERO"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 2).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 2,
+        "configured_obligations": [
+          "O_ADD_RESULT",
+          "O_CARRY",
+          "O_COMBINATIONAL",
+          "O_LOGIC_RESULT",
+          "O_NEGATIVE",
+          "O_OVERFLOW",
+          "O_SUB_RESULT",
+          "O_ZERO"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "1cf61594d8c99f7aea62f30941c9b6911ce82634e0adc9ea090cbacf8e920b14",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S2.4",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3",
+        "S5.4"
+      ],
+      "edges": [
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:alu_arith"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:result",
+            "shared_obligation_context:O_ADD_RESULT",
+            "shared_obligation_context:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:carry",
+            "shared_obligation_context:O_CARRY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:overflow",
+            "property_derivation:def_use:result",
+            "shared_obligation_context:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "def_use:result",
+            "shared_obligation_context:O_CARRY",
+            "shared_obligation_context:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:alu_logic"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:result",
+            "shared_obligation_context:O_LOGIC_RESULT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:carry",
+            "shared_obligation_context:O_CARRY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:overflow",
+            "property_derivation:def_use:result",
+            "shared_obligation_context:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:flag_unit"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:negative",
+            "property_derivation:def_use:zero",
+            "shared_obligation_context:O_NEGATIVE",
+            "shared_obligation_context:O_ZERO"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "rtl_traceability:alu_arith",
+            "rtl_traceability:alu_logic",
+            "shared_obligation_context:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "rtl_traceability:flag_unit"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:alu_arith"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:alu_logic"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:carry",
+            "def_use:overflow",
+            "def_use:result",
+            "shared_obligation_context:O_CARRY",
+            "shared_obligation_context:O_OVERFLOW"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.4": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.2"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.2",
+            "S2.3",
+            "S2.4"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.4"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S2.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S2.2",
+            "S2.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S4.1",
+            "S4.3",
+            "S4.4"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.3",
+            "S4.1"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1",
+            "S5.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.4",
+            "S4.2"
+          ]
+        },
+        "S5.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S5.1",
+            "S5.2",
+            "S5.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_LOGIC_RESULT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_LOGIC_RESULT",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOGIC_RESULT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_OVERFLOW",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_OVERFLOW",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S2.4",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_LOGIC_RESULT"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_LOGIC_RESULT",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S2.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_OVERFLOW",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.4",
+          "reasons": [
+            "shared_obligation:O_COMBINATIONAL"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_ADD_RESULT",
+            "shared_obligation:O_SUB_RESULT"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_LOGIC_RESULT"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_NEGATIVE",
+            "shared_obligation:O_ZERO"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        },
+        {
+          "source": "S5.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CARRY",
+            "shared_obligation:O_OVERFLOW"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "insufficient_evidence",
+        "item_count": 18,
+        "claimed_dependency_count": 32,
+        "items_with_structural_traceability": 13,
+        "structural_traceability_coverage": 0.7222222222222222,
+        "gaps": {
+          "S2.1": [
+            "claimed_dependency_has_no_structural_traceability"
+          ],
+          "S3.3": [
+            "claimed_dependency_has_no_structural_traceability"
+          ]
+        }
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "892feaf3-10a9-4fd1-b5c1-31a0b6c60358",
+      "usage": {
+        "prompt_tokens": 1573,
+        "completion_tokens": 9882,
+        "total_tokens": 11455,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6977
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, the four combinational operations and all status-flag semantics were checked sequentially from specification understanding through architecture, candidate properties, and final RTL. ADD and SUB results are correctly reduced to WIDTH bits, zero and negative reflect the final result, ADD carry is obtained from extended addition, SUB carry implements the frozen no-borrow convention, and the signed-overflow conditions are correct for both arithmetic operations. In the second review, arithmetic boundary cases and parameter behavior were independently reconstructed, including carry-producing addition, borrowing and non-borrowing subtraction, signed overflow at both positive and negative limits, and logical operations with cleared carry and overflow. The S4.3 carry expression is consistent with the explicitly established extended-arithmetic intent and does not constitute a substantive process error. The implementation is fully combinational with no state or latency. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  }
+}

@@ -1,0 +1,1202 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-credit-flow-001",
+  "split": "held_out",
+  "task_id": "credit_flow_control_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/credit-flow-001",
+  "source_hashes": {
+    "process_sha256": "8cd101d6fc804714a5f066fa8795be020eb7c8c0167a6391821ebb8e0aa89102",
+    "evidence_sha256": "5167739e9350b2527d273eb2f4cc0c9a165cc7c847a7dc85f3ff672fc97d6fe2",
+    "report_sha256": "66c6610c559691dcc1edcaa737785f69cc7621e9379e2eeff99bee3c89b533ad"
+  },
+  "candidate_process": {
+    "task_id": "credit_flow_control_v1",
+    "architecture_summary": "Single saturating up/down counter register with combinational accept and flag derivation; no FSM.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous high rst restores credits to MAX_CREDITS and forces send_accept low while asserted.",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "send_accept is combinational and high exactly when !rst, send_req, and current credits nonzero.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "Edge updates consume on accepted send, return on credit_return, cancel when simultaneous, and saturate at MAX_CREDITS.",
+            "maps_to": [
+              "O_CONSUME",
+              "O_RETURN",
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_SIMULTANEOUS",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_FULL_SATURATION"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.4",
+            "stage": "S1",
+            "claim": "Registered credits and combinational empty/full reflect count in range 0..MAX_CREDITS.",
+            "maps_to": [
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Architecture uses one register cnt of width CREDIT_WIDTH as sole state; no separate FSM.",
+            "maps_to": [
+              "O_RESET",
+              "O_CONSUME"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.3"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "counter_reg"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Combinational outputs send_accept, empty, full derived from cnt and inputs without extra state.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.4"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "rst"
+            ],
+            "writes": [
+              "send_accept",
+              "empty",
+              "full"
+            ],
+            "rtl_blocks": [
+              "comb_flags"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Localparam CREDIT_WIDTH = $clog2(MAX_CREDITS+1) sets widths and is not public.",
+            "maps_to": [
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S1.4"
+            ],
+            "reads": [],
+            "writes": [
+              "CREDIT_WIDTH"
+            ],
+            "rtl_blocks": [
+              "localparam_def"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "At posedge clk if rst, cnt is loaded with MAX_CREDITS (highest priority).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.1"
+            ],
+            "reads": [
+              "rst",
+              "MAX_CREDITS"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "reset_branch"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "If !rst and send accepted with credit_return, cnt holds (simultaneous cancel).",
+            "maps_to": [
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S1.3"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "credit_return"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "accept_return_hold"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "Else if accepted only decrement; else if return only and cnt<MAX increment; else hold (saturation/ignore).",
+            "maps_to": [
+              "O_CONSUME",
+              "O_RETURN",
+              "O_FULL_SATURATION",
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S1.3"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "credit_return",
+              "MAX_CREDITS"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "update_branch"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "send_accept uses pre-edge cnt combinationally with rst, ensuring no lookahead.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_EMPTY_NO_LOOKAHEAD"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.2"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "rst"
+            ],
+            "writes": [
+              "send_accept"
+            ],
+            "rtl_blocks": [
+              "accept_comb"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: empty == (cnt==0) and full == (cnt==MAX_CREDITS) always hold.",
+            "maps_to": [
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S2.2"
+            ],
+            "reads": [
+              "cnt",
+              "empty",
+              "full"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: send_accept high implies pre-edge cnt>0.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "send_accept",
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: at full, simultaneous send_req and credit_return leaves cnt==MAX_CREDITS.",
+            "maps_to": [
+              "O_FULL_SIMULTANEOUS"
+            ],
+            "claimed_dependencies": [
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "credit_return"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: cnt never exceeds MAX_CREDITS nor goes below 0 over all sequences.",
+            "maps_to": [
+              "O_FLAGS_RANGE",
+              "O_FULL_SATURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "cnt"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "Implements localparam CREDIT_WIDTH and internal cnt signal declarations.",
+            "maps_to": [
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S2.3"
+            ],
+            "reads": [],
+            "writes": [
+              "CREDIT_WIDTH",
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "declarations"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "Implements combinational assignments for credits, empty, full, send_accept.",
+            "maps_to": [
+              "O_CURRENT_ACCEPT",
+              "O_FLAGS_RANGE"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S3.4"
+            ],
+            "reads": [
+              "cnt",
+              "send_req",
+              "rst",
+              "MAX_CREDITS"
+            ],
+            "writes": [
+              "credits",
+              "empty",
+              "full",
+              "send_accept"
+            ],
+            "rtl_blocks": [
+              "comb_assign"
+            ]
+          },
+          {
+            "id": "S5.3",
+            "stage": "S5",
+            "claim": "Implements always_ff sequential block with reset and conditional cnt update.",
+            "maps_to": [
+              "O_RESET",
+              "O_CONSUME",
+              "O_RETURN",
+              "O_MIDDLE_SIMULTANEOUS",
+              "O_FULL_SIMULTANEOUS",
+              "O_EMPTY_NO_LOOKAHEAD",
+              "O_FULL_SATURATION"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "send_req",
+              "credit_return",
+              "cnt",
+              "MAX_CREDITS"
+            ],
+            "writes": [
+              "cnt"
+            ],
+            "rtl_blocks": [
+              "seq_update"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "credit_flow_control",
+      "code": "module credit_flow_control #(\n    parameter int MAX_CREDITS = 3\n) (\n    input  logic clk,\n    input  logic rst,\n    input  logic send_req,\n    input  logic credit_return,\n    output logic send_accept,\n    output logic [$clog2(MAX_CREDITS+1)-1:0] credits,\n    output logic empty,\n    output logic full\n);\n    localparam int CREDIT_WIDTH = $clog2(MAX_CREDITS + 1);\n    logic [CREDIT_WIDTH-1:0] cnt;\n\n    assign credits = cnt;\n    assign empty = (cnt == '0);\n    assign full = (cnt == MAX_CREDITS);\n    assign send_accept = !rst && send_req && (cnt != '0);\n\n    always_ff @(posedge clk) begin\n        if (rst) begin\n            cnt <= CREDIT_WIDTH'(MAX_CREDITS);\n        end else begin\n            if (send_req && (cnt != '0)) begin\n                if (credit_return) begin\n                    cnt <= cnt;\n                end else begin\n                    cnt <= cnt - 1'b1;\n                end\n            end else begin\n                if (credit_return && (cnt < MAX_CREDITS)) begin\n                    cnt <= cnt + 1'b1;\n                end else begin\n                    cnt <= cnt;\n                end\n            end\n        end\n    end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Single counter architecture satisfies all frozen semantics and obligations."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "06d4a6f2-3c0f-459b-8f1b-ef8f029b6f80",
+        "usage": {
+          "prompt_tokens": 1931,
+          "completion_tokens": 11642,
+          "total_tokens": 13573,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 9239
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:credit_flow_control_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_CONSUME",
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FLAGS_RANGE",
+        "O_FULL_SATURATION",
+        "O_FULL_SIMULTANEOUS",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RESET",
+        "O_RETURN"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:credit_flow_control_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_CONSUME",
+        "O_CURRENT_ACCEPT",
+        "O_EMPTY_NO_LOOKAHEAD",
+        "O_FLAGS_RANGE",
+        "O_FULL_SATURATION",
+        "O_FULL_SIMULTANEOUS",
+        "O_MIDDLE_SIMULTANEOUS",
+        "O_RESET",
+        "O_RETURN"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 12).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 12,
+        "configured_obligations": [
+          "O_CONSUME",
+          "O_CURRENT_ACCEPT",
+          "O_EMPTY_NO_LOOKAHEAD",
+          "O_FLAGS_RANGE",
+          "O_FULL_SATURATION",
+          "O_FULL_SIMULTANEOUS",
+          "O_MIDDLE_SIMULTANEOUS",
+          "O_RESET",
+          "O_RETURN"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": true,
+  "gold_process_correct": true,
+  "gold_first_error_stage": null,
+  "gold_root_error": null,
+  "gold_error_type_l1": null,
+  "gold_error_type_l2": null,
+  "gold_parent_dependency": [],
+  "gold_affected_obligation": [],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": true,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": true,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "ccde64e78af7a9d7ff711c865e2e5174a156c844bc98c61b3d505e0d57c1e733",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S1.4",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2",
+        "S5.3"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S2.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:empty",
+            "property_derivation:def_use:full",
+            "shared_obligation_context:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:cnt"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:cnt",
+            "shared_obligation_context:O_FULL_SATURATION"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:send_accept",
+            "shared_obligation_context:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "def_use:cnt",
+            "shared_obligation_context:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.3",
+          "reasons": [
+            "def_use:cnt"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.3"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S2.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.4"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.4"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S2.1"
+          ]
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.3",
+            "S2.1"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S2.2"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.2",
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S2.3"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2",
+            "S3.4"
+          ]
+        },
+        "S5.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S5.1"
+          ],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2",
+            "S3.3"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_CONSUME"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_CONSUME",
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_SATURATION",
+            "shared_obligation:O_RETURN"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_SATURATION"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CONSUME",
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_SATURATION",
+            "shared_obligation:O_FULL_SIMULTANEOUS",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS",
+            "shared_obligation:O_RETURN"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S1.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_CONSUME"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CONSUME",
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT",
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS",
+            "shared_obligation:O_MIDDLE_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FULL_SATURATION"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_CONSUME",
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD",
+            "shared_obligation:O_FULL_SATURATION",
+            "shared_obligation:O_RETURN"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_EMPTY_NO_LOOKAHEAD"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_CURRENT_ACCEPT"
+          ]
+        },
+        {
+          "source": "S4.3",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FULL_SIMULTANEOUS"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        },
+        {
+          "source": "S4.4",
+          "target": "S5.3",
+          "reasons": [
+            "shared_obligation:O_FULL_SATURATION"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FLAGS_RANGE"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 18,
+        "claimed_dependency_count": 24,
+        "items_with_structural_traceability": 14,
+        "structural_traceability_coverage": 0.7777777777777778,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "06d4a6f2-3c0f-459b-8f1b-ef8f029b6f80",
+      "usage": {
+        "prompt_tokens": 1931,
+        "completion_tokens": 11642,
+        "total_tokens": 13573,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9239
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "b5f8bdbb-97ce-48c8-b44f-5516410d446c",
+      "usage": {
+        "prompt_tokens": 4992,
+        "completion_tokens": 9340,
+        "total_tokens": 14332,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7705
+        }
+      },
+      "finish_reason": "stop",
+      "prompt_version": "1.5",
+      "same_model_family_as_candidate": null,
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewers, adjudicated",
+    "guideline_version": "1.1",
+    "notes": "LT001 and LT002 independently reviewed the blinded candidate and reached the same conclusion. In the first review, reset behavior, combinational current-state acceptance, counter state modeling, consume and return transitions, saturation, flags, and final RTL were checked sequentially and found consistent with the frozen semantics. In the second review, the concurrency and boundary cases were independently reconstructed. At a nonempty nonfull count, an accepted send and credit return cancel; at full count the send is accepted and the simultaneous return restores the consumed credit; at zero count a simultaneous request and return does not use lookahead to accept the request and instead raises the count only to one. A return at full without an accepted send is ignored, and send_accept is suppressed during reset and otherwise depends only on the current credit count. The derived counter width and combinational empty/full flags are also consistent with the parameter contract. No substantive process or RTL error was found. Trusted directed simulation and bounded formal verification pass all configured obligations."
+  },
+  "evaluation_snapshot": {
+    "source_gold": "datasets/validation/held_out_batch_002/credit-flow-001.json",
+    "source_gold_sha256": "ad8f1f3ed49a2005b429b74709b70076d66dd748f2d00b618c56c0ba7f73eb53",
+    "source_report": "runs/evaluator-v1.5-held-out-batch-002/credit-flow-001/report.json",
+    "source_report_sha256": "7b2857d3ac206cc5f0e3372b275fbf8eeb49e0b3db3f786b1c32f38984330a9c",
+    "semantic_prompt_version": "1.5",
+    "dependency_graph_digest": "ccde64e78af7a9d7ff711c865e2e5174a156c844bc98c61b3d505e0d57c1e733",
+    "gold_labels_modified": false
+  }
+}

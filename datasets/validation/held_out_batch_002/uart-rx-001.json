@@ -1,0 +1,1177 @@
+{
+  "schema_version": "1.0",
+  "case_id": "heldout2-candidate-uart-rx-001",
+  "split": "held_out",
+  "task_id": "uart_rx_v1",
+  "candidate_origin": "real_hy3",
+  "source_run": "runs/held-out-batch-002/uart-rx-001",
+  "source_hashes": {
+    "process_sha256": "bece8838b30c4fb53a589b6abc88ccc8c2fdf145016f6d9c8f141e9049c43be1",
+    "evidence_sha256": "85d82f154378edd619aa3a56806e674978bd0652e1f42f5a5b6345c470dfb44c",
+    "report_sha256": "dcb7acd711e5b777d91ceb985a07242a5de5d8a3e665962fff72e93eaacbf807"
+  },
+  "candidate_process": {
+    "task_id": "uart_rx_v1",
+    "architecture_summary": "FSM with IDLE, START_WAIT, DATA_WAIT, STOP_WAIT; down-counter timer loaded with HALF_CLKS for start validation and CLKS_PER_BIT for data/stop; indexed data register captures LSB-first; registered outputs with one-cycle valid/error pulses.",
+    "stages": [
+      {
+        "id": "S1",
+        "title": "Specification Understanding",
+        "items": [
+          {
+            "id": "S1.1",
+            "stage": "S1",
+            "claim": "Synchronous active-high rst clears all state and outputs (data_out, data_valid, framing_error, busy).",
+            "maps_to": [
+              "O_RESET"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.2",
+            "stage": "S1",
+            "claim": "Idle with rx high keeps busy, data_valid, framing_error low; a low rx observation begins start validation, rejected if centre sample high.",
+            "maps_to": [
+              "O_IDLE",
+              "O_START_CENTER"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S1.3",
+            "stage": "S1",
+            "claim": "After valid start, eight LSB-first data bits are sampled FULL clocks apart, then stop bit sampled FULL later; at stop, data_out latches and data_valid/framing_error pulse one clock.",
+            "maps_to": [
+              "O_DATA_TIMING",
+              "O_LSB_FIRST",
+              "O_STOP",
+              "O_VALID_PULSE",
+              "O_FRAMING_ERROR",
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [],
+            "reads": [],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "title": "Architecture / State Modeling",
+        "items": [
+          {
+            "id": "S2.1",
+            "stage": "S2",
+            "claim": "Use four-state FSM (IDLE, START_WAIT, DATA_WAIT, STOP_WAIT); busy register indicates non-idle active reception.",
+            "maps_to": [
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [
+              "S1.1",
+              "S1.2"
+            ],
+            "reads": [
+              "rx"
+            ],
+            "writes": [
+              "state",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "fsm"
+            ]
+          },
+          {
+            "id": "S2.2",
+            "stage": "S2",
+            "claim": "Down-counter timer loaded with HALF_CLKS at start detection and CLKS_PER_BIT at each data/stop phase; sample tick when timer == 1.",
+            "maps_to": [
+              "O_START_CENTER",
+              "O_DATA_TIMING",
+              "O_STOP"
+            ],
+            "claimed_dependencies": [
+              "S1.2",
+              "S1.3"
+            ],
+            "reads": [
+              "timer"
+            ],
+            "writes": [
+              "timer"
+            ],
+            "rtl_blocks": [
+              "timer"
+            ]
+          },
+          {
+            "id": "S2.3",
+            "stage": "S2",
+            "claim": "Three-bit data_bit index and eight-bit data_reg capture each rx sample into data_reg[data_bit]; data_out latched at stop.",
+            "maps_to": [
+              "O_LSB_FIRST",
+              "O_VALID_PULSE"
+            ],
+            "claimed_dependencies": [
+              "S1.3"
+            ],
+            "reads": [
+              "rx"
+            ],
+            "writes": [
+              "data_bit",
+              "data_reg",
+              "data_out"
+            ],
+            "rtl_blocks": [
+              "data_capture"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "title": "Transition & Temporal Rules",
+        "items": [
+          {
+            "id": "S3.1",
+            "stage": "S3",
+            "claim": "IDLE: if !busy and rx==0, go START_WAIT, load timer=HALF, set busy=1, clear data_bit/reg.",
+            "maps_to": [
+              "O_START_CENTER",
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.2"
+            ],
+            "reads": [
+              "rx",
+              "busy"
+            ],
+            "writes": [
+              "state",
+              "timer",
+              "busy",
+              "data_bit",
+              "data_reg"
+            ],
+            "rtl_blocks": [
+              "fsm",
+              "timer"
+            ]
+          },
+          {
+            "id": "S3.2",
+            "stage": "S3",
+            "claim": "START_WAIT: at timer==1 sample rx; if high false start -> IDLE, busy=0; else -> DATA_WAIT load FULL.",
+            "maps_to": [
+              "O_START_CENTER"
+            ],
+            "claimed_dependencies": [
+              "S2.2",
+              "S1.2"
+            ],
+            "reads": [
+              "timer",
+              "rx"
+            ],
+            "writes": [
+              "state",
+              "busy",
+              "timer"
+            ],
+            "rtl_blocks": [
+              "fsm",
+              "timer"
+            ]
+          },
+          {
+            "id": "S3.3",
+            "stage": "S3",
+            "claim": "DATA_WAIT: at timer==1 sample rx into data_reg[data_bit]; increment index; after bit7 go STOP_WAIT with FULL load.",
+            "maps_to": [
+              "O_DATA_TIMING",
+              "O_LSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S2.3",
+              "S2.2"
+            ],
+            "reads": [
+              "timer",
+              "rx",
+              "data_bit"
+            ],
+            "writes": [
+              "data_reg",
+              "data_bit",
+              "state",
+              "timer"
+            ],
+            "rtl_blocks": [
+              "fsm",
+              "timer",
+              "data_capture"
+            ]
+          },
+          {
+            "id": "S3.4",
+            "stage": "S3",
+            "claim": "STOP_WAIT: at timer==1 latch data_out, pulse data_valid, set framing_error if rx low, return IDLE, busy=0.",
+            "maps_to": [
+              "O_STOP",
+              "O_VALID_PULSE",
+              "O_FRAMING_ERROR",
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [
+              "S2.1",
+              "S2.3"
+            ],
+            "reads": [
+              "timer",
+              "rx",
+              "data_reg"
+            ],
+            "writes": [
+              "data_out",
+              "data_valid",
+              "framing_error",
+              "state",
+              "busy",
+              "timer"
+            ],
+            "rtl_blocks": [
+              "fsm",
+              "timer",
+              "output_regs"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "title": "Candidate Properties",
+        "items": [
+          {
+            "id": "S4.1",
+            "stage": "S4",
+            "claim": "Candidate: busy remains high from START_WAIT entry until just after STOP_WAIT sample.",
+            "maps_to": [
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.4"
+            ],
+            "reads": [
+              "busy",
+              "state"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.2",
+            "stage": "S4",
+            "claim": "Candidate: data_valid and framing_error are never asserted for more than one clock.",
+            "maps_to": [
+              "O_VALID_PULSE",
+              "O_FRAMING_ERROR"
+            ],
+            "claimed_dependencies": [
+              "S3.4"
+            ],
+            "reads": [
+              "data_valid",
+              "framing_error"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.3",
+            "stage": "S4",
+            "claim": "Candidate: false start produces no data_valid or framing_error and returns to idle.",
+            "maps_to": [
+              "O_START_CENTER"
+            ],
+            "claimed_dependencies": [
+              "S3.2"
+            ],
+            "reads": [
+              "state",
+              "data_valid"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          },
+          {
+            "id": "S4.4",
+            "stage": "S4",
+            "claim": "Candidate: data_out bits match LSB-first capture order after stop.",
+            "maps_to": [
+              "O_LSB_FIRST"
+            ],
+            "claimed_dependencies": [
+              "S3.3"
+            ],
+            "reads": [
+              "data_out",
+              "data_reg"
+            ],
+            "writes": [],
+            "rtl_blocks": []
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "title": "RTL Implementation",
+        "items": [
+          {
+            "id": "S5.1",
+            "stage": "S5",
+            "claim": "RTL implements uart_rx with parameter CLKS_PER_BIT, FSM, timer, data capture as specified.",
+            "maps_to": [
+              "O_RESET",
+              "O_BUSY"
+            ],
+            "claimed_dependencies": [
+              "S3.1",
+              "S3.2",
+              "S3.3",
+              "S3.4"
+            ],
+            "reads": [
+              "clk",
+              "rst",
+              "rx"
+            ],
+            "writes": [
+              "state",
+              "timer",
+              "data_bit",
+              "data_reg",
+              "busy",
+              "data_out",
+              "data_valid",
+              "framing_error"
+            ],
+            "rtl_blocks": [
+              "uart_rx",
+              "fsm",
+              "timer",
+              "data_capture"
+            ]
+          },
+          {
+            "id": "S5.2",
+            "stage": "S5",
+            "claim": "RTL assigns registered outputs with synchronous reset clearing all state and outputs.",
+            "maps_to": [
+              "O_RESET",
+              "O_VALID_PULSE",
+              "O_FRAMING_ERROR"
+            ],
+            "claimed_dependencies": [
+              "S5.1"
+            ],
+            "reads": [
+              "rst"
+            ],
+            "writes": [
+              "data_out",
+              "data_valid",
+              "framing_error",
+              "busy"
+            ],
+            "rtl_blocks": [
+              "output_regs"
+            ]
+          }
+        ]
+      }
+    ],
+    "rtl": {
+      "language": "systemverilog",
+      "module_name": "uart_rx",
+      "code": "module uart_rx #(parameter int CLKS_PER_BIT = 4) (input logic clk, input logic rst, input logic rx, output logic [7:0] data_out, output logic data_valid, output logic framing_error, output logic busy);\n  localparam int FULL = CLKS_PER_BIT;\n  localparam int HALF = CLKS_PER_BIT / 2;\n  typedef enum logic [1:0] {IDLE, START_WAIT, DATA_WAIT, STOP_WAIT} state_t;\n  state_t state;\n  logic [15:0] timer;\n  logic [2:0] data_bit;\n  logic [7:0] data_reg;\n  always_ff @(posedge clk) begin\n    if (rst) begin\n      state <= IDLE; timer <= 0; data_bit <= 0; data_reg <= 0;\n      data_out <= 0; data_valid <= 0; framing_error <= 0; busy <= 0;\n    end else begin\n      data_valid <= 0; framing_error <= 0;\n      case (state)\n        IDLE: begin\n          busy <= 0;\n          if (!busy && rx == 1'b0) begin\n            state <= START_WAIT; timer <= HALF; busy <= 1;\n            data_bit <= 0; data_reg <= 0;\n          end\n        end\n        START_WAIT: begin\n          if (timer == 1) begin\n            if (rx == 1'b1) begin\n              state <= IDLE; busy <= 0; timer <= 0;\n            end else begin\n              state <= DATA_WAIT; timer <= FULL;\n            end\n          end else timer <= timer - 1;\n        end\n        DATA_WAIT: begin\n          if (timer == 1) begin\n            data_reg[data_bit] <= rx;\n            if (data_bit == 3'd7) begin\n              state <= STOP_WAIT; timer <= FULL;\n            end else begin\n              data_bit <= data_bit + 1; timer <= FULL;\n            end\n          end else timer <= timer - 1;\n        end\n        STOP_WAIT: begin\n          if (timer == 1) begin\n            data_out <= data_reg; data_valid <= 1'b1;\n            framing_error <= (rx == 1'b0);\n            state <= IDLE; busy <= 0; timer <= 0;\n          end else timer <= timer - 1;\n        end\n        default: state <= IDLE;\n      endcase\n    end\n  end\nendmodule"
+    },
+    "metadata": {
+      "notes": [
+        "Timer load equals desired clock interval; sample occurs when timer==1.",
+        "False start returns to IDLE without outputs."
+      ],
+      "generation": {
+        "provider": "Tencent Cloud TokenHub",
+        "model": "hy3",
+        "request_id": "4e205842-598c-4147-9a33-bc5291d22eb4",
+        "usage": {
+          "prompt_tokens": 1852,
+          "completion_tokens": 15663,
+          "total_tokens": 17515,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 12975
+          }
+        },
+        "finish_reason": "stop"
+      }
+    }
+  },
+  "trusted_evidence": [
+    {
+      "id": "simulation:uart_rx_v1",
+      "source": "iverilog",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY",
+        "O_DATA_TIMING",
+        "O_FRAMING_ERROR",
+        "O_IDLE",
+        "O_LSB_FIRST",
+        "O_RESET",
+        "O_START_CENTER",
+        "O_STOP",
+        "O_VALID_PULSE"
+      ],
+      "summary": "Trusted directed simulation passed.",
+      "cycle": null,
+      "details": {}
+    },
+    {
+      "id": "formal:uart_rx_v1_safety",
+      "source": "symbiyosys",
+      "status": "pass",
+      "obligations": [
+        "O_BUSY",
+        "O_DATA_TIMING",
+        "O_FRAMING_ERROR",
+        "O_IDLE",
+        "O_LSB_FIRST",
+        "O_RESET",
+        "O_START_CENTER",
+        "O_STOP",
+        "O_VALID_PULSE"
+      ],
+      "summary": "Trusted bounded safety check passed (depth 96).",
+      "cycle": null,
+      "details": {
+        "returncode": 0,
+        "property_class": "safety",
+        "formal_mode": "bmc",
+        "depth": 96,
+        "configured_obligations": [
+          "O_BUSY",
+          "O_DATA_TIMING",
+          "O_FRAMING_ERROR",
+          "O_IDLE",
+          "O_LSB_FIRST",
+          "O_RESET",
+          "O_START_CENTER",
+          "O_STOP",
+          "O_VALID_PULSE"
+        ],
+        "obligation_mapping": "all_properties_passed"
+      }
+    }
+  ],
+  "gold_rtl_correct": false,
+  "gold_process_correct": false,
+  "gold_first_error_stage": "S5",
+  "gold_root_error": "S5.1",
+  "gold_error_type_l1": "Implementation",
+  "gold_error_type_l2": "Width or Signedness",
+  "gold_parent_dependency": [
+    {
+      "source": "S2.2",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.2",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.3",
+      "target": "S5.1"
+    },
+    {
+      "source": "S3.4",
+      "target": "S5.1"
+    }
+  ],
+  "gold_affected_obligation": [
+    "O_START_CENTER",
+    "O_DATA_TIMING",
+    "O_LSB_FIRST",
+    "O_STOP",
+    "O_VALID_PULSE",
+    "O_FRAMING_ERROR",
+    "O_BUSY"
+  ],
+  "predicted_rtl_correct": true,
+  "predicted_process_correct": null,
+  "predicted_first_error_stage": null,
+  "predicted_root_error": null,
+  "predicted_error_type_l1": null,
+  "predicted_error_type_l2": null,
+  "predicted_parent_dependency": [],
+  "predicted_affected_obligations": [],
+  "evaluator_prediction": {
+    "rtl_correct": true,
+    "process_correct": null,
+    "root_errors": [],
+    "earliest_error_stage": null,
+    "primary_error_item": null,
+    "violated_obligations": [],
+    "review_focus": [],
+    "dependency_graph": {
+      "construction": "static_before_eda",
+      "digest": "294667e4966c5459af871e4658ca631d2caa8f6c987cf40b82480f17ebdf70b2",
+      "nodes": [
+        "S1.1",
+        "S1.2",
+        "S1.3",
+        "S2.1",
+        "S2.2",
+        "S2.3",
+        "S3.1",
+        "S3.2",
+        "S3.3",
+        "S3.4",
+        "S4.1",
+        "S4.2",
+        "S4.3",
+        "S4.4",
+        "S5.1",
+        "S5.2"
+      ],
+      "edges": [
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "def_use:busy",
+            "rtl_traceability:fsm",
+            "shared_obligation_context:O_BUSY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "rtl_traceability:timer",
+            "shared_obligation_context:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "rtl_traceability:data_capture",
+            "shared_obligation_context:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "def_use:timer",
+            "rtl_traceability:fsm",
+            "rtl_traceability:timer",
+            "shared_obligation_context:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:data_bit"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:state",
+            "shared_obligation_context:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S3.3",
+          "reasons": [
+            "def_use:timer",
+            "rtl_traceability:fsm",
+            "rtl_traceability:timer"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "property_derivation:def_use:state",
+            "shared_obligation_context:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S3.4",
+          "reasons": [
+            "def_use:data_reg",
+            "def_use:timer",
+            "rtl_traceability:fsm",
+            "rtl_traceability:timer"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "property_derivation:def_use:data_reg",
+            "shared_obligation_context:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:data_capture"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "property_derivation:def_use:busy",
+            "property_derivation:def_use:state",
+            "shared_obligation_context:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "property_derivation:def_use:data_valid",
+            "property_derivation:def_use:framing_error",
+            "shared_obligation_context:O_FRAMING_ERROR",
+            "shared_obligation_context:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "rtl_traceability:fsm",
+            "rtl_traceability:timer",
+            "shared_obligation_context:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "rtl_traceability:output_regs",
+            "shared_obligation_context:O_FRAMING_ERROR",
+            "shared_obligation_context:O_VALID_PULSE"
+          ]
+        }
+      ],
+      "claimed_dependency_comparison": {
+        "S2.1": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.1",
+            "S1.2"
+          ]
+        },
+        "S2.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S1.3"
+          ]
+        },
+        "S2.3": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S1.3"
+          ]
+        },
+        "S3.1": {
+          "confirmed_claimed_edges": [
+            "S2.1",
+            "S2.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S3.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.1"
+          ],
+          "unverified_claimed_edges": [
+            "S1.2",
+            "S2.2"
+          ]
+        },
+        "S3.3": {
+          "confirmed_claimed_edges": [
+            "S2.3"
+          ],
+          "missing_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ],
+          "unverified_claimed_edges": [
+            "S2.2"
+          ]
+        },
+        "S3.4": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.3"
+          ],
+          "unverified_claimed_edges": [
+            "S2.1",
+            "S2.3"
+          ]
+        },
+        "S4.1": {
+          "confirmed_claimed_edges": [
+            "S3.1",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.2": {
+          "confirmed_claimed_edges": [
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.3": {
+          "confirmed_claimed_edges": [
+            "S3.2"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S4.4": {
+          "confirmed_claimed_edges": [
+            "S3.3"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": []
+        },
+        "S5.1": {
+          "confirmed_claimed_edges": [
+            "S3.3",
+            "S3.4"
+          ],
+          "missing_claimed_edges": [],
+          "unverified_claimed_edges": [
+            "S3.1",
+            "S3.2"
+          ]
+        },
+        "S5.2": {
+          "confirmed_claimed_edges": [],
+          "missing_claimed_edges": [
+            "S3.4"
+          ],
+          "unverified_claimed_edges": [
+            "S5.1"
+          ]
+        }
+      },
+      "obligation_associations": [
+        {
+          "source": "S1.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S1.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.2",
+          "reasons": [
+            "shared_obligation:O_DATA_TIMING",
+            "shared_obligation:O_STOP"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S2.3",
+          "reasons": [
+            "shared_obligation:O_LSB_FIRST",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DATA_TIMING",
+            "shared_obligation:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY",
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_STOP",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S1.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S2.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.1",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_DATA_TIMING"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_STOP"
+          ]
+        },
+        {
+          "source": "S2.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.3",
+          "reasons": [
+            "shared_obligation:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S2.3",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.2",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S3.4",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S3.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.2",
+          "target": "S4.3",
+          "reasons": [
+            "shared_obligation:O_START_CENTER"
+          ]
+        },
+        {
+          "source": "S3.3",
+          "target": "S4.4",
+          "reasons": [
+            "shared_obligation:O_LSB_FIRST"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S4.2",
+          "reasons": [
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S3.4",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S4.1",
+          "target": "S5.1",
+          "reasons": [
+            "shared_obligation:O_BUSY"
+          ]
+        },
+        {
+          "source": "S4.2",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_FRAMING_ERROR",
+            "shared_obligation:O_VALID_PULSE"
+          ]
+        },
+        {
+          "source": "S5.1",
+          "target": "S5.2",
+          "reasons": [
+            "shared_obligation:O_RESET"
+          ]
+        }
+      ],
+      "evidence_summary": {
+        "status": "structurally_annotated",
+        "item_count": 16,
+        "claimed_dependency_count": 23,
+        "items_with_structural_traceability": 13,
+        "structural_traceability_coverage": 0.8125,
+        "gaps": {}
+      }
+    }
+  },
+  "api_provenance": {
+    "candidate_generation": {
+      "origin": "real_hy3",
+      "provider": "Tencent Cloud TokenHub",
+      "model": "hy3",
+      "request_id": "4e205842-598c-4147-9a33-bc5291d22eb4",
+      "usage": {
+        "prompt_tokens": 1852,
+        "completion_tokens": 15663,
+        "total_tokens": 17515,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 12975
+        }
+      },
+      "finish_reason": "stop"
+    },
+    "semantic_evaluator": {
+      "status": "not_run",
+      "reason": "independent_collection_verify_only",
+      "gold_labels_required_for_validation": true
+    }
+  },
+  "annotation": {
+    "independent_of_tested_model": true,
+    "status": "adjudicated",
+    "annotator_id": "LT001+LT002",
+    "annotator_role": "independent RTL reviewer",
+    "guideline_version": "1.1",
+    "notes": "Two independent review passes reached the same implementation-error conclusion. S1 through S4 correctly capture the UART start validation, data-bit spacing, LSB-first ordering, stop sampling, false-start behavior, output pulses, and busy semantics for representable timer values. The first substantive error appears in S5.1 and the delivered RTL, where the timing counter is hardwired to 16 bits even though the frozen CLKS_PER_BIT contract permits every even integer greater than or equal to two with no upper bound. A concrete legal counterexample is CLKS_PER_BIT=65538: HALF_CLKS=32769 is representable, but loading FULL=65538 into the 16-bit timer truncates it to 2, causing the first data sample to occur two clocks after start confirmation instead of 65538 clocks later. A still larger legal value such as CLKS_PER_BIT=131072 also exceeds the timer capacity for start-centre timing. The second review independently reconstructed the same parameter-boundary failure. The trusted configured simulation and bounded formal checks pass, but the packet does not establish coverage of these legal large parameter values, so they do not invalidate the concrete counterexample."
+  }
+}
