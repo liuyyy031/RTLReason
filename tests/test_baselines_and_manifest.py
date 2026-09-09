@@ -14,6 +14,12 @@ from rtlreason.evaluator.baselines import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+def normalized_text_sha256(path: Path) -> str:
+    """Hash tracked text artifacts independently of checkout line endings."""
+    payload = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def gold_record() -> dict:
     return {
         "case_id": "correct-rtl-wrong-process",
@@ -236,6 +242,9 @@ class BaselineAndManifestTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         self.assertEqual(freeze["status"], "gold_frozen_evaluator_pending")
+        self.assertEqual(
+            freeze["hash_policy"], "sha256_lf_normalized_text_v1"
+        )
         self.assertEqual(freeze["case_count"], 10)
         self.assertEqual(freeze["distribution"]["gold_process_correct"], 6)
         self.assertEqual(freeze["distribution"]["gold_process_incorrect"], 4)
@@ -245,9 +254,7 @@ class BaselineAndManifestTests(unittest.TestCase):
         )
         for group in ("control_hashes", "gold_sha256"):
             for relative_path, expected in freeze[group].items():
-                actual = hashlib.sha256(
-                    (PROJECT_ROOT / relative_path).read_bytes()
-                ).hexdigest()
+                actual = normalized_text_sha256(PROJECT_ROOT / relative_path)
                 self.assertEqual(actual, expected, relative_path)
 
     def test_held_out_batch_002_evaluation_artifacts_are_frozen(self) -> None:
@@ -260,6 +267,9 @@ class BaselineAndManifestTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         self.assertEqual(result["status"], "one_shot_evaluation_complete")
+        self.assertEqual(
+            result["hash_policy"], "sha256_lf_normalized_text_v1"
+        )
         self.assertEqual(result["case_count"], 10)
         self.assertEqual(result["semantic_evaluator"]["model"], "hy3")
         self.assertFalse(result["semantic_evaluator"]["gold_labels_provided_to_judge"])
@@ -269,9 +279,7 @@ class BaselineAndManifestTests(unittest.TestCase):
             **result["artifact_sha256"],
         }
         for relative_path, expected in frozen_paths.items():
-            actual = hashlib.sha256(
-                (PROJECT_ROOT / relative_path).read_bytes()
-            ).hexdigest()
+            actual = normalized_text_sha256(PROJECT_ROOT / relative_path)
             self.assertEqual(actual, expected, relative_path)
 
     def test_gray_code_counter_frozen_record_is_consistent(self) -> None:

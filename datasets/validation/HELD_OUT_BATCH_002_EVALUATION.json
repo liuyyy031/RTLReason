@@ -4,6 +4,7 @@
   "batch_id": "held-out-batch-002",
   "evaluated_at": "2026-09-08",
   "status": "one_shot_evaluation_complete",
+  "hash_policy": "sha256_lf_normalized_text_v1",
   "case_count": 10,
   "semantic_evaluator": {
     "provider": "Tencent Cloud TokenHub",
@@ -14,7 +15,7 @@
   },
   "gold_freeze": {
     "path": "datasets/validation/HELD_OUT_BATCH_002_GOLD_FREEZE.json",
-    "sha256": "d2e7a8811f211f12b2d25a3ec6fe108e576fa082ea922cc3b6e05faaf2b1a9fb"
+    "sha256": "13362862235b5e64c0cd51baf4bb334f31be1b0d1796744af56413cb7bfdaab9"
   },
   "evaluator_freeze": {
     "path": "datasets/validation/EVALUATOR_V1_5_BATCH_002_FREEZE.json",
@@ -70,18 +71,18 @@
     {"case":"uart-rx-001","model":"hy3","gold_process":false,"predicted_process":true,"gold_root":"S5.1","predicted_root":null,"root_match":false}
   ],
   "artifact_sha256": {
-    "datasets/validation/evaluated_batch_002/async-handshake-001.json": "e4ded85515289f8185e5b19e73ff7be13ba694134da5e1ed860ac0570f837777",
-    "datasets/validation/evaluated_batch_002/axi-stream-counter-001.json": "91065ca5c32527baa81a6e8341fe404c53a2626380989ecb3674b5a00727bb01",
-    "datasets/validation/evaluated_batch_002/cache-tag-001.json": "523c71aa6ca1528e291adb74c6fe27e7a0a7452d03259055c15374c328a3b570",
-    "datasets/validation/evaluated_batch_002/credit-flow-001.json": "02c0fa7acbbca562b260511ff81b8fcab4e864bce2027bf5154b722fa1064afa",
-    "datasets/validation/evaluated_batch_002/gray-code-001.json": "6b4d5279cdd08181281bd45532bfdd91c3452c0a3606855b89fbe08e5f2c81f8",
-    "datasets/validation/evaluated_batch_002/multiply-ctrl-001.json": "a603cc7774ea1719144eba9d421d223ea0080efcaf92b5cdd356bc58e0ceafdd",
-    "datasets/validation/evaluated_batch_002/register-file-bypass-001.json": "1d821d16970f43703f8783fcb05a9c7eb76521f73f607ec620356adcfcfab35f",
-    "datasets/validation/evaluated_batch_002/signed-alu-001.json": "cee5be768033f8b0d4bd866773c65d441b93a52f9a6d4ed252cc19f7469af8a6",
-    "datasets/validation/evaluated_batch_002/spi-tx-001.json": "2581b287ce5211c902d5034edab13b31beb53bb5a823d112804b099881dd0ba7",
-    "datasets/validation/evaluated_batch_002/uart-rx-001.json": "8871107c9d2af858de1cc90cf8c28c064840b894e5c676034edec84a9d07d7e2",
-    "datasets/validation/results/held_out_batch_002_baseline_metrics.json": "d3a4eb7e4011440a4ef1c00b7728d230a28b3639769234ef58592cafb3da388b",
-    "datasets/validation/results/held_out_batch_002_hy3_metrics.json": "2328f9cee87dab586e05bf7f9ff5190fc18076a353e2d91b2653a664770bc1d9",
-    "datasets/validation/results/held_out_batch_002_hy4_preview_metrics.json": "1fad34d6f652e66c6b9f0507c3d1b4232d77da96ae5e6066af0d8265001b7dc3"
+    "datasets/validation/evaluated_batch_002/async-handshake-001.json": "4c93c8a7ca17c542128b280c85ebec0ecd851a3d577561cc3af7762725837ee4",
+    "datasets/validation/evaluated_batch_002/axi-stream-counter-001.json": "190943a44863eb8fca6061475b316437a2da8fbc873ac8c5c12c29e5ea1ba170",
+    "datasets/validation/evaluated_batch_002/cache-tag-001.json": "c865bbd278021fd5ff7a11b4ea49cdef50bebd7cfc9d95fc7d3591cd8b4ea08c",
+    "datasets/validation/evaluated_batch_002/credit-flow-001.json": "1673da410c5dbdba1bf13dc96c99aaaadb3013941bd723391a33736d82107c3f",
+    "datasets/validation/evaluated_batch_002/gray-code-001.json": "ae49d870775e527a47f7a07292d98e4dcc4afc2875372799eebfe705f2123eab",
+    "datasets/validation/evaluated_batch_002/multiply-ctrl-001.json": "3a3b691cdf5d19352d8bba5b957998cba15339bc7fe60897d19fe935c46a165d",
+    "datasets/validation/evaluated_batch_002/register-file-bypass-001.json": "f7f991a9786a40ac1a594820f614af85669a3fdbb4a18cb69f78d74ea62b4995",
+    "datasets/validation/evaluated_batch_002/signed-alu-001.json": "202289b1f30c9681ab485e5db44ad867d772efb1505b93b99cb80fe73d5da563",
+    "datasets/validation/evaluated_batch_002/spi-tx-001.json": "6c684989cfe6aeb39ff5c57b4b87b6684208b10014f1286b5757093bafcad100",
+    "datasets/validation/evaluated_batch_002/uart-rx-001.json": "00cdac4dc64bb853cae0305ce51dbe0b221784bc135b626866cfba1502d3144c",
+    "datasets/validation/results/held_out_batch_002_baseline_metrics.json": "fdc16b7d1bb55f2adb1bfda67803a8d4831f8830a2fd681d6634ff030a2db5b2",
+    "datasets/validation/results/held_out_batch_002_hy3_metrics.json": "db8b970d5601a60301c7f59c28266d5346b3bb9fd9452d3275905ce045398496",
+    "datasets/validation/results/held_out_batch_002_hy4_preview_metrics.json": "92484fc576277191b9948d5b4606ff0a86ef5fc3cda2d86f0c229825a8edff8a"
   }
 }

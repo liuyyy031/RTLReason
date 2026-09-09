@@ -4,6 +4,7 @@
   "batch_id": "held-out-batch-002",
   "frozen_at": "2026-09-08",
   "status": "gold_frozen_evaluator_pending",
+  "hash_policy": "sha256_lf_normalized_text_v1",
   "gold_directory": "datasets/validation/held_out_batch_002",
   "case_count": 10,
   "annotation_status": "adjudicated",
@@ -36,15 +37,15 @@
     "datasets/validation/EVALUATOR_V1_5_BATCH_002_FREEZE.json": "e1d6939423008bb228d71596cf2379f277c368d01ba0becbfc68471b4443f99d"
   },
   "gold_sha256": {
-    "datasets/validation/held_out_batch_002/async-handshake-001.json": "8168096dfee4c1daf04f5feb991fd87f9049182d608492a4912e3806e8e8a81f",
-    "datasets/validation/held_out_batch_002/axi-stream-counter-001.json": "3672b771e97cb08ee0068be1c258a61478e5d109247a12d1add175976c4142ed",
-    "datasets/validation/held_out_batch_002/cache-tag-001.json": "edd713e5cb1248ee5c09bddacd5d29627cee7bac880def7183c4c983f4beca4d",
-    "datasets/validation/held_out_batch_002/credit-flow-001.json": "ad8f1f3ed49a2005b429b74709b70076d66dd748f2d00b618c56c0ba7f73eb53",
-    "datasets/validation/held_out_batch_002/gray-code-001.json": "b4dbee201d9e966296fe287179d67fb1aad61aa1aed1b7626e32139ae48b3664",
-    "datasets/validation/held_out_batch_002/multiply-ctrl-001.json": "fb1c2b89dc65ae4380728163ee1e3f5b9891beac957e3e0c1835fea3067bdaa8",
-    "datasets/validation/held_out_batch_002/register-file-bypass-001.json": "5404c70976c75782368c42128635e60ab48bb4e3024a65e35cd26151a9000863",
-    "datasets/validation/held_out_batch_002/signed-alu-001.json": "52b02a02d281bb8507e89bde00ddac14ff75d9f64ae924af19792b7768de84be",
-    "datasets/validation/held_out_batch_002/spi-tx-001.json": "e40aea85ce4efb843fd0715814cce217ee5f5900a3c592b04109e9c1192b44ec",
-    "datasets/validation/held_out_batch_002/uart-rx-001.json": "73d8af677c085aac26afb0ad1ca2f992e789d234e420641e39ac6a57bd9e795e"
+    "datasets/validation/held_out_batch_002/async-handshake-001.json": "ca3eb9ad993bf382d9dbca936d9c4560a7897dfc7b12d46f69a553090cb2f004",
+    "datasets/validation/held_out_batch_002/axi-stream-counter-001.json": "887a784d60c2badbe25e78cacce90e78b2accb4773b0d46bd9af57a1a6158430",
+    "datasets/validation/held_out_batch_002/cache-tag-001.json": "94f9100b02aeac9c50a9034a9b350cfb5e0c413bc025c2d3ce6a7a4a680920d0",
+    "datasets/validation/held_out_batch_002/credit-flow-001.json": "0cf9810d29f7e18519bff9f557ea45e6906e3f8dfc2debcfc771246fd345fac4",
+    "datasets/validation/held_out_batch_002/gray-code-001.json": "de4be6dacb73c5b4e3c4b9b450dfecd400b02788f9f1940ab71b8ffbea252ef6",
+    "datasets/validation/held_out_batch_002/multiply-ctrl-001.json": "933ae03da8633c800283858071741fe1d55dd626e170ffb53748cd94d12d0663",
+    "datasets/validation/held_out_batch_002/register-file-bypass-001.json": "a0e877ba160e46e21ced7e0fe7d6b7f92f28633a9ee15046f036fe2d4b322d05",
+    "datasets/validation/held_out_batch_002/signed-alu-001.json": "4529f4507165badd0bbb72011fb9b37c2c7f23ddcee6747962f7c25e2f528245",
+    "datasets/validation/held_out_batch_002/spi-tx-001.json": "8dc7b8515eaba21ed5973896c7d61dc0af713091fa829c79861478533fc88700",
+    "datasets/validation/held_out_batch_002/uart-rx-001.json": "af5a1b2000cd0764ffbf021de74e88bd84d69bc308c69462e2a49edfb005781a"
   }
 }
